@@ -1,0 +1,45 @@
+# 커밋 메시지 형식 검증 (git-convention.md 기준)
+# 형식: <타입>(<범위, 선택>): <제목>
+
+commit_msg_file="$1"
+
+# 주석(#)과 빈 줄을 제외한 첫 줄을 제목으로 사용
+subject=$(grep -v '^#' "$commit_msg_file" | sed '/^[[:space:]]*$/d' | head -n1)
+
+# Merge / Revert 커밋은 검증에서 제외
+case "$subject" in
+  "Merge "* | "Revert "* | "merge "* | "fixup! "* | "squash! "*)
+    exit 0
+    ;;
+esac
+
+# <타입>(<범위, 선택>): <제목>
+pattern='^(feat|fix|docs|style|refactor|test|chore|perf|ci|release)(\([^)]+\))?: .+'
+
+if ! printf '%s' "$subject" | grep -Eq "$pattern"; then
+  echo ""
+  echo "✖ 커밋 메시지가 컨벤션에 맞지 않습니다."
+  echo ""
+  echo "  형식: <타입>(<범위, 선택>): <제목>"
+  echo "  타입: feat, fix, docs, style, refactor, test, chore, perf, ci, release"
+  echo ""
+  echo "  예시: feat(itinerary): 일정 생성 화면 추가"
+  echo "        fix: 콘텐츠 목록 무한 스크롤 오류 수정"
+  echo ""
+  echo "  입력한 제목: $subject"
+  echo ""
+  exit 1
+fi
+
+# 제목 끝 마침표 금지
+case "$subject" in
+  *".")
+    echo ""
+    echo "✖ 커밋 제목 끝에는 마침표를 붙이지 않습니다."
+    echo "  입력한 제목: $subject"
+    echo ""
+    exit 1
+    ;;
+esac
+
+exit 0
