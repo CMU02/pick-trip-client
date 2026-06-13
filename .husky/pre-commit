@@ -1,0 +1,2 @@
+# 스테이징된 파일만 Biome 검사 (자동 수정 없이 차단만)
+bunx biome check --staged --no-errors-on-unmatched

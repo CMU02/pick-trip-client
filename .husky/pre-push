@@ -1,0 +1,2 @@
+# push 전 테스트 실행 (실패 시 push 차단)
+bun run test
