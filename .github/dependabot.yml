@@ -1,0 +1,24 @@
+# Dependabot 설정
+# 문서: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+version: 2
+updates:
+  # Bun 패키지 의존성 업데이트 (bun.lock 기준)
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Seoul
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    labels:
+      - dependencies
+    # minor / patch 업데이트는 하나의 PR로 묶어 PR 수를 줄인다
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
