@@ -10,17 +10,20 @@
 ## 브랜치 이름
 
 ```text
-<타입>/<작업-내용>
+<타입>/<이슈 번호>
 ```
+
+- 브랜치 이름의 뒤쪽은 작업 설명이 아니라 관련 이슈 번호를 사용한다.
+- 먼저 이슈를 생성한 뒤 그 번호로 브랜치를 만든다.
 
 | 타입 | 사용 시점 | 예시 |
 | --- | --- | --- |
-| `feat` | 새로운 기능 | `feat/content-card-list` |
-| `fix` | 버그 수정 | `fix/itinerary-error-state` |
-| `refactor` | 기능 변경 없는 구조 개선 | `refactor/api-client` |
-| `docs` | 문서 변경 | `docs/client-rules` |
-| `chore` | 설정, 패키지 관리 | `chore/update-biome` |
-| `hotfix` | 긴급 수정 | `hotfix/auth-redirect` |
+| `feat` | 새로운 기능 | `feat/12` |
+| `fix` | 버그 수정 | `fix/34` |
+| `refactor` | 기능 변경 없는 구조 개선 | `refactor/56` |
+| `docs` | 문서 변경 | `docs/78` |
+| `chore` | 설정, 패키지 관리 | `chore/90` |
+| `hotfix` | 긴급 수정 | `hotfix/102` |
 
 ## 커밋 메시지
 
