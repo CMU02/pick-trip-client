@@ -1,7 +1,9 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes - APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
 <!-- END:nextjs-agent-rules -->
 
 # Pick Trip Client
@@ -14,52 +16,77 @@ Pick Trip Client는 경상도 소도시(하동, 영주, 예천) 중심의 여행
 
 # Tech Stack
 
-| 분류 | 기술 |
-| --- | --- |
-| 언어 | TypeScript 5 |
-| 프레임워크 | Next.js 16.2.6 App Router |
-| UI | React 19.2.4 |
-| 스타일링 | Tailwind CSS 4 |
-| 패키지 매니저 | Bun |
-| 린터 / 포맷터 | Biome 2.2.0 |
-| 컴파일 최적화 | React Compiler |
+| 분류          | 기술                      |
+| ------------- | ------------------------- |
+| 언어          | TypeScript 5              |
+| 프레임워크    | Next.js 16.2.6 App Router |
+| UI            | React 19.2.4              |
+| 스타일링      | Tailwind CSS 4            |
+| 패키지 매니저 | Bun                       |
+| 린터 / 포맷터 | Biome 2.2.0               |
+| 컴파일 최적화 | React Compiler            |
 
 # Required Reading
 
 코드를 수정하기 전에 작업 범위에 맞는 문서를 먼저 읽는다.
 
-| 상황 | 먼저 읽을 문서 |
-| --- | --- |
+| 상황                                   | 먼저 읽을 문서                                                                                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 라우트, 레이아웃, App Router 파일 추가 | `node_modules/next/dist/docs/01-app/01-getting-started/02-project-structure.md`, `node_modules/next/dist/docs/01-app/01-getting-started/03-layouts-and-pages.md` |
-| Server/Client Component 경계 변경 | `node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md` |
-| 데이터 패칭, 로딩, 스트리밍 변경 | `node_modules/next/dist/docs/01-app/01-getting-started/06-fetching-data.md`, `node_modules/next/dist/docs/01-app/01-getting-started/08-caching.md` |
-| 환경변수 추가 | `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md` |
-| 이미지 처리 | `node_modules/next/dist/docs/01-app/01-getting-started/12-images.md` |
-| Next 설정 변경 | `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/index.md` |
+| Server/Client Component 경계 변경      | `node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md`                                                                       |
+| 데이터 패칭, 로딩, 스트리밍 변경       | `node_modules/next/dist/docs/01-app/01-getting-started/06-fetching-data.md`, `node_modules/next/dist/docs/01-app/01-getting-started/08-caching.md`               |
+| 환경변수 추가                          | `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md`                                                                                          |
+| 이미지 처리                            | `node_modules/next/dist/docs/01-app/01-getting-started/12-images.md`                                                                                             |
+| Next 설정 변경                         | `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/index.md`                                                                       |
 
 # Project Information
 
-| title | path |
-| --- | --- |
-| 핵심 기능 | `.agents/docs/key-features.md` |
-| 주요 사용 흐름 | `.agents/docs/key-usage-flow.md` |
-| MVP 범위 | `.agents/docs/mvp-scope.md` |
-| API 연동 방향 | `.agents/docs/api-integration.md` |
-| 지역별 콘텐츠 방향 | `.agents/docs/content-direction-by-region.md` |
-| 예외 처리 흐름 | `.agents/docs/error-handling-flow.md` |
-| 정보 보안 보완 방안 | `.agents/docs/measures-to-enhance-information-security.md` |
-| 패키지 매니저 가이드 | `.agents/docs/package-manager-guide.md` |
+| title                | path                                                       |
+| -------------------- | ---------------------------------------------------------- |
+| 핵심 기능            | `.agents/docs/key-features.md`                             |
+| 주요 사용 흐름       | `.agents/docs/key-usage-flow.md`                           |
+| MVP 범위             | `.agents/docs/mvp-scope.md`                                |
+| API 연동 방향        | `.agents/docs/api-integration.md`                          |
+| 지역별 콘텐츠 방향   | `.agents/docs/content-direction-by-region.md`              |
+| 예외 처리 흐름       | `.agents/docs/error-handling-flow.md`                      |
+| 정보 보안 보완 방안  | `.agents/docs/measures-to-enhance-information-security.md` |
+| 패키지 매니저 가이드 | `.agents/docs/package-manager-guide.md`                    |
 
 # Convention
 
-| title | path |
-| --- | --- |
-| 코드 규칙 | `.agents/rules/code-convention.md` |
-| 파일 구조 규칙 | `.agents/rules/file-structure.md` |
-| 테스트 규칙 | `.agents/rules/test-convention.md` |
-| Git 규칙 | `.agents/rules/git-convention.md` |
-| 브랜치 포커스 | `.agents/rules/branch-focus.md` |
-| Biome 설정 | `biome.json` |
+| title          | path                               |
+| -------------- | ---------------------------------- |
+| 코드 규칙      | `.agents/rules/code-convention.md` |
+| 파일 구조 규칙 | `.agents/rules/file-structure.md`  |
+| 테스트 규칙    | `.agents/rules/test-convention.md` |
+| Git 규칙       | `.agents/rules/git-convention.md`  |
+| 브랜치 포커스  | `.agents/rules/branch-focus.md`    |
+| Biome 설정     | `biome.json`                       |
+
+# Issue & PR
+
+## 이슈 생성
+
+이슈를 생성할 때는 작업 성격에 맞는 `.github/ISSUE_TEMPLATE/` 템플릿을 골라 그 구조(제목 접두사, 라벨, 섹션)대로 작성한다.
+
+| 작업 성격                           | 템플릿                                      | 제목 접두사 | 라벨      |
+| ----------------------------------- | ------------------------------------------- | ----------- | --------- |
+| 버그 제보                           | `.github/ISSUE_TEMPLATE/bug_report.md`      | `[Bug]`     | `bug`     |
+| 새로운 기능 제안                    | `.github/ISSUE_TEMPLATE/feature_request.md` | `[Feature]` | `feature` |
+| 구현, 개선, 조사 등 구체적 작업     | `.github/ISSUE_TEMPLATE/task.md`            | `[Task]`    | `task`    |
+| 설정, 의존성, 문서 정리 등 유지보수 | `.github/ISSUE_TEMPLATE/chore.md`           | `[Chore]`   | `chore`   |
+
+- 작업 내용이 여러 성격에 걸치면 가장 핵심이 되는 성격의 템플릿을 선택한다.
+- 템플릿의 섹션을 임의로 생략하지 않고, 빈 항목은 실제 내용으로 채운다.
+
+## PR 생성
+
+PR을 생성할 때는 `.github/pull_request_template.md` 형식을 따른다.
+
+- `작업 내용`: 무엇을 변경했는지 요약한다.
+- `관련 이슈`: `Closes #<이슈 번호>` 형태로 연결한다. (먼저 이슈를 만들고 그 번호로 브랜치를 만든 흐름과 일치)
+- `테스트 플랜`: 변경을 어떻게 검증했는지 구체적으로 남긴다.
+- 병합 방식은 Rebase Merge를 기본으로 한다. (`.agents/rules/git-convention.md` 참고)
 
 # Quick Start
 
