@@ -2,55 +2,65 @@ import { type NextRequest, NextResponse } from "next/server";
 import {
   AUTH_COOKIE_PATH,
   OAUTH_NEXT_COOKIE,
+  OAUTH_NONCE_COOKIE,
   REFRESH_TOKEN_COOKIE,
   refreshTokenCookieOptions,
 } from "@/lib/authCookies";
 import { isSafeNextPath } from "@/lib/authRedirect";
+import { exchangeOAuthCode } from "@/services/authService";
 
-// 백엔드 OAuth2AuthenticationSuccessHandler가 카카오/구글 공통으로
-// `{OAUTH2_REDIRECT_URI}?accessToken=...&refreshToken=...` 형태로 보내는 지점.
-// 토큰이 URL에 노출된 상태이므로 서버에서 즉시 거둬 httpOnly 쿠키로 옮기고,
-// 토큰이 빠진 next 경로로 redirect해 브라우저 히스토리에 남지 않게 한다.
-// accessToken은 버린다. 이후 /auth/session이 refreshToken으로 새로 발급받는다.
-//
-// 보안 주의: 이 콜백은 URL로 받은 refreshToken을 그대로 저장하므로, 공격자가
-// 자기 토큰을 넣은 링크를 피해자에게 클릭시키면 피해자를 공격자 계정으로
-// 로그인시키는 login CSRF/세션 고정이 가능하다. 완전한 방어는 백엔드가
-// 프론트 state를 echo해 대조하고 토큰을 URL 밖(POST/쿠키)으로 옮기는
-// 계약 변경이 필요하다. 여기서는 프론트 단독으로 가능한 방어로,
-// /auth/{provider}/start가 심는 pt_oauth_next 표식이 있는 요청(=이 브라우저가
-// 로그인을 시작한 경우)만 받아들여 맨링크 콜백을 거부한다.
+// 백엔드 OAuth 콜백이 카카오/구글 공통으로 도착하는 지점.
+// 이제 토큰은 더 이상 URL에 실리지 않는다. 백엔드는 `?code=<opaque>` 형태의
+// 일회용 인가 code만 넘기고, 프론트 서버가 이 code와 로그인 개시 때 심어둔
+// nonce를 백엔드 exchange 엔드포인트로 POST 교환해 토큰을 받는다.
+// nonce는 이 브라우저가 로그인을 시작했다는 증명이므로, code나 nonce가 없으면
+// (맨링크로 도착한 콜백) 교환하지 않고 로그인 에러로 되돌린다. 교환 자체가
+// 실패(재사용/만료/nonce 불일치 → 401)해도 마찬가지로 로그인 에러로 되돌린다.
+// 교환 응답의 accessToken은 버리고 refreshToken만 httpOnly 쿠키로 저장하며,
+// 이후 /auth/session이 refreshToken으로 accessToken을 새로 발급받는다.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
-  const refreshToken = searchParams.get("refreshToken");
+  const code = searchParams.get("code");
 
   const rawNext = request.cookies.get(OAUTH_NEXT_COOKIE)?.value;
-  const flowInitiated = rawNext !== undefined;
+  const nonce = request.cookies.get(OAUTH_NONCE_COOKIE)?.value;
   const next = isSafeNextPath(rawNext) ? rawNext : "/";
 
-  function clearNextCookie(response: NextResponse) {
+  function clearRoundTripCookies(response: NextResponse) {
     response.cookies.delete({
       name: OAUTH_NEXT_COOKIE,
+      path: AUTH_COOKIE_PATH,
+    });
+    response.cookies.delete({
+      name: OAUTH_NONCE_COOKIE,
       path: AUTH_COOKIE_PATH,
     });
     return response;
   }
 
-  if (!refreshToken || !flowInitiated) {
+  function redirectToLoginError() {
     const url = new URL("/login", origin);
     url.searchParams.set("error", "1");
     url.searchParams.set("next", next);
-    return clearNextCookie(NextResponse.redirect(url));
+    return clearRoundTripCookies(NextResponse.redirect(url));
   }
 
-  const response = clearNextCookie(
-    NextResponse.redirect(new URL(next, origin)),
-  );
-  response.cookies.set(
-    REFRESH_TOKEN_COOKIE,
-    refreshToken,
-    refreshTokenCookieOptions(),
-  );
+  if (!code || !nonce) {
+    return redirectToLoginError();
+  }
 
-  return response;
+  try {
+    const tokens = await exchangeOAuthCode({ code, nonce });
+    const response = clearRoundTripCookies(
+      NextResponse.redirect(new URL(next, origin)),
+    );
+    response.cookies.set(
+      REFRESH_TOKEN_COOKIE,
+      tokens.refreshToken,
+      refreshTokenCookieOptions(),
+    );
+    return response;
+  } catch {
+    return redirectToLoginError();
+  }
 }

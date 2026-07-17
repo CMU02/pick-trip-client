@@ -7,6 +7,16 @@ export interface TokenRefreshResponse {
   refreshToken: string;
 }
 
+export interface OAuthExchangeRequest {
+  code: string;
+  nonce: string;
+}
+
+export interface OAuthExchangeResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export interface UserMeResponse {
   uid: string;
   // 카카오는 account_email 동의 항목이 없어 email이 내려오지 않는다.

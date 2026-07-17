@@ -1,5 +1,7 @@
 import { apiClient } from "@/services/apiClient";
 import type {
+  OAuthExchangeRequest,
+  OAuthExchangeResponse,
   TokenRefreshRequest,
   TokenRefreshResponse,
   UserMeResponse,
@@ -19,6 +21,19 @@ export async function refreshAccessToken(
 ): Promise<TokenRefreshResponse> {
   const { data } = await apiClient.post<TokenRefreshResponse>(
     "/api/v1/auth/token/refresh",
+    request,
+  );
+  return data;
+}
+
+// 백엔드가 콜백에서 일회용 code만 넘기고 토큰은 서버 측 저장소에 둔다.
+// 프론트 서버가 code와 개시 nonce를 함께 보내 토큰으로 교환한다.
+// code 재사용/만료·nonce 불일치 시 백엔드가 401을 반환한다.
+export async function exchangeOAuthCode(
+  request: OAuthExchangeRequest,
+): Promise<OAuthExchangeResponse> {
+  const { data } = await apiClient.post<OAuthExchangeResponse>(
+    "/api/v1/auth/oauth/exchange",
     request,
   );
   return data;

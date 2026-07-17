@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { TokenRefreshResponse, UserMeResponse } from "@/types/auth";
+import type {
+  OAuthExchangeResponse,
+  TokenRefreshResponse,
+  UserMeResponse,
+} from "@/types/auth";
 import { apiClient } from "./apiClient";
-import { getCurrentUser, logoutUser, refreshAccessToken } from "./authService";
+import {
+  exchangeOAuthCode,
+  getCurrentUser,
+  logoutUser,
+  refreshAccessToken,
+} from "./authService";
 
 vi.mock("./apiClient", () => ({
   apiClient: {
@@ -34,6 +43,25 @@ describe("refreshAccessToken", () => {
 
     expect(mockPost).toHaveBeenCalledWith("/api/v1/auth/token/refresh", {
       refreshToken: "refresh-1",
+    });
+    expect(result).toEqual(mockResponse);
+  });
+});
+
+describe("exchangeOAuthCode", () => {
+  const mockResponse: OAuthExchangeResponse = {
+    accessToken: "access-1",
+    refreshToken: "refresh-1",
+  };
+
+  it("POST /api/v1/auth/oauth/exchange를 { code, nonce } body로 호출하고 응답을 그대로 반환", async () => {
+    mockPost.mockResolvedValueOnce({ data: mockResponse });
+
+    const result = await exchangeOAuthCode({ code: "code-1", nonce: "n-123" });
+
+    expect(mockPost).toHaveBeenCalledWith("/api/v1/auth/oauth/exchange", {
+      code: "code-1",
+      nonce: "n-123",
     });
     expect(result).toEqual(mockResponse);
   });
