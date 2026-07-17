@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/errors";
 import * as basketServiceModule from "@/services/basketService";
 import * as itineraryServiceModule from "@/services/itineraryService";
 import * as shareServiceModule from "@/services/shareService";
@@ -170,8 +171,11 @@ describe("ItineraryClient", () => {
       items: [],
     });
     mockAddBasketItem.mockRejectedValue(
-      new Error(
-        'API 409: {"code":"BASKET_ITEM_DUPLICATE","message":"이미 바구니에 담은 콘텐츠입니다.","traceId":"t-1"}',
+      new ApiError(
+        409,
+        "이미 바구니에 담은 콘텐츠입니다.",
+        "BASKET_ITEM_DUPLICATE",
+        "t-1",
       ),
     );
     mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
@@ -278,9 +282,7 @@ describe("ItineraryClient", () => {
       priority: "MUST_VISIT",
     });
     mockGenerateItinerary.mockRejectedValue(
-      new Error(
-        'API 401: {"code":"AUTH_REQUIRED","message":"로그인이 필요합니다."}',
-      ),
+      new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
     );
 
     render(
@@ -337,9 +339,7 @@ describe("ItineraryClient", () => {
       priority: "MUST_VISIT",
     });
     mockGenerateItinerary.mockRejectedValue(
-      new Error(
-        'API 500: {"code":"INTERNAL_ERROR","message":"일시적인 오류가 발생했습니다."}',
-      ),
+      new ApiError(500, "일시적인 오류가 발생했습니다.", "INTERNAL_ERROR"),
     );
 
     render(

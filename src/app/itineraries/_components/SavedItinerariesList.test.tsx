@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/errors";
 import * as itineraryServiceModule from "@/services/itineraryService";
 import type {
   ItineraryResponse,
@@ -100,9 +101,7 @@ describe("SavedItinerariesList", () => {
   it("상세 조회 실패 시 에러 메시지와 재시도 버튼을 표시한다", async () => {
     seedSaved([summary]);
     mockGetItinerary.mockRejectedValue(
-      new Error(
-        'API 404: {"code":"ITINERARY_NOT_FOUND","message":"일정을 찾을 수 없습니다."}',
-      ),
+      new ApiError(404, "일정을 찾을 수 없습니다.", "ITINERARY_NOT_FOUND"),
     );
 
     render(<SavedItinerariesList />);
