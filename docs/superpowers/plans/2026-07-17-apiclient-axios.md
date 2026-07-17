@@ -1305,7 +1305,12 @@ Run: `bun run test`
 Expected: 전체 통과.
 
 Run: `bun run test:coverage`
-Expected: 통과. `src/lib/**`와 `src/services/**`가 lines/functions/statements 80%, branches 70% 이상이어야 한다. 미달이면 부족한 분기의 테스트를 추가한다.
+Expected: **실패한다.** `src/lib/**` functions 임계값이 미달인데, 원인은 `src/lib/authCookies.ts`의 커버리지 0%로 #42 이전부터 있던 문제다 (이슈 #44로 분리). 확인할 것은 **회귀가 없다는 것**이다:
+
+- `src/services/**`는 임계값(lines/functions/statements 80%, branches 70%)을 충족해야 한다. 미달이면 부족한 분기의 테스트를 추가한다.
+- `src/lib/**`의 실패 항목이 `authCookies.ts`로 인한 functions 하나뿐이어야 한다. `errors.ts` 때문에 실패하거나 실패 항목이 늘었다면 회귀이므로 고친다.
+
+참고 실측 (2026-07-17): `fix/auth` 기준 에러 3건(lines 68.18% / functions 60% / statements 72%) → Task 1 이후 에러 1건(functions 71.42%).
 
 Run: `bun run build`
 Expected: 통과.
