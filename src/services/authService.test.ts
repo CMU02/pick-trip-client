@@ -17,7 +17,26 @@ vi.mock("./apiClient", async (importOriginal) => {
   const actual = await importOriginal<typeof apiClientModule>();
   return { ...actual, apiFetch: vi.fn() };
 });
-vi.mock("axios");
+// axios를 완전 automock하면 apiClient.ts가 모듈 로드 시 호출하는
+// axios.create()가 undefined를 반환해 apiClient.interceptors 접근이 깨진다.
+// create()만 interceptors가 있는 최소 인스턴스를 반환하도록 덮어써
+// 기존 axios.post 자동 목 동작은 그대로 유지한다.
+vi.mock("axios", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("axios")>();
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      post: vi.fn(),
+      create: () => ({
+        interceptors: {
+          request: { use: vi.fn() },
+          response: { use: vi.fn() },
+        },
+      }),
+    },
+  };
+});
 
 describe("loginWithKakao", () => {
   const mockAxiosPost = vi.mocked(axios.post);
