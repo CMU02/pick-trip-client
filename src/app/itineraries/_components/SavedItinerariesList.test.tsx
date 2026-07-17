@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/errors";
 import * as itineraryServiceModule from "@/services/itineraryService";
+import { useSavedItinerariesStore } from "@/stores/savedItinerariesStore";
 import type {
   ItineraryResponse,
   SavedItinerarySummary,
@@ -56,6 +57,9 @@ describe("SavedItinerariesList", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    // 전역 Zustand 스토어는 테스트 간 유지되므로, 매 테스트마다 초기화해
+    // hydrated 플래그로 인해 새 시드가 무시되는 것을 막는다.
+    useSavedItinerariesStore.setState({ items: [], hydrated: false });
     vi.clearAllMocks();
   });
 

@@ -1,5 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/errors";
 import * as basketServiceModule from "@/services/basketService";
@@ -11,19 +13,25 @@ import type {
 } from "@/types/itinerary";
 import { ItineraryClient } from "./ItineraryClient";
 
+// useSavedItineraries.add를 테스트에서 참조하기 위해 hoisted mock으로 선언한다.
+const { mockAddSavedItinerary } = vi.hoisted(() => ({
+  mockAddSavedItinerary: vi.fn(),
+}));
+
 vi.mock("@/services/basketService");
 vi.mock("@/services/itineraryService");
 vi.mock("@/services/shareService");
+// runAuthed는 fn을 그대로 실행(토큰 없음)해 재시도 없이 최종 결과/에러를 그대로 노출한다.
 vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => ({ accessToken: null }),
+  useAuth: () => ({
+    accessToken: null,
+    runAuthed: (fn: (token?: string) => Promise<unknown>) => fn(undefined),
+  }),
 }));
-
-const BASKET_STORAGE_KEY = "pick-trip-basket";
-
-function seedBasket() {
-  localStorage.setItem(
-    BASKET_STORAGE_KEY,
-    JSON.stringify([
+// Zustand 스토어 하이드레이션 커플링을 제거하기 위해 바구니/저장 훅을 직접 mock한다.
+vi.mock("@/hooks/useBasket", () => ({
+  useBasket: () => ({
+    items: [
       {
         content: {
           id: "content-1",
@@ -46,7 +54,23 @@ function seedBasket() {
         addedAt: 2,
         priority: null,
       },
-    ]),
+    ],
+  }),
+}));
+vi.mock("@/hooks/useSavedItineraries", () => ({
+  useSavedItineraries: () => ({ add: mockAddSavedItinerary }),
+}));
+
+// ItineraryClient는 useMutation을 사용하므로 로컬 QueryClientProvider로 감싼다.
+function renderWithClient(ui: ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
   );
 }
 
@@ -99,7 +123,6 @@ describe("ItineraryClient", () => {
   });
 
   it("일정 생성하기 클릭 시 바구니/조건을 서버에 동기화한 뒤 generate를 호출하고 미리보기를 표시한다", async () => {
-    seedBasket();
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -118,7 +141,7 @@ describe("ItineraryClient", () => {
     });
     mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
@@ -159,7 +182,6 @@ describe("ItineraryClient", () => {
   });
 
   it("이미 담긴 콘텐츠(BASKET_ITEM_DUPLICATE) 오류는 무시하고 generate를 계속 진행한다", async () => {
-    seedBasket();
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -180,7 +202,7 @@ describe("ItineraryClient", () => {
     );
     mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
@@ -201,7 +223,6 @@ describe("ItineraryClient", () => {
   });
 
   it("저장 버튼 클릭 시 미리보기 데이터를 SaveItineraryRequest로 변환해 save API를 호출한다", async () => {
-    seedBasket();
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -221,7 +242,7 @@ describe("ItineraryClient", () => {
     mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
     mockSaveItinerary.mockResolvedValue(mockSavedResponse);
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
@@ -264,7 +285,6 @@ describe("ItineraryClient", () => {
   });
 
   it("generate가 AUTH_REQUIRED로 실패하면 오류 대신 로그인 안내 배너와 바구니 기반 미리보기를 표시한다", async () => {
-    seedBasket();
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -285,7 +305,7 @@ describe("ItineraryClient", () => {
       new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
     );
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
@@ -321,7 +341,6 @@ describe("ItineraryClient", () => {
   });
 
   it("generate가 AUTH_REQUIRED가 아닌 오류로 실패하면 기존처럼 오류 메시지를 표시한다", async () => {
-    seedBasket();
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -342,7 +361,7 @@ describe("ItineraryClient", () => {
       new ApiError(500, "일시적인 오류가 발생했습니다.", "INTERNAL_ERROR"),
     );
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
@@ -363,8 +382,7 @@ describe("ItineraryClient", () => {
     ).toBeInTheDocument();
   });
 
-  it("저장 성공 시 저장한 일정 목록(localStorage)에 요약이 기록된다", async () => {
-    seedBasket();
+  it("저장 성공 시 저장한 일정 목록에 요약이 기록된다", async () => {
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -384,7 +402,7 @@ describe("ItineraryClient", () => {
     mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
     mockSaveItinerary.mockResolvedValue(mockSavedResponse);
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
@@ -399,19 +417,17 @@ describe("ItineraryClient", () => {
     await userEvent.click(await screen.findByRole("button", { name: "저장" }));
     await screen.findByText(/저장되었습니다/);
 
-    const stored = JSON.parse(
-      localStorage.getItem("pick-trip-saved-itineraries") ?? "[]",
+    expect(mockAddSavedItinerary).toHaveBeenCalledTimes(1);
+    expect(mockAddSavedItinerary).toHaveBeenCalledWith(
+      expect.objectContaining({
+        itineraryId: mockSavedResponse.itineraryId,
+        title: mockSavedResponse.title,
+        region: mockSavedResponse.region,
+      }),
     );
-    expect(stored).toHaveLength(1);
-    expect(stored[0]).toMatchObject({
-      itineraryId: mockSavedResponse.itineraryId,
-      title: mockSavedResponse.title,
-      region: mockSavedResponse.region,
-    });
   });
 
   it("저장 완료 후 항목을 고정하고 '변경사항 저장'을 누르면 modifyItinerary를 호출한다", async () => {
-    seedBasket();
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -435,7 +451,7 @@ describe("ItineraryClient", () => {
     );
     mockModifyItinerary.mockResolvedValue(mockSavedResponse);
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
@@ -481,7 +497,6 @@ describe("ItineraryClient", () => {
   });
 
   it("저장 완료 후 공유하기 버튼을 클릭하면 공유 링크를 표시한다", async () => {
-    seedBasket();
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
       conditions: {
@@ -506,7 +521,7 @@ describe("ItineraryClient", () => {
       shareUrl: "https://pick-trip.example.com/share/share-token-1",
     });
 
-    render(
+    renderWithClient(
       <ItineraryClient
         regions="HADONG"
         startDate="2026-08-01"
