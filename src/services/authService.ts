@@ -1,8 +1,5 @@
 import { apiClient } from "@/services/apiClient";
 import type {
-  GoogleLoginRequest,
-  KakaoLoginRequest,
-  LoginResponse,
   TokenRefreshRequest,
   TokenRefreshResponse,
   UserMeResponse,
@@ -12,28 +9,11 @@ function authHeaders(accessToken?: string) {
   return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
 }
 
-export async function loginWithKakao(
-  request: KakaoLoginRequest,
-): Promise<LoginResponse> {
-  const { data } = await apiClient.post<LoginResponse>(
-    "/api/v1/auth/login/kakao",
-    request,
-  );
-  return data;
-}
+// 소셜 로그인 자체는 백엔드 oauth2Login이 처리하므로 여기에 대응 함수가 없다.
+// 진입은 /auth/{provider}/start, 토큰 수령은 /auth/callback이 담당한다.
 
-// 백엔드에 /api/v1/auth/login/google이 아직 없어(이슈 #40) 인터페이스만 우선 정의.
-// 백엔드 준비 후 실제 응답 스키마가 LoginResponse와 다르면 이 함수만 조정한다.
-export async function loginWithGoogle(
-  request: GoogleLoginRequest,
-): Promise<LoginResponse> {
-  const { data } = await apiClient.post<LoginResponse>(
-    "/api/v1/auth/login/google",
-    request,
-  );
-  return data;
-}
-
+// 백엔드가 매 호출마다 refreshToken도 새로 발급한다(rotation).
+// 호출부는 반환된 refreshToken으로 반드시 교체 저장해야 한다.
 export async function refreshAccessToken(
   request: TokenRefreshRequest,
 ): Promise<TokenRefreshResponse> {

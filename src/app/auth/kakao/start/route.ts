@@ -1,32 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server";
 import {
   OAUTH_NEXT_COOKIE,
-  OAUTH_STATE_COOKIE,
   oauthRoundTripCookieOptions,
 } from "@/lib/authCookies";
-import { isSafeNextPath } from "@/lib/authRedirect";
+import { isSafeNextPath, oauthAuthorizationUrl } from "@/lib/authRedirect";
 
+// 인가 코드 처리는 전부 백엔드 oauth2Login이 맡는다. 프론트는 로그인 후
+// 돌아갈 next만 쿠키에 남기고 백엔드 진입점으로 넘긴다.
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const rawNext = searchParams.get("next");
   const next = isSafeNextPath(rawNext) ? rawNext : "/";
 
-  const state = crypto.randomUUID();
-  const redirectUri = `${origin}/auth/kakao/callback`;
-
-  const authorizeUrl = new URL("https://kauth.kakao.com/oauth/authorize");
-  authorizeUrl.searchParams.set(
-    "client_id",
-    process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID ?? "",
-  );
-  authorizeUrl.searchParams.set("redirect_uri", redirectUri);
-  authorizeUrl.searchParams.set("response_type", "code");
-  authorizeUrl.searchParams.set("state", state);
-
-  const response = NextResponse.redirect(authorizeUrl);
-  const cookieOptions = oauthRoundTripCookieOptions();
-  response.cookies.set(OAUTH_STATE_COOKIE, state, cookieOptions);
-  response.cookies.set(OAUTH_NEXT_COOKIE, next, cookieOptions);
+  const response = NextResponse.redirect(oauthAuthorizationUrl("kakao"));
+  response.cookies.set(OAUTH_NEXT_COOKIE, next, oauthRoundTripCookieOptions());
 
   return response;
 }

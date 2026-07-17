@@ -1,16 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type {
-  LoginResponse,
-  TokenRefreshResponse,
-  UserMeResponse,
-} from "@/types/auth";
+import type { TokenRefreshResponse, UserMeResponse } from "@/types/auth";
 import { apiClient } from "./apiClient";
-import {
-  getCurrentUser,
-  loginWithKakao,
-  logoutUser,
-  refreshAccessToken,
-} from "./authService";
+import { getCurrentUser, logoutUser, refreshAccessToken } from "./authService";
 
 vi.mock("./apiClient", () => ({
   apiClient: {
@@ -28,24 +19,6 @@ const mockDelete = vi.mocked(apiClient.delete);
 
 beforeEach(() => {
   vi.clearAllMocks();
-});
-
-describe("loginWithKakao", () => {
-  const mockResponse: LoginResponse = {
-    accessToken: "access-1",
-    refreshToken: "refresh-1",
-  };
-
-  it("POST /api/v1/auth/login/kakao를 올바른 body로 호출하고 응답을 그대로 반환", async () => {
-    mockPost.mockResolvedValueOnce({ data: mockResponse });
-
-    const result = await loginWithKakao({ authorizationCode: "code-1" });
-
-    expect(mockPost).toHaveBeenCalledWith("/api/v1/auth/login/kakao", {
-      authorizationCode: "code-1",
-    });
-    expect(result).toEqual(mockResponse);
-  });
 });
 
 describe("refreshAccessToken", () => {
