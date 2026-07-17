@@ -1,5 +1,4 @@
-import axios from "axios";
-import { apiFetch, BASE_URL } from "@/services/apiClient";
+import { apiClient } from "@/services/apiClient";
 import type {
   GoogleLoginRequest,
   KakaoLoginRequest,
@@ -9,14 +8,18 @@ import type {
   UserMeResponse,
 } from "@/types/auth";
 
+function authHeaders(accessToken?: string) {
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+}
+
 export async function loginWithKakao(
   request: KakaoLoginRequest,
 ): Promise<LoginResponse> {
-  const response = await axios.post<LoginResponse>(
-    `${BASE_URL}/api/v1/auth/login/kakao`,
+  const { data } = await apiClient.post<LoginResponse>(
+    "/api/v1/auth/login/kakao",
     request,
   );
-  return response.data;
+  return data;
 }
 
 // 백엔드에 /api/v1/auth/login/google이 아직 없어(이슈 #40) 인터페이스만 우선 정의.
@@ -24,34 +27,34 @@ export async function loginWithKakao(
 export async function loginWithGoogle(
   request: GoogleLoginRequest,
 ): Promise<LoginResponse> {
-  return apiFetch<LoginResponse>("/api/v1/auth/login/google", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
+  const { data } = await apiClient.post<LoginResponse>(
+    "/api/v1/auth/login/google",
+    request,
+  );
+  return data;
 }
 
 export async function refreshAccessToken(
   request: TokenRefreshRequest,
 ): Promise<TokenRefreshResponse> {
-  return apiFetch<TokenRefreshResponse>("/api/v1/auth/token/refresh", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
+  const { data } = await apiClient.post<TokenRefreshResponse>(
+    "/api/v1/auth/token/refresh",
+    request,
+  );
+  return data;
 }
 
 export async function logoutUser(accessToken?: string): Promise<void> {
-  await apiFetch<void>("/api/v1/auth/logout", {
-    method: "DELETE",
-    ...(accessToken
-      ? { headers: { Authorization: `Bearer ${accessToken}` } }
-      : {}),
+  await apiClient.delete<void>("/api/v1/auth/logout", {
+    headers: authHeaders(accessToken),
   });
 }
 
 export async function getCurrentUser(
   accessToken: string,
 ): Promise<UserMeResponse> {
-  return apiFetch<UserMeResponse>("/api/v1/users/me", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  const { data } = await apiClient.get<UserMeResponse>("/api/v1/users/me", {
+    headers: authHeaders(accessToken),
   });
+  return data;
 }
