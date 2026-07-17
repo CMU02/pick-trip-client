@@ -103,7 +103,11 @@ return data;
 
 `src/services/apiClient.test.ts`는 `vi.stubGlobal("fetch")`로 동작하므로 axios mock 기반으로 다시 쓴다. `authService`/`basketService`/`itineraryService`/`shareService` 테스트도 같은 이유로 mocking 계층을 교체한다.
 
-동작이 바뀌지 않는 리팩터링이므로 **기존 테스트의 assertion 의도를 보존**하고 mocking 계층만 바꾼다. 테스트 케이스를 줄이거나 단순화하지 않는다.
+**서비스 테스트**는 동작이 바뀌지 않으므로 assertion 의도(경로, 바디, Authorization 헤더, 응답 그대로 반환, 오류 전파)를 그대로 보존하고 mocking 계층만 바꾼다.
+
+**`src/lib/errors.test.ts`는 예외다.** 13개 케이스 전부가 `"API 400: {...}"` 문자열 포맷을 입력으로 쓴다. 이 포맷은 `apiFetch`가 만들던 것이고 `apiFetch`가 사라지면 그런 입력은 실재하지 않는다. 케이스 5·6·12(`"Failed to fetch"`, `"NetworkError"`, `"fetch"` 키워드 매칭)는 특히 fetch 고유의 오류 메시지에 묶여 있어 axios에서는 의미가 없다. 따라서 이 13개는 보존이 아니라 **대체**한다 — `toApiError`의 계약 테스트(서버 계약 보존, 폴백, 네트워크, 비-AxiosError)와 `parseApiError`의 `ApiError` 입력 테스트가 같은 표면을 덮는다.
+
+`contentService.test.ts`는 기존에 `apiFetch`를 mocking하지 않아 실질적으로 서비스 호출을 검증하지 않았다. 이관하면서 최소 테스트를 추가해 `src/services/**` 80% 커버리지 임계값을 지킨다.
 
 `apiClient.test.ts`가 검증할 것:
 
