@@ -93,7 +93,7 @@ describe("getSharedItinerary", () => {
   it("오류 전파: apiClient가 throw 하면 오류를 그대로 전파(유효하지 않은 토큰 등)", async () => {
     const testError = new ApiError(
       404,
-      "유효하지 않은 공유 링크입니다.",
+      "공유된 일정을 찾을 수 없습니다.",
       "SHARE_ITINERARY_NOT_FOUND",
     );
     mockGet.mockRejectedValueOnce(testError);
