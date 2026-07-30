@@ -1,13 +1,27 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+import { useBasketStore } from "@/stores/basketStore";
+import type { Content } from "@/types/content";
+
 import { TravelDateForm } from "./TravelDateForm";
+
+const stub: Content = {
+  id: "1",
+  name: "쌍계사",
+  region: "HADONG",
+  category: "CULTURE",
+  imageUrl: null,
+  address: "경남 하동군",
+  summary: "천년 고찰",
+  indoor: false,
+};
 
 function fillDateAndDuration() {
   const today = new Date();
@@ -16,6 +30,24 @@ function fillDateAndDuration() {
   const dd = String(today.getDate() + 1).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+
+describe("TravelDateForm — 바구니 초기화", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useBasketStore.setState({ items: [], hydrated: false });
+  });
+
+  it("마운트 시 이전 여행 계획에서 남은 바구니를 비운다", () => {
+    useBasketStore.setState({
+      items: [{ content: stub, addedAt: Date.now(), priority: null }],
+      hydrated: true,
+    });
+
+    render(<TravelDateForm regions="HADONG" />);
+
+    expect(useBasketStore.getState().items).toHaveLength(0);
+  });
+});
 
 describe("TravelDateForm — 동행 조건", () => {
   it("동행 조건 선택 섹션이 화면에 렌더된다", () => {

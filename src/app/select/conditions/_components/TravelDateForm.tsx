@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useBasket } from "@/hooks/useBasket";
 import {
   type CompanionCondition,
   DURATION_PRESETS,
@@ -20,6 +21,15 @@ interface TravelDateFormProps {
 
 export function TravelDateForm({ regions }: TravelDateFormProps) {
   const router = useRouter();
+  const { clear } = useBasket();
+
+  // Step2(여행 조건 입력)가 새 여행 계획의 실질적 시작점이므로, 이전 계획에서
+  // 남은 바구니를 비운다. 원래 이 책임은 /select(Step1)에 있었으나 해당
+  // 페이지가 제거되며 이곳으로 옮겨왔다.
+  useEffect(() => {
+    clear();
+  }, [clear]);
+
   const [startDate, setStartDate] = useState("");
   const [duration, setDuration] = useState<TravelDuration | null>(null);
   const [customNights, setCustomNights] = useState(0);
