@@ -89,7 +89,7 @@ describe("Header", () => {
     );
     expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
       "href",
-      "/select",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
     );
     expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
       "href",

@@ -19,3 +19,5 @@ export const REGION_COLORS: Record<Region, string> = {
   YEONGJU: "#D97706",
   YECHEON: "#0891B2",
 };
+
+export const ALL_REGIONS_QUERY = REGIONS.join(",");

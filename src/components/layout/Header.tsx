@@ -5,16 +5,21 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { ALL_REGIONS_QUERY } from "@/types/region";
 
 const NAV_ITEMS = [
-  { href: "/", label: "홈" },
-  { href: "/select", label: "콘텐츠 탐색" },
-  { href: "/itinerary", label: "AI일정" },
+  { href: "/", matchPath: "/", label: "홈" },
+  {
+    href: `/select/conditions?regions=${ALL_REGIONS_QUERY}`,
+    matchPath: "/select/conditions",
+    label: "콘텐츠 탐색",
+  },
+  { href: "/itinerary", matchPath: "/itinerary", label: "AI일정" },
 ] as const;
 
-function isNavActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isNavActive(pathname: string, matchPath: string) {
+  if (matchPath === "/") return pathname === "/";
+  return pathname === matchPath || pathname.startsWith(`${matchPath}/`);
 }
 
 export function Header() {
@@ -30,7 +35,7 @@ export function Header() {
           </Link>
           <nav className="flex items-center gap-4 text-sm font-medium sm:gap-5">
             {NAV_ITEMS.map((item) => {
-              const active = isNavActive(pathname, item.href);
+              const active = isNavActive(pathname, item.matchPath);
               return (
                 <Link
                   key={item.href}
