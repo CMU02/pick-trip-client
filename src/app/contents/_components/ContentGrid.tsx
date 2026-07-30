@@ -10,6 +10,7 @@ import {
   type Content,
   type ContentCategory,
 } from "@/types/content";
+import type { Region } from "@/types/region";
 
 import { BasketDrawer } from "./BasketDrawer";
 import { BasketFab } from "./BasketFab";
@@ -54,6 +55,7 @@ export function ContentGrid({
   initialContents,
   itineraryHref,
 }: ContentGridProps) {
+  const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<
     ContentCategory[]
   >([]);
@@ -64,6 +66,8 @@ export function ContentGrid({
   const basketIds = new Set(items.map((i) => i.content.id));
 
   const filtered = initialContents.filter((c) => {
+    const matchRegion =
+      selectedRegions.length === 0 || selectedRegions.includes(c.region);
     const matchCategory =
       selectedCategories.length === 0 ||
       (c.category !== undefined && selectedCategories.includes(c.category));
@@ -72,7 +76,7 @@ export function ContentGrid({
       q === "" ||
       c.name.toLowerCase().includes(q) ||
       c.address.toLowerCase().includes(q);
-    return matchCategory && matchKeyword;
+    return matchRegion && matchCategory && matchKeyword;
   });
 
   if (initialContents.length === 0) {
@@ -89,8 +93,10 @@ export function ContentGrid({
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-6">
             <ContentFilter
+              selectedRegions={selectedRegions}
               selectedCategories={selectedCategories}
               keyword={keyword}
+              onRegionChange={setSelectedRegions}
               onCategoryChange={setSelectedCategories}
               onKeywordChange={setKeyword}
             />
