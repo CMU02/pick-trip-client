@@ -5,20 +5,33 @@ import {
   CONTENT_CATEGORIES,
   type ContentCategory,
 } from "@/types/content";
+import { REGION_LABELS, REGIONS, type Region } from "@/types/region";
 
 interface ContentFilterProps {
+  selectedRegions: Region[];
   selectedCategories: ContentCategory[];
   keyword: string;
+  onRegionChange: (regions: Region[]) => void;
   onCategoryChange: (categories: ContentCategory[]) => void;
   onKeywordChange: (keyword: string) => void;
 }
 
 export function ContentFilter({
+  selectedRegions,
   selectedCategories,
   keyword,
+  onRegionChange,
   onCategoryChange,
   onKeywordChange,
 }: ContentFilterProps) {
+  function toggleRegion(region: Region) {
+    if (selectedRegions.includes(region)) {
+      onRegionChange(selectedRegions.filter((r) => r !== region));
+    } else {
+      onRegionChange([...selectedRegions, region]);
+    }
+  }
+
   function toggleCategory(category: ContentCategory) {
     if (selectedCategories.includes(category)) {
       onCategoryChange(selectedCategories.filter((c) => c !== category));
@@ -29,6 +42,27 @@ export function ContentFilter({
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
+        {REGIONS.map((region) => {
+          const selected = selectedRegions.includes(region);
+          return (
+            <button
+              key={region}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => toggleRegion(region)}
+              className={
+                selected
+                  ? "rounded-full border border-primary bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
+                  : "rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/40"
+              }
+            >
+              {REGION_LABELS[region]}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-wrap gap-2">
         {CONTENT_CATEGORIES.map((category) => {
           const selected = selectedCategories.includes(category);
