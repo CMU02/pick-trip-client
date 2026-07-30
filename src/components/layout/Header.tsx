@@ -4,6 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
+const NAV_ITEMS = [
+  { href: "/", label: "홈" },
+  { href: "/select", label: "콘텐츠 탐색" },
+  { href: "/itinerary", label: "AI일정" },
+] as const;
+
+function isNavActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function Header() {
   const { status, user, logout } = useAuth();
@@ -12,9 +24,29 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="text-base font-semibold text-foreground">
-          PickTrip
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/" className="text-base font-semibold text-foreground">
+            PickTrip
+          </Link>
+          <nav className="flex items-center gap-4 text-sm font-medium sm:gap-5">
+            {NAV_ITEMS.map((item) => {
+              const active = isNavActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "transition-colors hover:text-foreground",
+                    active ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
 
         {status === "authenticated" && user && (
           <div className="flex items-center gap-3">

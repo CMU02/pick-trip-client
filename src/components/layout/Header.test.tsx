@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const mockUsePathname = vi.fn(() => "/contents");
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/contents",
+  usePathname: () => mockUsePathname(),
 }));
 
 const mockUseAuth = vi.fn();
@@ -14,6 +15,10 @@ vi.mock("@/hooks/useAuth", () => ({
 import { Header } from "./Header";
 
 describe("Header", () => {
+  beforeEach(() => {
+    mockUsePathname.mockReturnValue("/contents");
+  });
+
   it("로딩 상태에서는 로그인/로그아웃 컨트롤을 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "loading",
@@ -67,5 +72,65 @@ describe("Header", () => {
     expect(screen.getByText("김여행")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "로그아웃" }));
     expect(logout).toHaveBeenCalled();
+  });
+
+  it("홈/콘텐츠 탐색/AI일정 네비게이션 링크를 올바른 href로 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "홈" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
+      "href",
+      "/select",
+    );
+    expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
+      "href",
+      "/itinerary",
+    );
+  });
+
+  it("현재 경로와 일치하는 nav 항목만 활성 상태로 표시한다", () => {
+    mockUsePathname.mockReturnValue("/select/conditions");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "홈" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    expect(screen.getByRole("link", { name: "AI일정" })).not.toHaveAttribute(
+      "aria-current",
+    );
+  });
+
+  it("/itineraries 경로에서는 AI일정(/itinerary) 링크를 활성화하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/itineraries");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "AI일정" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 });
