@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
+import { ALL_REGIONS_QUERY } from "@/types/region";
 
 import { ProgressStepper } from "./ProgressStepper";
 
@@ -42,7 +43,9 @@ export function DashboardHero() {
             </p>
           </div>
           <Button asChild variant="destructive" className="w-full">
-            <Link href="/explore">콘텐츠 둘러보기 &gt;</Link>
+            <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>
+              콘텐츠 둘러보기 &gt;
+            </Link>
           </Button>
         </CardContent>
       </Card>

@@ -55,11 +55,14 @@ describe("DashboardHero", () => {
     expect(screen.getByText("1개의 콘텐츠가 담겨 있어요")).toBeInTheDocument();
   });
 
-  it("'콘텐츠 둘러보기' CTA가 /explore로 연결된다", () => {
+  it("'콘텐츠 둘러보기' CTA가 여행조건 입력 페이지로 연결된다", () => {
     render(<DashboardHero />);
 
     expect(
       screen.getByRole("link", { name: /콘텐츠 둘러보기/ }),
-    ).toHaveAttribute("href", "/explore");
+    ).toHaveAttribute(
+      "href",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+    );
   });
 });
