@@ -10,6 +10,13 @@ import { useItineraryEditor } from "./useItineraryEditor";
 
 vi.mock("@/services/itineraryService");
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    runAuthed: (fn: (token?: string) => Promise<unknown>) =>
+      fn("access-token-1"),
+  }),
+}));
+
 const replacementContent: Content = {
   id: "content-3",
   name: "화개장터",
@@ -183,12 +190,54 @@ describe("useItineraryEditor", () => {
           }),
         ],
       }),
+      "access-token-1",
     );
 
     await waitFor(() => {
       expect(result.current.isDirty).toBe(false);
     });
     expect(result.current.saveError).toBeNull();
+  });
+
+  it("moveItem으로 순서를 바꾼 뒤 save하면 바뀐 순서 그대로 modifyItinerary에 전달한다", async () => {
+    const savedResponse: ItineraryResponse = {
+      itineraryId: "itinerary-1",
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      lastModifiedAt: "2026-08-02T00:00:00Z",
+      days: makeDays(),
+    };
+    mockModifyItinerary.mockResolvedValue(savedResponse);
+
+    const { result } = setup();
+    act(() => {
+      result.current.moveItem("day-1", "item-1", "down");
+    });
+    expect(result.current.days[0].items.map((i) => i.itemId)).toEqual([
+      "item-2",
+      "item-1",
+    ]);
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockModifyItinerary).toHaveBeenCalledWith(
+      "itinerary-1",
+      expect.objectContaining({
+        days: [
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({ contentId: "content-2", order: 0 }),
+              expect.objectContaining({ contentId: "content-1", order: 1 }),
+            ],
+          }),
+        ],
+      }),
+      "access-token-1",
+    );
   });
 
   it("항목의 pinned가 null/undefined여도 저장 요청에는 boolean으로 채워 보낸다", async () => {
@@ -236,6 +285,7 @@ describe("useItineraryEditor", () => {
           }),
         ],
       }),
+      "access-token-1",
     );
   });
 

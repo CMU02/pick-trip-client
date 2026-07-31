@@ -257,6 +257,9 @@ describe("ItineraryClient", () => {
     await screen.findByRole("button", { name: "저장" });
 
     await userEvent.click(screen.getByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
 
     await waitFor(() => {
       expect(mockSaveItinerary).toHaveBeenCalledWith(
@@ -282,6 +285,56 @@ describe("ItineraryClient", () => {
     });
 
     expect(await screen.findByText(/저장되었습니다/)).toBeInTheDocument();
+  });
+
+  it("저장 버튼 클릭 시 일정명 입력 폼이 열리고, 입력을 마치기 전까지는 save API가 호출되지 않는다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+    mockSaveItinerary.mockResolvedValue(mockSavedResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+
+    const titleInput = await screen.findByLabelText("일정명");
+    expect(titleInput).toHaveValue(mockGenerateResponse.title);
+    expect(mockSaveItinerary).not.toHaveBeenCalled();
+
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, "나만의 하동 여행");
+    await userEvent.click(screen.getByRole("button", { name: "저장하기" }));
+
+    await waitFor(() => {
+      expect(mockSaveItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "나만의 하동 여행" }),
+        undefined,
+      );
+    });
   });
 
   it("생성된 항목의 pinned가 null/undefined여도 저장 요청에는 boolean으로 채워 보낸다", async () => {
@@ -333,6 +386,9 @@ describe("ItineraryClient", () => {
     await screen.findByRole("button", { name: "저장" });
 
     await userEvent.click(screen.getByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
 
     await waitFor(() => {
       expect(mockSaveItinerary).toHaveBeenCalledWith(
@@ -484,6 +540,9 @@ describe("ItineraryClient", () => {
       await screen.findByRole("button", { name: "일정 생성하기" }),
     );
     await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
     await screen.findByText(/저장되었습니다/);
 
     expect(mockAddSavedItinerary).toHaveBeenCalledTimes(1);
@@ -533,6 +592,9 @@ describe("ItineraryClient", () => {
       await screen.findByRole("button", { name: "일정 생성하기" }),
     );
     await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
     await screen.findByText(/저장되었습니다/);
 
     await userEvent.click(screen.getByRole("button", { name: /고정/ }));
@@ -561,6 +623,7 @@ describe("ItineraryClient", () => {
             }),
           ],
         }),
+        undefined,
       );
     });
   });
@@ -603,6 +666,9 @@ describe("ItineraryClient", () => {
       await screen.findByRole("button", { name: "일정 생성하기" }),
     );
     await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
     await screen.findByText(/저장되었습니다/);
 
     await userEvent.click(screen.getByRole("button", { name: "공유하기" }));
