@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 import { DashboardHero } from "./DashboardHero";
+import { MyTripsSection } from "./MyTripsSection";
 
 // 비로그인 직접 접근 가드. HomeGate와 대칭되는 반대 방향 리다이렉트다.
 export function DashboardClient() {
@@ -23,6 +24,7 @@ export function DashboardClient() {
   return (
     <div className="flex flex-col gap-10">
       <DashboardHero />
+      <MyTripsSection />
     </div>
   );
 }
