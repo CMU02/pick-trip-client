@@ -19,7 +19,7 @@ export default async function ConditionsPage({
     <main className="mx-auto w-full max-w-2xl px-4 py-12">
       <div className="mb-8">
         <p className="mb-1.5 text-xs font-semibold tracking-wide text-primary uppercase">
-          Step 2 · 여행 조건
+          Step 1 · 여행 조건
         </p>
         <h1 className="text-3xl font-bold tracking-tight">언제 떠나볼까요?</h1>
         <p className="mt-2 text-muted-foreground">
