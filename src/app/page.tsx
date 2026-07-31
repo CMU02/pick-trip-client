@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { CtaSection } from "./_components/CtaSection";
 import { HeroSection } from "./_components/HeroSection";
+import { HomeGate } from "./_components/HomeGate";
 import { RegionShowcase } from "./_components/RegionShowcase";
 
 export const metadata: Metadata = {
@@ -13,9 +14,11 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
-      <HeroSection />
-      <RegionShowcase />
-      <CtaSection />
+      <HomeGate>
+        <HeroSection />
+        <RegionShowcase />
+        <CtaSection />
+      </HomeGate>
     </main>
   );
 }
