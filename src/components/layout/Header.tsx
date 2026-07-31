@@ -10,8 +10,8 @@ import { ALL_REGIONS_QUERY } from "@/types/region";
 const NAV_ITEMS = [
   { href: "/", matchPath: "/", label: "홈" },
   {
-    href: `/contents?regions=${ALL_REGIONS_QUERY}`,
-    matchPath: "/contents",
+    href: "/explore",
+    matchPath: "/explore",
     label: "콘텐츠 탐색",
   },
   {

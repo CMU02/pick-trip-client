@@ -21,9 +21,7 @@ export function HeroSection() {
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href={`/contents?regions=${ALL_REGIONS_QUERY}`}>
-              콘텐츠 둘러보기
-            </Link>
+            <Link href="/explore">콘텐츠 둘러보기</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>

@@ -89,7 +89,7 @@ describe("Header", () => {
     );
     expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
       "href",
-      "/contents?regions=HADONG,YEONGJU,YECHEON",
+      "/explore",
     );
     expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
       "href",
@@ -119,8 +119,8 @@ describe("Header", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("/contentsdetail 경로에서는 콘텐츠 탐색(/contents) 링크를 활성화하지 않는다", () => {
-    mockUsePathname.mockReturnValue("/contentsdetail");
+  it("/exploredetail 경로에서는 콘텐츠 탐색(/explore) 링크를 활성화하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/exploredetail");
     mockUseAuth.mockReturnValue({
       status: "unauthenticated",
       user: null,

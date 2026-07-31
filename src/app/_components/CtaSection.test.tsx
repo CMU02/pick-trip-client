@@ -9,7 +9,7 @@ describe("CtaSection", () => {
 
     expect(
       screen.getByRole("link", { name: "콘텐츠부터 골라보기" }),
-    ).toHaveAttribute("href", "/contents?regions=HADONG,YEONGJU,YECHEON");
+    ).toHaveAttribute("href", "/explore");
     expect(
       screen.getByRole("link", { name: "AI 일정으로 바로가기" }),
     ).toHaveAttribute(
