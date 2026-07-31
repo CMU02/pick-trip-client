@@ -191,6 +191,54 @@ describe("useItineraryEditor", () => {
     expect(result.current.saveError).toBeNull();
   });
 
+  it("항목의 pinned가 null/undefined여도 저장 요청에는 boolean으로 채워 보낸다", async () => {
+    const savedResponse: ItineraryResponse = {
+      itineraryId: "itinerary-1",
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      lastModifiedAt: "2026-08-02T00:00:00Z",
+      days: makeDays(),
+    };
+    mockModifyItinerary.mockResolvedValue(savedResponse);
+
+    const days = makeDays();
+    // 백엔드가 실제로는 pinned를 null로 내려보내는 경우가 있어 이를 재현한다.
+    days[0].items[0].pinned = null as unknown as boolean;
+    const { result } = renderHook(() =>
+      useItineraryEditor({
+        itineraryId: "itinerary-1",
+        title: "하동 1박 2일 여행",
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        initialDays: days,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockModifyItinerary).toHaveBeenCalledWith(
+      "itinerary-1",
+      expect.objectContaining({
+        days: [
+          expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                contentId: "content-1",
+                pinned: false,
+              }),
+              expect.objectContaining({ contentId: "content-2" }),
+            ],
+          }),
+        ],
+      }),
+    );
+  });
+
   it("save 실패 시 에러를 노출하고 로컬 편집 내용을 유지한다", async () => {
     mockModifyItinerary.mockRejectedValue(
       new ApiError(500, "저장에 실패했습니다.", "INTERNAL_ERROR"),
