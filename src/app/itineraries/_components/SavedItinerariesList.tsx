@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { useAuth } from "@/hooks/useAuth";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { parseApiError } from "@/lib/errors";
 import { formatDuration } from "@/lib/itinerary";
@@ -19,13 +20,14 @@ type DetailState =
 
 export function SavedItinerariesList() {
   const { items, remove } = useSavedItineraries();
+  const { runAuthed } = useAuth();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, DetailState>>({});
 
   async function fetchDetail(itineraryId: string) {
     setDetails((prev) => ({ ...prev, [itineraryId]: { status: "loading" } }));
     try {
-      const data = await getItinerary(itineraryId);
+      const data = await runAuthed((token) => getItinerary(itineraryId, token));
       setDetails((prev) => ({
         ...prev,
         [itineraryId]: { status: "loaded", data },

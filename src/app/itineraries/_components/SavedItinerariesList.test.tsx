@@ -12,6 +12,13 @@ import { SavedItinerariesList } from "./SavedItinerariesList";
 
 vi.mock("@/services/itineraryService");
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    runAuthed: (fn: (token?: string) => Promise<unknown>) =>
+      fn("access-token-1"),
+  }),
+}));
+
 const STORAGE_KEY = "pick-trip-saved-itineraries";
 
 function seedSaved(items: SavedItinerarySummary[]) {
@@ -84,7 +91,10 @@ describe("SavedItinerariesList", () => {
     render(<SavedItinerariesList />);
     await userEvent.click(await screen.findByRole("button", { name: "보기" }));
 
-    expect(mockGetItinerary).toHaveBeenCalledWith("itinerary-1");
+    expect(mockGetItinerary).toHaveBeenCalledWith(
+      "itinerary-1",
+      "access-token-1",
+    );
     expect(await screen.findByText("쌍계사")).toBeInTheDocument();
   });
 

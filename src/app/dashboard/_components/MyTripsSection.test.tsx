@@ -1,10 +1,17 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSavedItinerariesStore } from "@/stores/savedItinerariesStore";
 import type { SavedItinerarySummary } from "@/types/itinerary";
 
 import { MyTripsSection } from "./MyTripsSection";
+
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    runAuthed: (fn: (token?: string) => Promise<unknown>) =>
+      fn("access-token-1"),
+  }),
+}));
 
 function makeItem(id: string): SavedItinerarySummary {
   return {

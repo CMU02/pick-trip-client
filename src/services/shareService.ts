@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type {
   ShareCreateResponse,
@@ -6,9 +7,12 @@ import type {
 
 export async function createShare(
   itineraryId: string,
+  accessToken?: string,
 ): Promise<ShareCreateResponse> {
   const { data } = await apiClient.post<ShareCreateResponse>(
     `/api/v1/itineraries/${itineraryId}/share`,
+    undefined,
+    { headers: authHeaders(accessToken) },
   );
   return data;
 }

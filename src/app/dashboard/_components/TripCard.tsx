@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
+import { useAuth } from "@/hooks/useAuth";
 import { parseApiError } from "@/lib/errors";
 import { formatDuration } from "@/lib/itinerary";
 import { getItinerary } from "@/services/itineraryService";
@@ -33,13 +34,16 @@ interface TripCardProps {
 }
 
 export function TripCard({ item, onRemove }: TripCardProps) {
+  const { runAuthed } = useAuth();
   const [panel, setPanel] = useState<Panel>("none");
   const [detail, setDetail] = useState<DetailState | null>(null);
 
   async function fetchDetail() {
     setDetail({ status: "loading" });
     try {
-      const data = await getItinerary(item.itineraryId);
+      const data = await runAuthed((token) =>
+        getItinerary(item.itineraryId, token),
+      );
       setDetail({ status: "loaded", data });
     } catch (err) {
       setDetail({ status: "error", message: parseApiError(err).message });

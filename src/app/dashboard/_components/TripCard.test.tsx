@@ -15,6 +15,13 @@ vi.mock("@/services/shareService", () => ({
   createShare: vi.fn(),
 }));
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    runAuthed: (fn: (token?: string) => Promise<unknown>) =>
+      fn("access-token-1"),
+  }),
+}));
+
 const stub: SavedItinerarySummary = {
   itineraryId: "it-1",
   title: "2박 3일 가족 여행",
@@ -50,7 +57,7 @@ describe("TripCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "더보기" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "상세보기" }));
 
-    expect(getItinerary).toHaveBeenCalledWith("it-1");
+    expect(getItinerary).toHaveBeenCalledWith("it-1", "access-token-1");
     expect(await screen.findByText("생성된 일정")).toBeInTheDocument();
   });
 
