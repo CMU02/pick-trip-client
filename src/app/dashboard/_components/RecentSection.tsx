@@ -5,18 +5,22 @@ import Link from "next/link";
 
 import { useRecentViews } from "@/hooks/useRecentViews";
 
+const MAX_ITEMS = 4;
+
 export function RecentSection() {
   const { items } = useRecentViews();
-
-  if (items.length === 0) return null;
+  const recent = items.slice(0, MAX_ITEMS);
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-bold text-foreground">
-        RECENT · 최근 본 콘텐츠
-      </h2>
+      <div>
+        <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+          RECENT
+        </p>
+        <h2 className="text-lg font-bold text-foreground">최근에 본</h2>
+      </div>
       <div className="flex gap-4 overflow-x-auto pb-2">
-        {items.map(({ content }) => (
+        {recent.map(({ content }) => (
           <Link
             key={content.id}
             href={`/contents/${content.id}`}

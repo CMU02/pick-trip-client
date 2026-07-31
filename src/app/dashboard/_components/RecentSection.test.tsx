@@ -6,7 +6,7 @@ import type { Content } from "@/types/content";
 
 import { RecentSection } from "./RecentSection";
 
-const stub: Content = {
+const makeContent = (overrides: Partial<Content> = {}): Content => ({
   id: "1",
   name: "쌍계사",
   region: "HADONG",
@@ -15,7 +15,8 @@ const stub: Content = {
   address: "경남 하동군",
   summary: "천년 고찰",
   indoor: false,
-};
+  ...overrides,
+});
 
 describe("RecentSection", () => {
   beforeEach(() => {
@@ -23,15 +24,19 @@ describe("RecentSection", () => {
     useRecentViewsStore.setState({ items: [], hydrated: true });
   });
 
-  it("최근 본 콘텐츠가 없으면 아무것도 렌더하지 않는다", () => {
-    const { container } = render(<RecentSection />);
+  it("최근 본 콘텐츠가 없어도 'RECENT'/'최근에 본' 제목은 렌더하고 내용은 비운다", () => {
+    render(<RecentSection />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText("RECENT")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "최근에 본" }),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 
   it("최근 본 콘텐츠를 상세 페이지 링크로 렌더한다", () => {
     useRecentViewsStore.setState({
-      items: [{ content: stub, viewedAt: Date.now() }],
+      items: [{ content: makeContent(), viewedAt: Date.now() }],
       hydrated: true,
     });
 
@@ -42,5 +47,26 @@ describe("RecentSection", () => {
       "href",
       "/contents/1",
     );
+  });
+
+  it("최근 본 순서(왼쪽부터 최신순)로 최대 4개까지만 보여준다", () => {
+    useRecentViewsStore.setState({
+      items: Array.from({ length: 6 }, (_, i) => ({
+        content: makeContent({ id: String(i), name: `콘텐츠${i}` }),
+        viewedAt: Date.now() - i,
+      })),
+      hydrated: true,
+    });
+
+    render(<RecentSection />);
+
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(4);
+    expect(links.map((l) => l.textContent)).toEqual([
+      expect.stringContaining("콘텐츠0"),
+      expect.stringContaining("콘텐츠1"),
+      expect.stringContaining("콘텐츠2"),
+      expect.stringContaining("콘텐츠3"),
+    ]);
   });
 });
