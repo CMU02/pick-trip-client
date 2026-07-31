@@ -15,12 +15,14 @@ export function CtaSection() {
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>
+            <Link href={`/contents?regions=${ALL_REGIONS_QUERY}`}>
               콘텐츠부터 골라보기
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="/itinerary">AI 일정으로 바로가기</Link>
+            <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>
+              AI 일정으로 바로가기
+            </Link>
           </Button>
         </div>
       </div>
