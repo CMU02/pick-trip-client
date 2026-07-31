@@ -23,6 +23,15 @@ describe("MyTripsSection", () => {
     useSavedItinerariesStore.setState({ items: [], hydrated: true });
   });
 
+  it("'My Trip' 라벨과 '내 여행' 제목을 렌더한다", () => {
+    render(<MyTripsSection />);
+
+    expect(screen.getByText("My Trip")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "내 여행" }),
+    ).toBeInTheDocument();
+  });
+
   it("저장된 일정이 없으면 빈 상태 메시지를 보여준다", () => {
     render(<MyTripsSection />);
 

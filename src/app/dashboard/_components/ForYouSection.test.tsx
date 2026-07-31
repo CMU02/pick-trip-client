@@ -33,6 +33,15 @@ describe("ForYouSection", () => {
     useFavoriteStore.setState({ items: [], hydrated: true });
   });
 
+  it("'For You' 라벨과 '{닉네임}님을 위한 추천' 제목을 렌더한다", () => {
+    render(<ForYouSection recommendedPool={[makeContent()]} />);
+
+    expect(screen.getByText("For You")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "김여행님을 위한 추천" }),
+    ).toBeInTheDocument();
+  });
+
   it("바구니에 이미 담긴 콘텐츠는 추천에서 제외한다", () => {
     useBasketStore.setState({
       items: [

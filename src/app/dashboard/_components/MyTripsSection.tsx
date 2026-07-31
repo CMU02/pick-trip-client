@@ -15,7 +15,12 @@ export function MyTripsSection() {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">내 여행</h2>
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+            My Trip
+          </p>
+          <h2 className="text-lg font-bold text-foreground">내 여행</h2>
+        </div>
         {items.length > PREVIEW_COUNT && (
           <Link
             href="/itineraries"
