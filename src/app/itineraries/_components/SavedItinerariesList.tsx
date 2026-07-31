@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { parseApiError } from "@/lib/errors";
+import { formatDuration } from "@/lib/itinerary";
 import { getItinerary } from "@/services/itineraryService";
 import type { ItineraryResponse } from "@/types/itinerary";
 import { REGION_LABELS } from "@/types/region";
@@ -15,10 +16,6 @@ type DetailState =
   | { status: "loading" }
   | { status: "loaded"; data: ItineraryResponse }
   | { status: "error"; message: string };
-
-function formatDuration(duration: number) {
-  return duration === 0 ? "당일치기" : `${duration}박 ${duration + 1}일`;
-}
 
 export function SavedItinerariesList() {
   const { items, remove } = useSavedItineraries();
