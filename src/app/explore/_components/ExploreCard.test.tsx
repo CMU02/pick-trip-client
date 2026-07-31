@@ -42,12 +42,12 @@ describe("ExploreCard", () => {
   it("카드 본문이 상세 페이지 링크를 포함한다", () => {
     render(<ExploreCard content={stub} />);
     const links = screen.getAllByRole("link");
-    expect(links[0]).toHaveAttribute("href", "/contents/1");
+    expect(links[0]).toHaveAttribute("href", "/contents/1?from=explore");
   });
 
   it("'상세 설명' 버튼은 상세 페이지로 이동하는 링크다", () => {
     render(<ExploreCard content={stub} />);
     const detailLink = screen.getByRole("link", { name: "상세 설명" });
-    expect(detailLink).toHaveAttribute("href", "/contents/1");
+    expect(detailLink).toHaveAttribute("href", "/contents/1?from=explore");
   });
 });

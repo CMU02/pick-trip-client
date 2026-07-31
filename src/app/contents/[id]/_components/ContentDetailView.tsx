@@ -14,6 +14,7 @@ import {
 
 interface ContentDetailViewProps {
   content: ContentDetail;
+  showBasketAction?: boolean;
 }
 
 interface InfoRowProps {
@@ -32,7 +33,10 @@ function InfoRow({ label, value }: InfoRowProps) {
   );
 }
 
-export function ContentDetailView({ content }: ContentDetailViewProps) {
+export function ContentDetailView({
+  content,
+  showBasketAction = true,
+}: ContentDetailViewProps) {
   const router = useRouter();
   const { items, add, remove } = useBasket();
   const inBasket = items.some((i) => i.content.id === content.id);
@@ -103,14 +107,16 @@ export function ContentDetailView({ content }: ContentDetailViewProps) {
         )}
       </div>
 
-      <Button
-        variant={inBasket ? "default" : "outline"}
-        className="w-full"
-        onClick={() => (inBasket ? remove(content.id) : add(content))}
-      >
-        <Icon name={inBasket ? "check" : "plus"} size={16} />
-        {inBasket ? "담김" : "담기"}
-      </Button>
+      {showBasketAction && (
+        <Button
+          variant={inBasket ? "default" : "outline"}
+          className="w-full"
+          onClick={() => (inBasket ? remove(content.id) : add(content))}
+        >
+          <Icon name={inBasket ? "check" : "plus"} size={16} />
+          {inBasket ? "담김" : "담기"}
+        </Button>
+      )}
     </div>
   );
 }

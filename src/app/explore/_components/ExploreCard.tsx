@@ -15,7 +15,7 @@ interface ExploreCardProps {
 export function ExploreCard({ content }: ExploreCardProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <Link href={`/contents/${content.id}`} className="block">
+      <Link href={`/contents/${content.id}?from=explore`} className="block">
         <div className="relative aspect-video bg-muted">
           {content.imageUrl ? (
             <Image
@@ -53,7 +53,7 @@ export function ExploreCard({ content }: ExploreCardProps) {
 
       <div className="mt-auto p-4 pt-2">
         <Button asChild variant="outline" size="sm" className="mt-1 w-full">
-          <Link href={`/contents/${content.id}`}>상세 설명</Link>
+          <Link href={`/contents/${content.id}?from=explore`}>상세 설명</Link>
         </Button>
       </div>
     </div>

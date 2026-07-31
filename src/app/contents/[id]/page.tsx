@@ -6,10 +6,15 @@ import { ContentDetailView } from "./_components/ContentDetailView";
 
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 };
 
-export default async function ContentDetailPage({ params }: Props) {
+export default async function ContentDetailPage({
+  params,
+  searchParams,
+}: Props) {
   const { id } = await params;
+  const { from } = await searchParams;
 
   let content: Awaited<ReturnType<typeof getContentById>>;
   try {
@@ -18,5 +23,10 @@ export default async function ContentDetailPage({ params }: Props) {
     notFound();
   }
 
-  return <ContentDetailView content={content} />;
+  return (
+    <ContentDetailView
+      content={content}
+      showBasketAction={from !== "explore"}
+    />
+  );
 }

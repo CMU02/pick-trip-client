@@ -79,4 +79,11 @@ describe("ContentDetailView", () => {
 
     expect(screen.getByRole("button", { name: "담김" })).toBeInTheDocument();
   });
+
+  it("showBasketAction이 false이면 담기 버튼을 렌더하지 않는다", () => {
+    render(<ContentDetailView content={stub} showBasketAction={false} />);
+    expect(
+      screen.queryByRole("button", { name: /담기|담김/ }),
+    ).not.toBeInTheDocument();
+  });
 });
