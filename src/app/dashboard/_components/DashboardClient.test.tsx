@@ -12,6 +12,7 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 import { useBasketStore } from "@/stores/basketStore";
+import { useRecentViewsStore } from "@/stores/recentViewsStore";
 import { useSavedItinerariesStore } from "@/stores/savedItinerariesStore";
 
 import { DashboardClient } from "./DashboardClient";
@@ -22,6 +23,7 @@ describe("DashboardClient", () => {
     localStorage.clear();
     useBasketStore.setState({ items: [], hydrated: true });
     useSavedItinerariesStore.setState({ items: [], hydrated: true });
+    useRecentViewsStore.setState({ items: [], hydrated: true });
   });
 
   it("unauthenticated면 아무것도 렌더하지 않고 '/'로 리다이렉트한다", () => {

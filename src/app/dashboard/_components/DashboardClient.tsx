@@ -9,6 +9,7 @@ import type { Content } from "@/types/content";
 import { DashboardHero } from "./DashboardHero";
 import { ForYouSection } from "./ForYouSection";
 import { MyTripsSection } from "./MyTripsSection";
+import { RecentSection } from "./RecentSection";
 
 interface DashboardClientProps {
   recommendedPool: Content[];
@@ -32,6 +33,7 @@ export function DashboardClient({ recommendedPool }: DashboardClientProps) {
       <DashboardHero />
       <MyTripsSection />
       <ForYouSection recommendedPool={recommendedPool} />
+      <RecentSection />
     </div>
   );
 }
