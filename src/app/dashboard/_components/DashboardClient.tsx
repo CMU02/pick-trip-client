@@ -4,12 +4,18 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
+import type { Content } from "@/types/content";
 
 import { DashboardHero } from "./DashboardHero";
+import { ForYouSection } from "./ForYouSection";
 import { MyTripsSection } from "./MyTripsSection";
 
+interface DashboardClientProps {
+  recommendedPool: Content[];
+}
+
 // 비로그인 직접 접근 가드. HomeGate와 대칭되는 반대 방향 리다이렉트다.
-export function DashboardClient() {
+export function DashboardClient({ recommendedPool }: DashboardClientProps) {
   const { status } = useAuth();
   const router = useRouter();
 
@@ -25,6 +31,7 @@ export function DashboardClient() {
     <div className="flex flex-col gap-10">
       <DashboardHero />
       <MyTripsSection />
+      <ForYouSection recommendedPool={recommendedPool} />
     </div>
   );
 }

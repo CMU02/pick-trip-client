@@ -27,7 +27,7 @@ describe("DashboardClient", () => {
   it("unauthenticated면 아무것도 렌더하지 않고 '/'로 리다이렉트한다", () => {
     mockUseAuth.mockReturnValue({ status: "unauthenticated", user: null });
 
-    render(<DashboardClient />);
+    render(<DashboardClient recommendedPool={[]} />);
 
     expect(screen.queryByText(/안녕하세요/)).not.toBeInTheDocument();
     expect(mockReplace).toHaveBeenCalledWith("/");
@@ -36,7 +36,7 @@ describe("DashboardClient", () => {
   it("loading이면 아무것도 렌더하지 않고 리다이렉트하지 않는다", () => {
     mockUseAuth.mockReturnValue({ status: "loading", user: null });
 
-    render(<DashboardClient />);
+    render(<DashboardClient recommendedPool={[]} />);
 
     expect(screen.queryByText(/안녕하세요/)).not.toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
@@ -48,7 +48,7 @@ describe("DashboardClient", () => {
       user: { nickname: "김여행" },
     });
 
-    render(<DashboardClient />);
+    render(<DashboardClient recommendedPool={[]} />);
 
     expect(screen.getByText("안녕하세요, 김여행님 👋")).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
