@@ -10,11 +10,15 @@ import { ALL_REGIONS_QUERY } from "@/types/region";
 const NAV_ITEMS = [
   { href: "/", matchPath: "/", label: "홈" },
   {
-    href: `/select/conditions?regions=${ALL_REGIONS_QUERY}`,
-    matchPath: "/select/conditions",
+    href: `/contents?regions=${ALL_REGIONS_QUERY}`,
+    matchPath: "/contents",
     label: "콘텐츠 탐색",
   },
-  { href: "/itinerary", matchPath: "/itinerary", label: "AI일정" },
+  {
+    href: `/select/conditions?regions=${ALL_REGIONS_QUERY}`,
+    matchPath: "/select/conditions",
+    label: "AI일정",
+  },
 ] as const;
 
 function isNavActive(pathname: string, matchPath: string) {

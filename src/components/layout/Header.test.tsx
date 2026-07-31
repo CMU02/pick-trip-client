@@ -89,11 +89,11 @@ describe("Header", () => {
     );
     expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
       "href",
-      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+      "/contents?regions=HADONG,YEONGJU,YECHEON",
     );
     expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
       "href",
-      "/itinerary",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
     );
   });
 
@@ -107,20 +107,20 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
       "aria-current",
       "page",
     );
     expect(screen.getByRole("link", { name: "홈" })).not.toHaveAttribute(
       "aria-current",
     );
-    expect(screen.getByRole("link", { name: "AI일정" })).not.toHaveAttribute(
-      "aria-current",
-    );
+    expect(
+      screen.getByRole("link", { name: "콘텐츠 탐색" }),
+    ).not.toHaveAttribute("aria-current");
   });
 
-  it("/itineraries 경로에서는 AI일정(/itinerary) 링크를 활성화하지 않는다", () => {
-    mockUsePathname.mockReturnValue("/itineraries");
+  it("/contentsdetail 경로에서는 콘텐츠 탐색(/contents) 링크를 활성화하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/contentsdetail");
     mockUseAuth.mockReturnValue({
       status: "unauthenticated",
       user: null,
@@ -129,8 +129,8 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: "AI일정" })).not.toHaveAttribute(
-      "aria-current",
-    );
+    expect(
+      screen.getByRole("link", { name: "콘텐츠 탐색" }),
+    ).not.toHaveAttribute("aria-current");
   });
 });
