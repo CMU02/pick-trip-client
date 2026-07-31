@@ -86,4 +86,21 @@ describe("ContentDetailView", () => {
       screen.queryByRole("button", { name: /담기|담김/ }),
     ).not.toBeInTheDocument();
   });
+
+  it("backHref가 없으면 '← 목록으로' 클릭 시 router.back을 호출한다", async () => {
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
+
+    expect(mockBack).toHaveBeenCalledOnce();
+  });
+
+  it("backHref가 주어지면 '← 목록으로'가 해당 경로로 이동하는 링크다", () => {
+    render(<ContentDetailView content={stub} backHref="/explore" />);
+
+    expect(screen.getByRole("link", { name: /목록으로/ })).toHaveAttribute(
+      "href",
+      "/explore",
+    );
+  });
 });

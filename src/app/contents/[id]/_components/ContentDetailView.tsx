@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 interface ContentDetailViewProps {
   content: ContentDetail;
   showBasketAction?: boolean;
+  backHref?: string;
 }
 
 interface InfoRowProps {
@@ -36,6 +38,7 @@ function InfoRow({ label, value }: InfoRowProps) {
 export function ContentDetailView({
   content,
   showBasketAction = true,
+  backHref,
 }: ContentDetailViewProps) {
   const router = useRouter();
   const { items, add, remove } = useBasket();
@@ -58,13 +61,22 @@ export function ContentDetailView({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      <button
-        type="button"
-        onClick={() => router.back()}
-        className="mb-4 text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← 목록으로
-      </button>
+      {backHref ? (
+        <Link
+          href={backHref}
+          className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← 목록으로
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="mb-4 text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← 목록으로
+        </button>
+      )}
 
       {allImages.length > 0 ? (
         <div className="relative mb-6 aspect-video overflow-hidden rounded-xl bg-muted">

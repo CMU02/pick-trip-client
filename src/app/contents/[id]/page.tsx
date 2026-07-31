@@ -27,6 +27,7 @@ export default async function ContentDetailPage({
     <ContentDetailView
       content={content}
       showBasketAction={from !== "explore"}
+      backHref={from === "explore" ? "/explore" : undefined}
     />
   );
 }
