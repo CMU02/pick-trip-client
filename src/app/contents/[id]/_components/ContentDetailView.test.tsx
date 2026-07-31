@@ -8,6 +8,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { useBasketStore } from "@/stores/basketStore";
+import { useRecentViewsStore } from "@/stores/recentViewsStore";
 import type { ContentDetail } from "@/types/content";
 
 import { ContentDetailView } from "./ContentDetailView";
@@ -33,8 +34,9 @@ const stub: ContentDetail = {
 describe("ContentDetailView", () => {
   beforeEach(() => {
     localStorage.clear();
-    // 전역 바구니 스토어는 테스트 간 상태가 누수되므로 초기 상태로 리셋한다.
+    // 전역 스토어는 테스트 간 상태가 누수되므로 초기 상태로 리셋한다.
     useBasketStore.setState({ items: [], hydrated: false });
+    useRecentViewsStore.setState({ items: [], hydrated: false });
   });
 
   it("콘텐츠 이름을 렌더한다", () => {
@@ -102,5 +104,13 @@ describe("ContentDetailView", () => {
       "href",
       "/explore",
     );
+  });
+
+  it("마운트 시 최근 본 콘텐츠로 기록한다", () => {
+    render(<ContentDetailView content={stub} />);
+
+    const items = useRecentViewsStore.getState().items;
+    expect(items).toHaveLength(1);
+    expect(items[0].content.id).toBe("1");
   });
 });
