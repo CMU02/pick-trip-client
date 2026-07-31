@@ -19,7 +19,12 @@ export function RecentSection() {
         </p>
         <h2 className="text-lg font-bold text-foreground">최근에 본</h2>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-2">
+      {/* 아이템이 없어도 카드 높이(h-16)만큼 min-h를 미리 확보해, 나중에
+          최근 본 콘텐츠가 채워질 때 페이지 높이가 갑자기 늘어나지 않게 한다. */}
+      <div
+        data-testid="recent-section-row"
+        className="flex min-h-16 gap-4 overflow-x-auto pb-2"
+      >
         {recent.map(({ content }) => (
           <Link
             key={content.id}

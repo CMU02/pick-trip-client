@@ -34,6 +34,12 @@ describe("RecentSection", () => {
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 
+  it("비어있어도 콘텐츠 영역이 카드 높이만큼 공간을 미리 확보한다", () => {
+    render(<RecentSection />);
+
+    expect(screen.getByTestId("recent-section-row")).toHaveClass("min-h-16");
+  });
+
   it("최근 본 콘텐츠를 상세 페이지 링크로 렌더한다", () => {
     useRecentViewsStore.setState({
       items: [{ content: makeContent(), viewedAt: Date.now() }],

@@ -29,7 +29,7 @@ export function DashboardClient({ recommendedPool }: DashboardClientProps) {
   if (status === "unauthenticated" || status === "loading") return null;
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-16">
       <DashboardHero />
       <MyTripsSection />
       <ForYouSection recommendedPool={recommendedPool} />

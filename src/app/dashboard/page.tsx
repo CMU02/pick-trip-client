@@ -22,14 +22,14 @@ export default async function DashboardPage() {
 
   if (error) {
     return (
-      <main className="mx-auto w-full max-w-7xl px-4 py-10">
+      <main className="mx-auto w-full max-w-7xl px-4 py-14">
         <p className="py-16 text-center text-sm text-destructive">{error}</p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-10">
+    <main className="mx-auto w-full max-w-7xl px-4 py-14">
       <DashboardClient recommendedPool={contents} />
     </main>
   );
