@@ -21,6 +21,10 @@ const NAV_ITEMS = [
   },
 ] as const;
 
+const DASHBOARD_NAV_ITEMS = [
+  { href: "/dashboard", matchPath: "/dashboard", label: "대시보드" },
+] as const;
+
 function isNavActive(pathname: string, matchPath: string) {
   if (matchPath === "/") return pathname === "/";
   return pathname === matchPath || pathname.startsWith(`${matchPath}/`);
@@ -29,6 +33,7 @@ function isNavActive(pathname: string, matchPath: string) {
 export function Header() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
+  const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
@@ -38,7 +43,7 @@ export function Header() {
             PickTrip
           </Link>
           <nav className="flex items-center gap-4 text-sm font-medium sm:gap-5">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = isNavActive(pathname, item.matchPath);
               return (
                 <Link
