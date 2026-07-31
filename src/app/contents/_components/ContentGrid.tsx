@@ -3,48 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ContentFilter } from "@/components/ContentFilter";
 import { useBasket } from "@/hooks/useBasket";
-import {
-  CATEGORY_LABELS,
-  CONTENT_CATEGORIES,
-  type Content,
-  type ContentCategory,
-} from "@/types/content";
+import { groupContentsByCategory } from "@/lib/content";
+import type { Content, ContentCategory } from "@/types/content";
 import type { Region } from "@/types/region";
 
 import { BasketDrawer } from "./BasketDrawer";
 import { BasketFab } from "./BasketFab";
 import { BasketPanel } from "./BasketPanel";
 import { ContentCard } from "./ContentCard";
-import { ContentFilter } from "./ContentFilter";
-
-const UNCATEGORIZED_LABEL = "기타";
-
-interface ContentGroup {
-  key: string;
-  label: string;
-  items: Content[];
-}
-
-// CONTENT_CATEGORIES 순서대로 묶고, category가 없는 콘텐츠는 마지막에 "기타"로 모은다.
-function groupByCategory(contents: Content[]): ContentGroup[] {
-  const groups: ContentGroup[] = CONTENT_CATEGORIES.map((category) => ({
-    key: category,
-    label: CATEGORY_LABELS[category],
-    items: contents.filter((c) => c.category === category),
-  })).filter((group) => group.items.length > 0);
-
-  const uncategorized = contents.filter((c) => c.category === undefined);
-  if (uncategorized.length > 0) {
-    groups.push({
-      key: "uncategorized",
-      label: UNCATEGORIZED_LABEL,
-      items: uncategorized,
-    });
-  }
-
-  return groups;
-}
 
 interface ContentGridProps {
   initialContents: Content[];
@@ -111,7 +79,7 @@ export function ContentGrid({
                   {filtered.length}개 결과
                 </p>
                 <div className="flex flex-col gap-8">
-                  {groupByCategory(filtered).map((group) => (
+                  {groupContentsByCategory(filtered).map((group) => (
                     <section key={group.key}>
                       <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
                         {group.label}
