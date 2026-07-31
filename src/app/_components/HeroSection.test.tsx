@@ -13,12 +13,12 @@ describe("HeroSection", () => {
 
     expect(
       screen.getByRole("link", { name: "콘텐츠 둘러보기" }),
+    ).toHaveAttribute("href", "/contents?regions=HADONG,YEONGJU,YECHEON");
+    expect(
+      screen.getByRole("link", { name: "AI 일정 살펴보기" }),
     ).toHaveAttribute(
       "href",
       "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
     );
-    expect(
-      screen.getByRole("link", { name: "AI 일정 살펴보기" }),
-    ).toHaveAttribute("href", "/itinerary");
   });
 });

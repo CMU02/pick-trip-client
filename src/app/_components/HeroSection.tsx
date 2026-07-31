@@ -21,12 +21,14 @@ export function HeroSection() {
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>
+            <Link href={`/contents?regions=${ALL_REGIONS_QUERY}`}>
               콘텐츠 둘러보기
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="/itinerary">AI 일정 살펴보기</Link>
+            <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>
+              AI 일정 살펴보기
+            </Link>
           </Button>
         </div>
       </div>
