@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,10 +24,11 @@ const stub: Content = {
 };
 
 function fillDateAndDuration() {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate() + 1).padStart(2, "0");
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const yyyy = tomorrow.getFullYear();
+  const mm = String(tomorrow.getMonth() + 1).padStart(2, "0");
+  const dd = String(tomorrow.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
 
@@ -60,7 +61,7 @@ describe("TravelDateForm — 동행 조건", () => {
     render(<TravelDateForm regions="HADONG" />);
 
     const dateInput = screen.getByLabelText(/출발 날짜/);
-    await userEvent.type(dateInput, fillDateAndDuration());
+    fireEvent.change(dateInput, { target: { value: fillDateAndDuration() } });
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
 
     expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
@@ -71,7 +72,7 @@ describe("TravelDateForm — 동행 조건", () => {
 
     const dateInput = screen.getByLabelText(/출발 날짜/);
     const date = fillDateAndDuration();
-    await userEvent.type(dateInput, date);
+    fireEvent.change(dateInput, { target: { value: date } });
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
     await userEvent.click(screen.getByRole("button", { name: "아이와 함께" }));
     await userEvent.click(screen.getByRole("button", { name: "다음" }));
@@ -87,7 +88,7 @@ describe("TravelDateForm — 동행 조건", () => {
 
     const dateInput = screen.getByLabelText(/출발 날짜/);
     const date = fillDateAndDuration();
-    await userEvent.type(dateInput, date);
+    fireEvent.change(dateInput, { target: { value: date } });
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
     await userEvent.click(screen.getByRole("button", { name: "다음" }));
 
