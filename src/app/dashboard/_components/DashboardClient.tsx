@@ -32,8 +32,8 @@ export function DashboardClient({ recommendedPool }: DashboardClientProps) {
     <div className="flex flex-col gap-16">
       <DashboardHero />
       <MyTripsSection />
-      <ForYouSection recommendedPool={recommendedPool} />
       <RecentSection />
+      <ForYouSection recommendedPool={recommendedPool} />
     </div>
   );
 }
