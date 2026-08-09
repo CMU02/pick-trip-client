@@ -1,24 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_KR } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
-const notoSansKR = Noto_Sans_KR({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+// Paperlogy는 Thin(100)~Black(900) 9개 굵기를 개별 파일로 제공한다. Tailwind
+// 기본 font-weight 스케일과 1:1 대응시켜, 굵기 유틸리티마다 실제 폰트 파일이
+// 매핑되고 브라우저가 페이크 볼드를 합성하지 않도록 한다.
+const paperlogy = localFont({
+  src: [
+    { path: "./fonts/paperlogy/Paperlogy-1Thin.ttf", weight: "100" },
+    { path: "./fonts/paperlogy/Paperlogy-2ExtraLight.ttf", weight: "200" },
+    { path: "./fonts/paperlogy/Paperlogy-3Light.ttf", weight: "300" },
+    { path: "./fonts/paperlogy/Paperlogy-4Regular.ttf", weight: "400" },
+    { path: "./fonts/paperlogy/Paperlogy-5Medium.ttf", weight: "500" },
+    { path: "./fonts/paperlogy/Paperlogy-6SemiBold.ttf", weight: "600" },
+    { path: "./fonts/paperlogy/Paperlogy-7Bold.ttf", weight: "700" },
+    { path: "./fonts/paperlogy/Paperlogy-8ExtraBold.ttf", weight: "800" },
+    { path: "./fonts/paperlogy/Paperlogy-9Black.ttf", weight: "900" },
+  ],
   variable: "--font-sans",
-});
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -35,14 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={cn(
-        "h-full",
-        "antialiased",
-        geistSans.variable,
-        geistMono.variable,
-        "font-sans",
-        notoSansKR.variable,
-      )}
+      className={cn("h-full", "antialiased", "font-sans", paperlogy.variable)}
     >
       <body className="min-h-full flex flex-col">
         <Providers>
