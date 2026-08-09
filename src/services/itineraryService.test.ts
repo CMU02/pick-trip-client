@@ -214,8 +214,20 @@ describe("getItinerary", () => {
 
     const result = await getItinerary("itinerary-1");
 
-    expect(mockGet).toHaveBeenCalledWith("/api/v1/itineraries/itinerary-1");
+    expect(mockGet).toHaveBeenCalledWith("/api/v1/itineraries/itinerary-1", {
+      headers: undefined,
+    });
     expect(result).toEqual(expectedResult);
+  });
+
+  it("accessToken을 전달하면 Authorization 헤더를 붙인다", async () => {
+    mockGet.mockResolvedValueOnce({ data: rawServerResponse });
+
+    await getItinerary("itinerary-1", "access-1");
+
+    expect(mockGet).toHaveBeenCalledWith("/api/v1/itineraries/itinerary-1", {
+      headers: { Authorization: "Bearer access-1" },
+    });
   });
 
   it("오류 전파: apiClient가 throw 하면 오류를 그대로 전파", async () => {

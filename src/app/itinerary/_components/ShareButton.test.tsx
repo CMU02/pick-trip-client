@@ -7,6 +7,13 @@ import { ShareButton } from "./ShareButton";
 
 vi.mock("@/services/shareService");
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    runAuthed: (fn: (token?: string) => Promise<unknown>) =>
+      fn("access-token-1"),
+  }),
+}));
+
 describe("ShareButton", () => {
   const mockCreateShare = vi.mocked(shareServiceModule.createShare);
 
@@ -35,7 +42,10 @@ describe("ShareButton", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "공유하기" }));
 
-    expect(mockCreateShare).toHaveBeenCalledWith("itinerary-1");
+    expect(mockCreateShare).toHaveBeenCalledWith(
+      "itinerary-1",
+      "access-token-1",
+    );
     expect(
       await screen.findByDisplayValue(
         "https://pick-trip.example.com/share/share-token-1",

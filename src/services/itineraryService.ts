@@ -1,13 +1,10 @@
+import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type {
   ItineraryGenerateResponse,
   ItineraryResponse,
   SaveItineraryRequest,
 } from "@/types/itinerary";
-
-function authHeaders(accessToken?: string) {
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
-}
 
 // 프론트는 duration을 UI 개념인 "박 수"(당일치기=0)로 다루지만, 백엔드는
 // "일수"(당일치기=1, 최소 1)로 정의한다(.agents/docs/domain-model.md). 서비스
@@ -47,9 +44,11 @@ export async function saveItinerary(
 
 export async function getItinerary(
   itineraryId: string,
+  accessToken?: string,
 ): Promise<ItineraryResponse> {
   const { data } = await apiClient.get<ItineraryResponse>(
     `/api/v1/itineraries/${itineraryId}`,
+    { headers: authHeaders(accessToken) },
   );
   return { ...data, duration: serverDurationToNights(data.duration) };
 }
