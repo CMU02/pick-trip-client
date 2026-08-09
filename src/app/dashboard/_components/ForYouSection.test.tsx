@@ -79,4 +79,25 @@ describe("ForYouSection", () => {
 
     expect(screen.getAllByText(/^콘텐츠\d+$/)).toHaveLength(8);
   });
+
+  it("추천 콘텐츠가 8개를 초과하면 /dashboard/for-you로 이동하는 더보기 링크를 보여준다", () => {
+    const pool = Array.from({ length: 9 }, (_, i) =>
+      makeContent({ id: String(i), name: `콘텐츠${i}` }),
+    );
+
+    render(<ForYouSection recommendedPool={pool} />);
+
+    expect(screen.getByRole("link", { name: "더보기 →" })).toHaveAttribute(
+      "href",
+      "/dashboard/for-you",
+    );
+  });
+
+  it("추천 콘텐츠가 8개 이하면 더보기 링크를 보여주지 않는다", () => {
+    render(<ForYouSection recommendedPool={[makeContent()]} />);
+
+    expect(
+      screen.queryByRole("link", { name: "더보기 →" }),
+    ).not.toBeInTheDocument();
+  });
 });

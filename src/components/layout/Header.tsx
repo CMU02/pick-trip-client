@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { ALL_REGIONS_QUERY } from "@/types/region";
@@ -64,6 +65,13 @@ export function Header() {
 
         {status === "authenticated" && user && (
           <div className="flex items-center gap-3">
+            <Link
+              href="/favorites"
+              aria-label="찜한 콘텐츠"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Icon name="heart" size={20} />
+            </Link>
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700">
                 {user.nickname[0]}

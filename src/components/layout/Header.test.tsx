@@ -162,4 +162,40 @@ describe("Header", () => {
       "/dashboard",
     );
   });
+
+  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘 링크를 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "찜한 콘텐츠" })).toHaveAttribute(
+      "href",
+      "/favorites",
+    );
+  });
+
+  it("비로그인 상태에서는 찜 아이콘 링크를 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(
+      screen.queryByRole("link", { name: "찜한 콘텐츠" }),
+    ).not.toBeInTheDocument();
+  });
 });

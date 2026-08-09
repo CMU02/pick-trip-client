@@ -2,6 +2,10 @@ import { create } from "zustand";
 
 import type { Content } from "@/types/content";
 
+// ── 향후 백엔드 연동 시 제안 계약 (미구현, 현재는 localStorage만 사용) ──
+// - 로컬스토리지 키: pick-trip-favorites / 값: Content[] (식별자는 content.id)
+// - 리소스 제안: GET/POST/DELETE /api/v1/favorites (basket의 /api/v1/baskets/items 관례를 따름)
+// - 생성 요청 필드 제안: { contentId: string } (basket의 AddBasketItemRequest와 동일 네이밍)
 const STORAGE_KEY = "pick-trip-favorites";
 
 interface FavoriteState {

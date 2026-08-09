@@ -53,4 +53,24 @@ describe("RecommendedCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "찜 해제" }));
     expect(useFavoriteStore.getState().items).toHaveLength(0);
   });
+
+  it("detailHref가 없으면 상세 페이지로 이동하는 링크가 없다", () => {
+    render(<RecommendedCard content={stub} />);
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("detailHref가 있으면 해당 경로로 이동하는 링크를 렌더한다", () => {
+    render(
+      <RecommendedCard
+        content={stub}
+        detailHref={`/contents/${stub.id}?from=favorites`}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /쌍계사/ })).toHaveAttribute(
+      "href",
+      "/contents/1?from=favorites",
+    );
+  });
 });
