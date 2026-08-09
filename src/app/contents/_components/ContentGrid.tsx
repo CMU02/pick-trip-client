@@ -1,17 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { BasketLayout } from "@/components/BasketLayout";
 import { ContentFilter } from "@/components/ContentFilter";
 import { useBasket } from "@/hooks/useBasket";
 import { groupContentsByCategory } from "@/lib/content";
 import type { Content, ContentCategory } from "@/types/content";
 import type { Region } from "@/types/region";
 
-import { BasketDrawer } from "./BasketDrawer";
-import { BasketFab } from "./BasketFab";
-import { BasketPanel } from "./BasketPanel";
 import { ContentCard } from "./ContentCard";
 
 interface ContentGridProps {
@@ -28,9 +25,7 @@ export function ContentGrid({
     ContentCategory[]
   >([]);
   const [keyword, setKeyword] = useState("");
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { items, add, remove, setPriority, clear } = useBasket();
-  const router = useRouter();
+  const { items, add, remove } = useBasket();
   const basketIds = new Set(items.map((i) => i.content.id));
 
   const filtered = initialContents.filter((c) => {
@@ -56,82 +51,55 @@ export function ContentGrid({
   }
 
   return (
-    <>
-      <div className="flex gap-6">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-6">
-            <ContentFilter
-              selectedRegions={selectedRegions}
-              selectedCategories={selectedCategories}
-              keyword={keyword}
-              onRegionChange={setSelectedRegions}
-              onCategoryChange={setSelectedCategories}
-              onKeywordChange={setKeyword}
-            />
+    <BasketLayout generateHref={itineraryHref}>
+      <div className="flex flex-col gap-6">
+        <ContentFilter
+          selectedRegions={selectedRegions}
+          selectedCategories={selectedCategories}
+          keyword={keyword}
+          onRegionChange={setSelectedRegions}
+          onCategoryChange={setSelectedCategories}
+          onKeywordChange={setKeyword}
+        />
 
-            {filtered.length === 0 ? (
-              <p className="flex min-h-[60vh] items-center justify-center text-center text-sm text-muted-foreground">
-                조건에 맞는 콘텐츠가 없습니다
-              </p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-muted-foreground">
-                  {filtered.length}개 결과
-                </p>
-                <div className="flex flex-col gap-8">
-                  {groupContentsByCategory(filtered).map((group) => (
-                    <section key={group.key}>
-                      <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
-                        {group.label}
-                        <span className="text-sm font-normal text-muted-foreground">
-                          {group.items.length}개
-                        </span>
-                      </h2>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {group.items.map((content) => (
-                          <ContentCard
-                            key={content.id}
-                            content={content}
-                            isInBasket={basketIds.has(content.id)}
-                            onToggleBasket={() =>
-                              basketIds.has(content.id)
-                                ? remove(content.id)
-                                : add(content)
-                            }
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              </div>
-            )}
+        {filtered.length === 0 ? (
+          <p className="flex min-h-[60vh] items-center justify-center text-center text-sm text-muted-foreground">
+            조건에 맞는 콘텐츠가 없습니다
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">
+              {filtered.length}개 결과
+            </p>
+            <div className="flex flex-col gap-8">
+              {groupContentsByCategory(filtered).map((group) => (
+                <section key={group.key}>
+                  <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+                    {group.label}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {group.items.length}개
+                    </span>
+                  </h2>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {group.items.map((content) => (
+                      <ContentCard
+                        key={content.id}
+                        content={content}
+                        isInBasket={basketIds.has(content.id)}
+                        onToggleBasket={() =>
+                          basketIds.has(content.id)
+                            ? remove(content.id)
+                            : add(content)
+                        }
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
-        </div>
-
-        <aside className="hidden w-72 shrink-0 lg:block">
-          <BasketPanel
-            items={items}
-            onRemove={remove}
-            onSetPriority={setPriority}
-            onClear={clear}
-            canGenerate={items.length >= 2}
-            onGenerate={() => router.push(itineraryHref)}
-          />
-        </aside>
+        )}
       </div>
-
-      <BasketFab count={items.length} onOpen={() => setIsDrawerOpen(true)} />
-      <BasketDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        items={items}
-        onRemove={remove}
-        onSetPriority={setPriority}
-        onClear={clear}
-        canGenerate={items.length >= 2}
-        onGenerate={() => router.push(itineraryHref)}
-      />
-    </>
+    </BasketLayout>
   );
 }

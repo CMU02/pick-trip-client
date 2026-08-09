@@ -133,6 +133,7 @@ export function ItineraryClient({
   companions,
 }: ItineraryClientProps) {
   const [phase, setPhase] = useState<ItineraryPhase>({ status: "idle" });
+  const [titleDraft, setTitleDraft] = useState<string | null>(null);
   const { items } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const { runAuthed } = useAuth();
@@ -219,14 +220,14 @@ export function ItineraryClient({
     });
   }
 
-  function handleSave() {
+  function handleSave(title: string) {
     if (phase.status !== "preview") return;
     const previewData = phase.data;
 
     setPhase({ status: "saving", data: previewData });
 
     const request: SaveItineraryRequest = {
-      title: previewData.title,
+      title,
       region: previewData.region,
       travelDate: previewData.travelDate,
       duration: previewData.duration,
@@ -237,7 +238,7 @@ export function ItineraryClient({
           title: item.title,
           order: item.order,
           reason: item.reason,
-          pinned: item.pinned,
+          pinned: item.pinned ?? false,
         })),
       })),
     };
@@ -252,6 +253,7 @@ export function ItineraryClient({
           duration: saved.duration,
           savedAt: Date.now(),
         });
+        setTitleDraft(null);
         setPhase({ status: "saved", data: saved });
       },
       onError: (err) => {
@@ -293,6 +295,7 @@ export function ItineraryClient({
   }
 
   if (phase.status === "preview" || phase.status === "saving") {
+    const isSaving = phase.status === "saving";
     return (
       <div className="space-y-4">
         <ItineraryResult data={phase.data} />
@@ -302,18 +305,58 @@ export function ItineraryClient({
             {phase.error.traceId && ` (참고: ${phase.error.traceId})`}
           </p>
         )}
-        <div className="flex gap-2">
-          <Button disabled={phase.status === "saving"} onClick={handleSave}>
-            {phase.status === "saving" ? "저장 중..." : "저장"}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={phase.status === "saving"}
-            onClick={() => setPhase({ status: "idle" })}
+        {titleDraft === null ? (
+          <div className="flex gap-2">
+            <Button
+              disabled={isSaving}
+              onClick={() => setTitleDraft(phase.data.title)}
+            >
+              저장
+            </Button>
+            <Button
+              variant="outline"
+              disabled={isSaving}
+              onClick={() => setPhase({ status: "idle" })}
+            >
+              다시 생성
+            </Button>
+          </div>
+        ) : (
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const trimmed = titleDraft.trim();
+              if (!trimmed) return;
+              handleSave(trimmed);
+            }}
           >
-            다시 생성
-          </Button>
-        </div>
+            <label htmlFor="itinerary-title" className="sr-only">
+              일정명
+            </label>
+            <input
+              id="itinerary-title"
+              className="flex-1 rounded-md border border-input px-3 py-2 text-sm"
+              value={titleDraft}
+              disabled={isSaving}
+              onChange={(e) => setTitleDraft(e.target.value)}
+            />
+            <Button
+              type="submit"
+              disabled={isSaving || titleDraft.trim() === ""}
+            >
+              {isSaving ? "저장 중..." : "저장하기"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSaving}
+              onClick={() => setTitleDraft(null)}
+            >
+              취소
+            </Button>
+          </form>
+        )}
       </div>
     );
   }

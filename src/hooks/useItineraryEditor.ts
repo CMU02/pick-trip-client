@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useAuth } from "@/hooks/useAuth";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
 import { modifyItinerary } from "@/services/itineraryService";
 import type { Content } from "@/types/content";
@@ -40,6 +41,7 @@ export function useItineraryEditor({
   duration,
   initialDays,
 }: UseItineraryEditorOptions) {
+  const { runAuthed } = useAuth();
   const [days, setDays] = useState<Day[]>(initialDays);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -130,11 +132,13 @@ export function useItineraryEditor({
             title: item.title,
             order: item.order,
             reason: item.reason,
-            pinned: item.pinned,
+            pinned: item.pinned ?? false,
           })),
         })),
       };
-      const saved = await modifyItinerary(itineraryId, request);
+      const saved = await runAuthed((token) =>
+        modifyItinerary(itineraryId, request, token),
+      );
       setDays(saved.days);
       setIsDirty(false);
     } catch (err) {
