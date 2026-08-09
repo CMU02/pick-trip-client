@@ -133,4 +133,41 @@ describe("Header", () => {
       screen.getByRole("link", { name: "콘텐츠 탐색" }),
     ).not.toHaveAttribute("aria-current");
   });
+
+  it("비로그인 상태에서는 마이페이지 링크가 로그인 후 마이페이지로 오도록 next를 고정한다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "마이페이지" })).toHaveAttribute(
+      "href",
+      "/login?next=/mypage",
+    );
+  });
+
+  it("로그인 상태에서는 마이페이지 링크가 /mypage를 가리킨다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "마이페이지" })).toHaveAttribute(
+      "href",
+      "/mypage",
+    );
+  });
 });

@@ -65,6 +65,9 @@ export function Header() {
               </span>
               <span className="text-sm text-foreground">{user.nickname}</span>
             </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/mypage">마이페이지</Link>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => logout()}>
               로그아웃
             </Button>
@@ -72,11 +75,16 @@ export function Header() {
         )}
 
         {status === "unauthenticated" && (
-          <Button asChild size="sm">
-            <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
-              로그인
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login?next=/mypage">마이페이지</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
+                로그인
+              </Link>
+            </Button>
+          </div>
         )}
 
         {status === "loading" && (
