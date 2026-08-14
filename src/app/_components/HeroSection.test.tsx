@@ -21,4 +21,15 @@ describe("HeroSection", () => {
       "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
     );
   });
+
+  it("경상도 소도시/여행 콘텐츠/AI 일정 생성 지표를 보여준다", () => {
+    render(<HeroSection />);
+
+    expect(screen.getByText("3곳")).toBeInTheDocument();
+    expect(screen.getByText("경상도 소도시")).toBeInTheDocument();
+    expect(screen.getByText("14개")).toBeInTheDocument();
+    expect(screen.getByText("여행 콘텐츠")).toBeInTheDocument();
+    expect(screen.getByText("30초")).toBeInTheDocument();
+    expect(screen.getByText("AI 일정 생성")).toBeInTheDocument();
+  });
 });

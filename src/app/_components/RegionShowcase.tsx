@@ -1,12 +1,6 @@
 import Link from "next/link";
 
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   REGION_COLORS,
   REGION_DESCRIPTIONS,
   REGION_LABELS,
@@ -24,26 +18,42 @@ export function RegionShowcase() {
           지역을 선택하면 바로 여행 조건 입력으로 이동해요
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4.5 sm:grid-cols-3">
         {REGIONS.map((region) => (
           <Link
             key={region}
             href={`/select/conditions?regions=${region}`}
-            className="group block"
+            className="group block overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
           >
-            <Card className="h-full transition hover:border-primary/40 hover:shadow-md">
-              <CardHeader>
+            <div
+              aria-hidden="true"
+              className="h-37.5"
+              style={{
+                background:
+                  "repeating-linear-gradient(45deg, oklch(0.93 0.028 30) 0 8px, oklch(0.965 0.014 30) 8px 16px)",
+              }}
+            />
+            <div className="p-5">
+              <div className="flex items-center gap-2">
                 <span
                   aria-hidden="true"
-                  className="mb-2 inline-block h-2 w-10 rounded-full"
+                  className="inline-block h-1.5 w-6.5 rounded-full"
                   style={{ backgroundColor: REGION_COLORS[region] }}
                 />
-                <CardTitle className="text-lg">
-                  {REGION_LABELS[region]}
-                </CardTitle>
-                <CardDescription>{REGION_DESCRIPTIONS[region]}</CardDescription>
-              </CardHeader>
-            </Card>
+                <span className="text-[11px] font-extrabold tracking-widest text-muted-foreground">
+                  {region}
+                </span>
+              </div>
+              <div className="mt-2.5 text-xl font-bold tracking-tight">
+                {REGION_LABELS[region]}
+              </div>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {REGION_DESCRIPTIONS[region]}
+              </p>
+              <div className="mt-4 text-sm font-bold text-primary">
+                일정 만들기 →
+              </div>
+            </div>
           </Link>
         ))}
       </div>

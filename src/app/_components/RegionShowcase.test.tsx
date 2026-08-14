@@ -31,4 +31,10 @@ describe("RegionShowcase", () => {
       "/select/conditions?regions=YECHEON",
     );
   });
+
+  it("각 카드에 일정 만들기 CTA 문구를 보여준다", () => {
+    render(<RegionShowcase />);
+
+    expect(screen.getAllByText("일정 만들기 →")).toHaveLength(3);
+  });
 });
