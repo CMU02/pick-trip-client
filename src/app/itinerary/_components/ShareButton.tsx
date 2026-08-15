@@ -62,7 +62,7 @@ export function ShareButton({ itineraryId }: ShareButtonProps) {
           variant={copied ? "secondary" : "outline"}
           size="sm"
           onClick={() => handleCopy(state.shareUrl)}
-          className={copied ? "text-teal-700" : undefined}
+          className={copied ? "text-primary" : undefined}
         >
           {copied ? "복사됨" : "복사"}
         </Button>

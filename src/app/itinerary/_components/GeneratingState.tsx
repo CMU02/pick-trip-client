@@ -4,8 +4,8 @@ export function GeneratingState() {
   return (
     <div className="flex flex-col items-center gap-4 py-12">
       <div className="relative flex h-16 w-16 items-center justify-center">
-        <div className="absolute inset-0 animate-spin rounded-full border-4 border-amber-100 border-t-amber-500" />
-        <Icon name="wand" size={24} className="text-amber-500" />
+        <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        <Icon name="wand" size={24} className="text-primary" />
       </div>
       <div className="text-center">
         <p className="font-medium text-foreground">

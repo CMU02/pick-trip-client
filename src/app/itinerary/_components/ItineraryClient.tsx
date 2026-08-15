@@ -113,7 +113,7 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
           onSave: editor.save,
         }}
       />
-      <p className="text-sm text-teal-700">일정이 저장되었습니다.</p>
+      <p className="text-sm text-primary">일정이 저장되었습니다.</p>
       <ShareButton itineraryId={data.itineraryId} />
     </div>
   );
@@ -272,7 +272,7 @@ export function ItineraryClient({
   if (phase.status === "loginPreview") {
     return (
       <div className="space-y-4">
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-700">
+        <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
           지금 보시는 일정은 담아주신 콘텐츠를 기반으로 만든 예시입니다.
           로그인하면 실제 AI 일정 생성/저장 기능을 이용할 수 있어요.
         </p>

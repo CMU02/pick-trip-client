@@ -79,7 +79,7 @@ export function TravelDateForm({ regions }: TravelDateFormProps) {
       </div>
 
       {isValid && (
-        <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-700">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
           {startDate} 출발 ·{" "}
           {nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`}
           {companions.length > 0 && ` · 동행 조건 ${companions.length}개`}
