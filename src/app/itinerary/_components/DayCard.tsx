@@ -25,11 +25,21 @@ export function DayCard({
   const dayNumber = day.dayIndex;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <h3 className="inline-block rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
-        {dayNumber}일차
-      </h3>
-      <div className="mt-2 divide-y divide-border">
+    <div className="overflow-hidden rounded-[20px] border border-border bg-card">
+      <div className="flex items-center justify-between border-b border-[oklch(0.95_0.008_30)] bg-[oklch(0.985_0.012_30)] px-5.5 py-4.5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] bg-primary text-sm font-extrabold text-primary-foreground">
+            {dayNumber}
+          </span>
+          <h3 className="text-[18px] font-bold tracking-tight text-foreground">
+            {dayNumber}일차
+          </h3>
+        </div>
+        <span className="text-[12.5px] text-muted-foreground">
+          {day.items.length}곳
+        </span>
+      </div>
+      <div className="divide-y divide-border px-5.5">
         {day.items.map((item, index) => (
           <PlaceItem
             key={item.itemId}

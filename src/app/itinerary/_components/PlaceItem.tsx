@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import type { Item } from "@/types/itinerary";
 
@@ -58,47 +57,46 @@ export function PlaceItem({
         )}
 
         {editable && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            <Button
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <button
               type="button"
-              variant="outline"
-              size="icon-sm"
               disabled={isFirst}
               onClick={onMoveUp}
               aria-label="위로 이동"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-xs text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
             >
               ▲
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant="outline"
-              size="icon-sm"
               disabled={isLast}
               onClick={onMoveDown}
               aria-label="아래로 이동"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-xs text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
             >
               ▼
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant={item.pinned ? "secondary" : "outline"}
-              size="sm"
               onClick={onTogglePinned}
+              aria-label={item.pinned ? "고정됨" : "고정"}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border text-xs transition-colors ${
+                item.pinned
+                  ? "border-primary/40 bg-accent text-accent-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              }`}
             >
-              {item.pinned ? "고정됨" : "고정"}
-            </Button>
-            <Button
+              📌
+            </button>
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={onOpenReplacePicker}
+              className="rounded-[9px] border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
             >
               대체 장소
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant="destructive"
-              size="sm"
               onClick={() => {
                 if (confirmingRemove) {
                   onRemove?.();
@@ -107,9 +105,14 @@ export function PlaceItem({
                   setConfirmingRemove(true);
                 }
               }}
+              className={`flex h-[30px] items-center justify-center rounded-[9px] border px-2.5 text-xs font-semibold transition-colors ${
+                confirmingRemove
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+              }`}
             >
               {confirmingRemove ? "정말 삭제?" : "삭제"}
-            </Button>
+            </button>
           </div>
         )}
       </div>
