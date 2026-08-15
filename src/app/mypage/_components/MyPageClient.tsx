@@ -40,7 +40,7 @@ export function MyPageClient() {
 
       <div className="rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center gap-4">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-xl font-semibold text-teal-700">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-xl font-semibold text-primary">
             {user.nickname[0]}
           </span>
           <div>
@@ -67,7 +67,7 @@ export function MyPageClient() {
 
       <Link
         href="/itineraries"
-        className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted/50"
+        className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/50"
       >
         <span className="font-medium text-foreground">내 여행</span>
         <span className="text-sm text-muted-foreground">
