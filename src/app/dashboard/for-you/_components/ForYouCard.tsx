@@ -18,7 +18,7 @@ interface ForYouCardProps {
 // 찜/담기 액션(ContentCardActions)을 붙인 카드. FOR YOU 더보기 페이지 전용.
 export function ForYouCard({ content }: ForYouCardProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}?from=for-you`} className="block">
         <div className="relative aspect-video bg-muted">
           {content.imageUrl ? (

@@ -28,7 +28,7 @@ export function DashboardHero() {
         <ProgressStepper />
       </div>
 
-      <Card>
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-white">
         <CardContent className="flex h-full flex-col justify-between gap-4">
           <div>
             <p className="font-semibold text-foreground">
@@ -42,7 +42,7 @@ export function DashboardHero() {
                 : "콘텐츠를 더 담거나 AI 일정을 생성해보세요"}
             </p>
           </div>
-          <Button asChild variant="destructive" className="w-full">
+          <Button asChild className="w-full">
             <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>
               콘텐츠 둘러보기 &gt;
             </Link>

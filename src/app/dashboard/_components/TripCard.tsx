@@ -66,11 +66,11 @@ export function TripCard({ item, onRemove }: TripCardProps) {
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-card p-4">
+    <div className="flex flex-col rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-            <Icon name="calendar" size={18} className="text-amber-500" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <Icon name="calendar" size={18} className="text-primary" />
           </span>
           <div className="min-w-0">
             <p className="truncate font-semibold text-foreground">
