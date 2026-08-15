@@ -14,7 +14,7 @@ interface ExploreCardProps {
 
 export function ExploreCard({ content }: ExploreCardProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}?from=explore`} className="block">
         <div className="relative aspect-video bg-muted">
           {content.imageUrl ? (
