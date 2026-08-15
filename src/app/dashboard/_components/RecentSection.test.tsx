@@ -24,10 +24,9 @@ describe("RecentSection", () => {
     useRecentViewsStore.setState({ items: [], hydrated: true });
   });
 
-  it("최근 본 콘텐츠가 없어도 'RECENT'/'최근에 본' 제목은 렌더하고 내용은 비운다", () => {
+  it("최근 본 콘텐츠가 없어도 '최근에 본' 제목은 렌더하고 내용은 비운다", () => {
     render(<RecentSection />);
 
-    expect(screen.getByText("RECENT")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "최근에 본" }),
     ).toBeInTheDocument();

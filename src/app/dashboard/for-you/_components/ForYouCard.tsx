@@ -4,11 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ContentCardActions } from "@/components/ContentCardActions";
-import {
-  CATEGORY_BADGE_CLASSES,
-  CATEGORY_LABELS,
-  type Content,
-} from "@/types/content";
+import { CATEGORY_LABELS, type Content } from "@/types/content";
 
 interface ForYouCardProps {
   content: Content;
@@ -40,9 +36,7 @@ export function ForYouCard({ content }: ForYouCardProps) {
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-medium leading-tight">{content.name}</h3>
             {content.category && (
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE_CLASSES[content.category]}`}
-              >
+              <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                 {CATEGORY_LABELS[content.category]}
               </span>
             )}
