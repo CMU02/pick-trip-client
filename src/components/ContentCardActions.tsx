@@ -40,7 +40,7 @@ export function ContentCardActions({ content }: ContentCardActionsProps) {
       </button>
 
       <Button
-        variant={inBasket ? "outline" : "destructive"}
+        variant={inBasket ? "default" : "outline"}
         size="sm"
         onClick={() => (inBasket ? remove(content.id) : add(content))}
       >
