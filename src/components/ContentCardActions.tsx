@@ -40,8 +40,12 @@ export function ContentCardActions({ content }: ContentCardActionsProps) {
       </button>
 
       <Button
-        variant={inBasket ? "default" : "outline"}
         size="sm"
+        className={
+          inBasket
+            ? undefined
+            : "border-transparent bg-accent text-accent-foreground hover:bg-accent/80"
+        }
         onClick={() => (inBasket ? remove(content.id) : add(content))}
       >
         <Icon name={inBasket ? "check" : "plus"} size={14} />

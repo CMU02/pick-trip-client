@@ -4,11 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ContentCardActions } from "@/components/ContentCardActions";
-import {
-  CATEGORY_BADGE_CLASSES,
-  CATEGORY_LABELS,
-  type Content,
-} from "@/types/content";
+import { CATEGORY_LABELS, type Content } from "@/types/content";
 
 interface RecommendedCardProps {
   content: Content;
@@ -34,9 +30,7 @@ export function RecommendedCard({ content, detailHref }: RecommendedCardProps) {
           </div>
         )}
         {content.category && (
-          <span
-            className={`absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE_CLASSES[content.category]}`}
-          >
+          <span className="absolute top-2 left-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
             {CATEGORY_LABELS[content.category]}
           </span>
         )}
@@ -52,7 +46,13 @@ export function RecommendedCard({ content, detailHref }: RecommendedCardProps) {
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <div
+      className={`flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card ${
+        detailHref
+          ? "transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+          : ""
+      }`}
+    >
       {detailHref ? <Link href={detailHref}>{body}</Link> : body}
 
       <div className="p-3 pt-0">
