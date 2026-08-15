@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import type { BasketItem, BasketPriority } from "@/types/basket";
-import { PRIORITY_LABELS, PRIORITY_SELECTED_CLASSES } from "@/types/basket";
+import { PRIORITY_LABELS } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
 
 interface BasketPanelProps {
@@ -27,7 +27,7 @@ export function BasketPanel({
   onGenerate,
 }: BasketPanelProps) {
   return (
-    <div className="sticky top-4 rounded-xl border border-border bg-card p-4">
+    <div className="sticky top-[86px] rounded-[20px] border border-border bg-card p-5 shadow-[0_14px_34px_oklch(0.5_0.02_30/0.06)]">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-1.5 font-semibold">
           <Icon name="bookmark" size={16} className="text-primary" />
@@ -93,7 +93,7 @@ export function BasketPanel({
                     className={cn(
                       "flex-1 rounded px-1 py-0.5 text-[10px] transition-colors",
                       item.priority === level
-                        ? PRIORITY_SELECTED_CLASSES[level]
+                        ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80",
                     )}
                   >
@@ -110,11 +110,11 @@ export function BasketPanel({
         <Button className="w-full" disabled={!canGenerate} onClick={onGenerate}>
           AI 일정 생성
         </Button>
-        {!canGenerate && (
-          <p className="text-center text-xs text-muted-foreground">
-            2개 이상 담으면 일정을 만들 수 있어요
-          </p>
-        )}
+        <p className="text-center text-xs text-muted-foreground">
+          {canGenerate
+            ? "AI가 이동 거리를 고려해 배치합니다"
+            : "2개 이상 담으면 일정을 만들 수 있어요"}
+        </p>
       </div>
     </div>
   );

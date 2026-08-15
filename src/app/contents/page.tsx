@@ -1,4 +1,6 @@
+import { formatDuration } from "@/lib/itinerary";
 import { getContents } from "@/services/contentService";
+import { REGION_LABELS, type Region } from "@/types/region";
 
 import { ContentGrid } from "./_components/ContentGrid";
 
@@ -9,6 +11,30 @@ interface ContentsPageProps {
     nights?: string;
     companions?: string;
   }>;
+}
+
+// "하동 · 2026년 9월 12일 (토) · 1박 2일" 형태의 조건 요약 한 줄.
+function formatConditionLine(
+  regions: string,
+  startDate: string,
+  nights: string,
+) {
+  const regionText = regions
+    ? regions
+        .split(",")
+        .map((r) => REGION_LABELS[r as Region] ?? r)
+        .join(", ")
+    : "전체 지역";
+  const dateText = startDate
+    ? new Intl.DateTimeFormat("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "short",
+      }).format(new Date(startDate))
+    : "날짜 미선택";
+  const durationText = formatDuration(Number(nights) || 0);
+  return `${regionText} · ${dateText} · ${durationText}`;
 }
 
 export default async function ContentsPage({
@@ -53,7 +79,11 @@ export default async function ContentsPage({
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10">
-      <ContentGrid initialContents={contents} itineraryHref={itineraryHref} />
+      <ContentGrid
+        initialContents={contents}
+        itineraryHref={itineraryHref}
+        conditionLine={formatConditionLine(regions, startDate, nights)}
+      />
     </main>
   );
 }
