@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { isSafeNextPath } from "@/lib/authRedirect";
 
@@ -21,10 +22,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.5_0.19_14)] p-14 text-white lg:flex">
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <Image src="/pick-trip-icon.svg" alt="" width={24} height={24} />
           <span className="text-xl font-extrabold">PickTrip</span>
-        </div>
+        </Link>
         <div>
           <p className="text-[38px] leading-[1.25] font-extrabold tracking-tight">
             고른 콘텐츠가
