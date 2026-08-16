@@ -12,11 +12,31 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+import { useBasketStore } from "@/stores/basketStore";
+import type { BasketItem } from "@/types/basket";
+
 import { Header } from "./Header";
+
+const makeBasketItem = (id: string): BasketItem => ({
+  content: {
+    id,
+    name: `콘텐츠 ${id}`,
+    region: "HADONG",
+    category: "CULTURE",
+    imageUrl: null,
+    address: "경남 하동군",
+    summary: "요약",
+    indoor: false,
+  },
+  addedAt: Date.now(),
+  priority: null,
+});
 
 describe("Header", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/contents");
+    // 바구니는 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
+    useBasketStore.setState({ items: [], hydrated: true });
   });
 
   it("일정 공유 페이지에서는 헤더를 렌더링하지 않는다", () => {
@@ -267,5 +287,33 @@ describe("Header", () => {
       "href",
       "/contents",
     );
+  });
+
+  it("바구니가 비어있으면 개수 배지를 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("바구니에 담긴 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+    useBasketStore.setState({
+      items: [makeBasketItem("1"), makeBasketItem("2")],
+      hydrated: true,
+    });
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByText("2")).toBeInTheDocument();
   });
 });

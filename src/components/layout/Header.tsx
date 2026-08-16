@@ -84,10 +84,15 @@ export function Header() {
         <div className="flex items-center gap-3">
           <Link
             href="/contents"
-            className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground transition-colors hover:bg-accent/80"
+            aria-label={`바구니 ${basketItems.length}개`}
+            className="relative flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-[oklch(0.82_0.06_30)] hover:text-foreground"
           >
             <Icon name="bookmark" size={14} />
-            바구니 {basketItems.length}
+            {basketItems.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {basketItems.length}
+              </span>
+            )}
           </Link>
 
           {status === "authenticated" && user && (
