@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -44,6 +44,14 @@ function isNavActive(pathname: string, matchPath: string) {
 export function Header() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+
+  // 로그인 상태 전용 화면(대시보드 등)에 남아있으면 로그아웃 직후 어색하게
+  // 비어 보이거나 재로그인을 유도하게 되므로, 로그아웃하면 홈으로 보낸다.
+  async function handleLogout() {
+    await logout();
+    router.push("/");
+  }
   const { items: basketItems } = useBasket();
   const { items: favoriteItems } = useFavorites();
   const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
@@ -143,7 +151,7 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
-                  onSelect={() => logout()}
+                  onSelect={() => handleLogout()}
                 >
                   <Icon name="logout" size={16} />
                   로그아웃
