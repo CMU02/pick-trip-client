@@ -3,11 +3,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ALL_REGIONS_QUERY } from "@/types/region";
 
-const HERO_STATS = [
-  { value: "3곳", label: "경상도 소도시" },
-  { value: "14개", label: "여행 콘텐츠" },
-  { value: "30초", label: "AI 일정 생성" },
-] as const;
+interface HeroSectionProps {
+  // 실제 콘텐츠 총 개수. 서버에서 조회해 전달하며, 조회 실패 시 null로
+  // 넘어와 지표를 숨긴다(하드코딩된 값으로 대체하지 않는다).
+  contentCount: number | null;
+}
 
 const MOSAIC_PLACEHOLDERS = [
   { label: "하동 차밭 사진", hue: 30 },
@@ -21,17 +21,18 @@ function stripeBackground(hue: number) {
   };
 }
 
-export function HeroSection() {
+export function HeroSection({ contentCount }: HeroSectionProps) {
+  const heroStats = [
+    { value: "3곳", label: "경상도 소도시" },
+    {
+      value: contentCount !== null ? `${contentCount}개` : "-",
+      label: "여행 콘텐츠",
+    },
+    { value: "30초", label: "AI 일정 생성" },
+  ] as const;
+
   return (
     <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-[oklch(0.985_0.02_30)] to-white">
-      <div
-        aria-hidden="true"
-        className="absolute -top-30 -right-20 h-105 w-105 rounded-full bg-primary/20"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute top-30 right-70 h-40 w-40 rounded-full bg-primary/15"
-      />
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 sm:py-28 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[11.5px] font-extrabold tracking-widest text-primary-foreground">
@@ -59,7 +60,7 @@ export function HeroSection() {
             </Button>
           </div>
           <div className="mt-9 flex gap-7">
-            {HERO_STATS.map((stat) => (
+            {heroStats.map((stat) => (
               <div key={stat.label}>
                 <div className="text-2xl font-extrabold tracking-tight text-primary">
                   {stat.value}
