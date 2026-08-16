@@ -38,6 +38,9 @@ export function Header() {
   const { items: basketItems } = useBasket();
   const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
 
+  // 일정 공유 페이지는 헤더 없는 공개 페이지다.
+  if (pathname.startsWith("/share/")) return null;
+
   return (
     <header className="sticky top-0 z-40 h-[66px] border-b border-border bg-white/[.93] backdrop-blur-[14px]">
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">

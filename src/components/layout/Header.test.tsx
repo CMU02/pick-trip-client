@@ -19,6 +19,19 @@ describe("Header", () => {
     mockUsePathname.mockReturnValue("/contents");
   });
 
+  it("일정 공유 페이지에서는 헤더를 렌더링하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/share/abc123");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    const { container } = render(<Header />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("로딩 상태에서는 로그인/로그아웃 컨트롤을 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "loading",
