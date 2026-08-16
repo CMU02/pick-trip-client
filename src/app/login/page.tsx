@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const next = isSafeNextPath(rawNext) ? rawNext : "/";
 
   return (
-    <main className="grid min-h-[calc(100vh-56px)] grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
+    <main className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.5_0.19_14)] p-14 text-white lg:flex">
         <div className="flex items-center gap-2.5">
           <Image src="/pick-trip-icon.svg" alt="" width={24} height={24} />

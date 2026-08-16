@@ -48,8 +48,9 @@ export function Header() {
   const { items: favoriteItems } = useFavorites();
   const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
 
-  // 일정 공유 페이지는 헤더 없는 공개 페이지다.
-  if (pathname.startsWith("/share/")) return null;
+  // 일정 공유 페이지와 로그인 페이지는 헤더 없는 화면이다. 로그인 페이지는
+  // 자체적으로 좌측에 브랜드 영역을 갖고 있어 헤더가 중복으로 보인다.
+  if (pathname.startsWith("/share/") || pathname === "/login") return null;
 
   return (
     <header className="sticky top-0 z-40 h-[66px] border-b border-border bg-white/[.93] backdrop-blur-[14px]">
