@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,10 @@ function formatDateKey(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+function dateToKey(date: Date) {
+  return formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 // 핸드오프 스펙(3번 "지역·조건 선택" ★캘린더)의 달력. 출발일 클릭 시
 // nights만큼 범위가 자동으로 하이라이트된다(종료일을 따로 클릭하지 않음).
 // 스펙 프로토타입에는 없지만, 기존 <input type="date" min={today}>가 갖고
@@ -48,32 +52,130 @@ export function TravelDateCalendar({
   // onSelectRange로 알리고 비운다(다음 클릭은 다시 새 출발일이 된다).
   const [pendingStart, setPendingStart] = useState<string | null>(null);
 
-  function handleDayClick(dateKey: string) {
-    if (!onSelectRange || pendingStart === null) {
-      onSelect(dateKey);
-      setPendingStart(dateKey);
-      return;
+  // 마우스로 끌어서 범위를 고르는 중인 상태. dragAnchor는 mousedown한
+  // 날짜, dragOver는 지금 마우스가 올라가 있는 날짜다(드래그 중 실시간
+  // 미리보기용). 둘 다 null이면 드래그 중이 아니다.
+  const [dragAnchor, setDragAnchor] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+
+  // 드래그 종료 핸들러(useEffect) 안에서도 최신 버전을 참조해야 해서
+  // useCallback으로 감싼다.
+  const handleDayClick = useCallback(
+    (dateKey: string) => {
+      if (!onSelectRange || pendingStart === null) {
+        onSelect(dateKey);
+        setPendingStart(dateKey);
+        return;
+      }
+
+      const diffDays = Math.round(
+        (toDateOnly(new Date(dateKey)).getTime() -
+          toDateOnly(new Date(pendingStart)).getTime()) /
+          86400000,
+      );
+
+      if (diffDays < 0) {
+        // 출발일보다 이른 날짜를 클릭하면 새 출발일로 다시 잡는다.
+        onSelect(dateKey);
+        setPendingStart(dateKey);
+        return;
+      }
+
+      onSelectRange(pendingStart, diffDays);
+      setPendingStart(null);
+    },
+    [onSelect, onSelectRange, pendingStart],
+  );
+
+  function handleDayMouseDown(dateKey: string) {
+    if (toDateOnly(new Date(dateKey)).getTime() < today.getTime()) return;
+
+    // 이미 확정된 범위가 있고(nights > 0) 그 출발일 또는 도착일 마커를
+    // 정확히 누른 거라면, 반대쪽 끝을 고정점(dragAnchor)으로 삼아 그
+    // 마커만 다시 늘였다 줄였다 할 수 있게 한다(양쪽 핸들 리사이즈).
+    // 그 외(빈 곳을 새로 누른 경우)에는 지금까지처럼 이 지점 자체가
+    // 고정점이 되는 새 범위 드래그로 취급한다.
+    const committedNights = Math.max(nights, 0);
+    if (value && committedNights > 0) {
+      const committedEndKey = dateToKey(
+        new Date(
+          toDateOnly(new Date(value)).getTime() + committedNights * 86400000,
+        ),
+      );
+      if (dateKey === committedEndKey) {
+        setDragAnchor(value);
+        setDragOver(dateKey);
+        return;
+      }
+      if (dateKey === value) {
+        setDragAnchor(committedEndKey);
+        setDragOver(dateKey);
+        return;
+      }
     }
 
-    const diffDays = Math.round(
-      (toDateOnly(new Date(dateKey)).getTime() -
-        toDateOnly(new Date(pendingStart)).getTime()) /
-        86400000,
-    );
-
-    if (diffDays < 0) {
-      // 출발일보다 이른 날짜를 클릭하면 새 출발일로 다시 잡는다.
-      onSelect(dateKey);
-      setPendingStart(dateKey);
-      return;
-    }
-
-    onSelectRange(pendingStart, diffDays);
-    setPendingStart(null);
+    setDragAnchor(dateKey);
+    setDragOver(dateKey);
   }
 
-  const start = value ? toDateOnly(new Date(value)) : null;
-  const n = Math.max(nights, 0);
+  function handleDayMouseEnter(dateKey: string) {
+    if (dragAnchor === null) return;
+    if (toDateOnly(new Date(dateKey)).getTime() < today.getTime()) return;
+    setDragOver(dateKey);
+  }
+
+  // 마우스를 뗀 지점은 달력 칸 밖일 수도 있어 window 전체에서 mouseup을
+  // 듣는다. 실제로 다른 칸까지 끌었으면(dragOver !== dragAnchor) 범위로
+  // 확정하고, 움직임 없이 뗐으면 기존 클릭 로직(handleDayClick)에 맡긴다.
+  useEffect(() => {
+    if (dragAnchor === null) return;
+
+    function handleMouseUp() {
+      if (dragAnchor === null) return;
+
+      if (dragOver === null || dragOver === dragAnchor) {
+        handleDayClick(dragAnchor);
+      } else {
+        const [rangeStart, rangeEnd] = [dragAnchor, dragOver].sort();
+        const diffDays = Math.round(
+          (toDateOnly(new Date(rangeEnd)).getTime() -
+            toDateOnly(new Date(rangeStart)).getTime()) /
+            86400000,
+        );
+        onSelect(rangeStart);
+        onSelectRange?.(rangeStart, diffDays);
+        setPendingStart(null);
+      }
+
+      setDragAnchor(null);
+      setDragOver(null);
+    }
+
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+    // dragOver/pendingStart는 최신 값을 클로저로 참조해야 해서 매번 리스너를
+    // 다시 붙인다(계산 비용이 큰 작업이 아니라 렌더마다 재등록해도 괜찮다).
+  }, [dragAnchor, dragOver, handleDayClick, onSelect, onSelectRange]);
+
+  // 드래그 중에는 커밋된 value/nights 대신 dragAnchor~dragOver로 실시간
+  // 미리보기를 그린다.
+  const dragOrdered: [string, string] | null =
+    dragAnchor !== null
+      ? ([dragAnchor, dragOver ?? dragAnchor].sort() as [string, string])
+      : null;
+
+  const start = dragOrdered
+    ? toDateOnly(new Date(dragOrdered[0]))
+    : value
+      ? toDateOnly(new Date(value))
+      : null;
+  const n = dragOrdered
+    ? Math.round(
+        (toDateOnly(new Date(dragOrdered[1])).getTime() -
+          toDateOnly(new Date(dragOrdered[0])).getTime()) /
+          86400000,
+      )
+    : Math.max(nights, 0);
   const endTs = start ? start.getTime() + n * 86400000 : null;
 
   const first = new Date(cal.year, cal.month, 1);
@@ -184,12 +286,22 @@ export function TravelDateCalendar({
               key={formatDateKey(cal.year, cal.month, d)}
               type="button"
               disabled={isPast}
-              onClick={() =>
-                handleDayClick(formatDateKey(cal.year, cal.month, d))
+              onMouseDown={() =>
+                handleDayMouseDown(formatDateKey(cal.year, cal.month, d))
               }
+              onMouseEnter={() =>
+                handleDayMouseEnter(formatDateKey(cal.year, cal.month, d))
+              }
+              onClick={(e) => {
+                // 마우스 클릭은 mouseup 전역 리스너가 이미 처리했다(드래그
+                // 여부까지 판단해야 해서). 여기서는 키보드(Enter/Space)로
+                // 활성화된 경우만 처리한다 — 그때는 event.detail이 0이다.
+                if (e.detail !== 0) return;
+                handleDayClick(formatDateKey(cal.year, cal.month, d));
+              }}
               style={{ borderRadius: radius }}
               className={cn(
-                "relative flex h-[46px] items-center justify-center text-sm transition-colors",
+                "relative flex h-[46px] items-center justify-center text-sm transition-colors select-none",
                 isPast && "cursor-not-allowed text-muted-foreground/40",
                 !isPast &&
                   (isStart || isEnd) &&
