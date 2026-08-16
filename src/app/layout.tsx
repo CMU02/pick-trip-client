@@ -44,7 +44,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Providers>
           <Header />
-          {children}
+          {/* 콘텐츠가 뷰포트보다 짧아도 Footer가 콘텐츠 바로 아래로 붙지 않고
+              항상 화면 맨 아래에 위치하도록, 이 래퍼가 남는 세로 공간을
+              채운다(sticky footer 패턴). 콘텐츠가 뷰포트보다 길면 이 래퍼는
+              콘텐츠 높이만큼 자라 평소처럼 스크롤 후 맨 아래에 Footer가 온다. */}
+          <div className="flex-1">{children}</div>
           <Footer />
         </Providers>
       </body>
