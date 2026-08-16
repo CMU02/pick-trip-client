@@ -82,18 +82,20 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/contents"
-            aria-label={`바구니 ${basketItems.length}개`}
-            className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
-          >
-            <Icon name="bookmark" size={20} />
-            {basketItems.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                {basketItems.length}
-              </span>
-            )}
-          </Link>
+          {status === "authenticated" && (
+            <Link
+              href="/contents"
+              aria-label={`바구니 ${basketItems.length}개`}
+              className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
+            >
+              <Icon name="bookmark" size={20} />
+              {basketItems.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {basketItems.length}
+                </span>
+              )}
+            </Link>
+          )}
 
           {status === "authenticated" && user && (
             <DropdownMenu>
@@ -134,16 +136,11 @@ export function Header() {
           )}
 
           {status === "unauthenticated" && (
-            <div className="flex items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/login?next=/mypage">마이페이지</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
-                  로그인
-                </Link>
-              </Button>
-            </div>
+            <Button asChild size="sm">
+              <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
+                로그인
+              </Link>
+            </Button>
           )}
 
           {status === "loading" && (

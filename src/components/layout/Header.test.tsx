@@ -170,7 +170,7 @@ describe("Header", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("비로그인 상태에서는 마이페이지 링크가 로그인 후 마이페이지로 오도록 next를 고정한다", () => {
+  it("비로그인 상태에서는 마이페이지 링크와 바구니 아이콘을 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "unauthenticated",
       user: null,
@@ -179,10 +179,12 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: "마이페이지" })).toHaveAttribute(
-      "href",
-      "/login?next=/mypage",
-    );
+    expect(
+      screen.queryByRole("link", { name: "마이페이지" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /바구니/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("로그인 상태에서는 드롭다운의 마이페이지 링크가 /mypage를 가리킨다", async () => {
@@ -274,10 +276,17 @@ describe("Header", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("로그인 여부와 무관하게 /contents로 이동하는 바구니 pill을 보여준다", () => {
+  it("로그인 상태에서는 /contents로 이동하는 바구니 아이콘을 보여준다", () => {
     mockUseAuth.mockReturnValue({
-      status: "unauthenticated",
-      user: null,
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
       logout: vi.fn(),
     });
 
@@ -291,8 +300,15 @@ describe("Header", () => {
 
   it("바구니가 비어있으면 개수 배지를 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
-      status: "unauthenticated",
-      user: null,
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
       logout: vi.fn(),
     });
 
@@ -307,8 +323,15 @@ describe("Header", () => {
       hydrated: true,
     });
     mockUseAuth.mockReturnValue({
-      status: "unauthenticated",
-      user: null,
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
       logout: vi.fn(),
     });
 
