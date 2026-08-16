@@ -1,3 +1,4 @@
+import { getContentFetchErrorMessage } from "@/lib/content";
 import { formatDuration } from "@/lib/itinerary";
 import { getContents } from "@/services/contentService";
 import { REGION_LABELS, type Region } from "@/types/region";
@@ -62,8 +63,8 @@ export default async function ContentsPage({
     const res = await getContents(queryParams);
     contents = res.contents;
     total = res.total;
-  } catch {
-    error = "콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+  } catch (err) {
+    error = getContentFetchErrorMessage(err);
   }
 
   if (error) {

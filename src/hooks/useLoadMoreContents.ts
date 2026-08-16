@@ -3,8 +3,10 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { mergeUniqueContents } from "@/lib/content";
-import { parseApiError } from "@/lib/errors";
+import {
+  getContentFetchErrorMessage,
+  mergeUniqueContents,
+} from "@/lib/content";
 import { type GetContentsParams, getContents } from "@/services/contentService";
 import type { Content, ContentsResponse } from "@/types/content";
 
@@ -110,7 +112,9 @@ export function useLoadMoreContents({
     hasMore: contents.length < total,
     canCollapse: visiblePageCount > 1,
     isLoadingMore: query.isFetchingNextPage,
-    errorMessage: query.isError ? parseApiError(query.error).message : null,
+    errorMessage: query.isError
+      ? getContentFetchErrorMessage(query.error)
+      : null,
     loadMore: () => {
       void loadMore();
     },

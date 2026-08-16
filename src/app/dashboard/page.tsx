@@ -1,3 +1,4 @@
+import { getContentFetchErrorMessage } from "@/lib/content";
 import { getContents } from "@/services/contentService";
 import { REGIONS } from "@/types/region";
 
@@ -16,8 +17,8 @@ export default async function DashboardPage() {
       nights: 0,
     });
     contents = res.contents;
-  } catch {
-    error = "콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
+  } catch (err) {
+    error = getContentFetchErrorMessage(err);
   }
 
   if (error) {
