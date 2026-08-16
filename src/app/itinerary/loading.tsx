@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <main className="container mx-auto max-w-3xl px-4 py-8">
+    <main className="mx-auto w-full max-w-7xl px-4 py-8">
       <div className="animate-pulse space-y-4">
         {/* 여행 요약 카드 스켈레톤 */}
         <div className="rounded-lg border p-4 space-y-3">
