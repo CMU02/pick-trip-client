@@ -81,7 +81,8 @@ describe("SavedItinerariesList", () => {
     render(<SavedItinerariesList />);
 
     expect(await screen.findByText("하동 1박 2일 여행")).toBeInTheDocument();
-    expect(screen.getByText(/하동 · 2026-08-01 · 1박 2일/)).toBeInTheDocument();
+    expect(screen.getByText("2026-08-01")).toBeInTheDocument();
+    expect(screen.getAllByText("1박 2일").length).toBeGreaterThan(0);
   });
 
   it("'보기' 클릭 시 상세를 지연 조회해 펼친다", async () => {

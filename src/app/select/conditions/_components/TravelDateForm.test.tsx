@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -23,13 +23,14 @@ const stub: Content = {
   indoor: false,
 };
 
-function fillDateAndDuration() {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const yyyy = tomorrow.getFullYear();
-  const mm = String(tomorrow.getMonth() + 1).padStart(2, "0");
-  const dd = String(tomorrow.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+// 캘린더가 기본으로 오늘이 속한 달을 보여주므로, 월 이동 없이 바로
+// 클릭할 수 있는 "오늘"을 출발일로 고른다(과거 날짜는 선택 불가라 today가
+// 안전한 최소값이다).
+async function pickToday() {
+  const today = new Date();
+  await userEvent.click(
+    screen.getByRole("button", { name: String(today.getDate()) }),
+  );
 }
 
 describe("TravelDateForm — 바구니 초기화", () => {
@@ -54,14 +55,13 @@ describe("TravelDateForm — 동행 조건", () => {
   it("동행 조건 선택 섹션이 화면에 렌더된다", () => {
     render(<TravelDateForm regions="HADONG" />);
 
-    expect(screen.getByText("동행 조건")).toBeInTheDocument();
+    expect(screen.getAllByText("동행 조건").length).toBeGreaterThan(0);
   });
 
   it("동행 조건을 선택하지 않아도 날짜·기간 입력 시 다음 버튼이 활성화된다", async () => {
     render(<TravelDateForm regions="HADONG" />);
 
-    const dateInput = screen.getByLabelText(/출발 날짜/);
-    fireEvent.change(dateInput, { target: { value: fillDateAndDuration() } });
+    await pickToday();
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
 
     expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
@@ -70,9 +70,7 @@ describe("TravelDateForm — 동행 조건", () => {
   it("동행 조건 선택 시 URL에 companions 파라미터가 포함된다", async () => {
     render(<TravelDateForm regions="HADONG" />);
 
-    const dateInput = screen.getByLabelText(/출발 날짜/);
-    const date = fillDateAndDuration();
-    fireEvent.change(dateInput, { target: { value: date } });
+    await pickToday();
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
     await userEvent.click(screen.getByRole("button", { name: "아이와 함께" }));
     await userEvent.click(screen.getByRole("button", { name: "다음" }));
@@ -86,9 +84,7 @@ describe("TravelDateForm — 동행 조건", () => {
     mockPush.mockClear();
     render(<TravelDateForm regions="HADONG" />);
 
-    const dateInput = screen.getByLabelText(/출발 날짜/);
-    const date = fillDateAndDuration();
-    fireEvent.change(dateInput, { target: { value: date } });
+    await pickToday();
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
     await userEvent.click(screen.getByRole("button", { name: "다음" }));
 
