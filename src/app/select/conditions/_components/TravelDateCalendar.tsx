@@ -9,6 +9,10 @@ interface TravelDateCalendarProps {
   value: string; // "YYYY-MM-DD" 또는 빈 문자열
   nights: number; // 선택된 기간(박). 범위 하이라이트 계산에 쓰인다.
   onSelect: (date: string) => void;
+  // 출발일을 고른 뒤 그보다 늦은 날짜를 한 번 더 클릭해 도착일을 지정하면
+  // 호출된다. 기간 버튼(당일치기/1박2일 등)을 누르지 않고도 달력만으로
+  // 기간을 정할 수 있게 한다.
+  onSelectRange?: (start: string, nights: number) => void;
   // "출발일" 제목 아래 보여줄 선택 요약 문구("9월 12일 출발 · 1박 2일" 등).
   subtitle: string;
 }
@@ -31,6 +35,7 @@ export function TravelDateCalendar({
   value,
   nights,
   onSelect,
+  onSelectRange,
   subtitle,
 }: TravelDateCalendarProps) {
   const today = toDateOnly(new Date());
@@ -39,6 +44,33 @@ export function TravelDateCalendar({
     year: initial.getFullYear(),
     month: initial.getMonth(),
   });
+  // 도착일 클릭을 기다리는 중인 출발일. 두 번째 클릭이 오면 기간을 계산해
+  // onSelectRange로 알리고 비운다(다음 클릭은 다시 새 출발일이 된다).
+  const [pendingStart, setPendingStart] = useState<string | null>(null);
+
+  function handleDayClick(dateKey: string) {
+    if (!onSelectRange || pendingStart === null) {
+      onSelect(dateKey);
+      setPendingStart(dateKey);
+      return;
+    }
+
+    const diffDays = Math.round(
+      (toDateOnly(new Date(dateKey)).getTime() -
+        toDateOnly(new Date(pendingStart)).getTime()) /
+        86400000,
+    );
+
+    if (diffDays < 0) {
+      // 출발일보다 이른 날짜를 클릭하면 새 출발일로 다시 잡는다.
+      onSelect(dateKey);
+      setPendingStart(dateKey);
+      return;
+    }
+
+    onSelectRange(pendingStart, diffDays);
+    setPendingStart(null);
+  }
 
   const start = value ? toDateOnly(new Date(value)) : null;
   const n = Math.max(nights, 0);
@@ -152,7 +184,9 @@ export function TravelDateCalendar({
               key={formatDateKey(cal.year, cal.month, d)}
               type="button"
               disabled={isPast}
-              onClick={() => onSelect(formatDateKey(cal.year, cal.month, d))}
+              onClick={() =>
+                handleDayClick(formatDateKey(cal.year, cal.month, d))
+              }
               style={{ borderRadius: radius }}
               className={cn(
                 "relative flex h-[46px] items-center justify-center text-sm transition-colors",

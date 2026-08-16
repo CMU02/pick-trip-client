@@ -33,6 +33,20 @@ async function pickToday() {
   );
 }
 
+// pickToday와 같은 전제: 테스트에 쓰는 오프셋(최대 5일)이 이번 달을 벗어나지
+// 않는다고 가정한다(월 이동 없이 바로 클릭).
+function dayAfterToday(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+async function pickDate(date: Date) {
+  await userEvent.click(
+    screen.getByRole("button", { name: String(date.getDate()) }),
+  );
+}
+
 describe("TravelDateForm — 바구니 초기화", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -91,5 +105,54 @@ describe("TravelDateForm — 동행 조건", () => {
     expect(mockPush).toHaveBeenCalledWith(
       expect.not.stringContaining("companions"),
     );
+  });
+});
+
+describe("TravelDateForm — 달력만으로 기간 선택", () => {
+  it("출발일에 이어 도착일을 클릭하면 기간 버튼을 누르지 않아도 다음 버튼이 활성화된다", async () => {
+    render(<TravelDateForm regions="HADONG" />);
+
+    await pickDate(dayAfterToday(1));
+    expect(screen.getByRole("button", { name: "다음" })).toBeDisabled();
+
+    await pickDate(dayAfterToday(2));
+
+    expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
+    // 1박(하루 차이)이라 "1박 2일" 프리셋이 자동으로 선택 상태가 된다.
+    expect(screen.getByRole("button", { name: "1박 2일" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("프리셋과 맞지 않는 기간을 달력으로 고르면 직접 입력으로 전환되고 해당 박 수가 URL에 반영된다", async () => {
+    render(<TravelDateForm regions="HADONG" />);
+
+    await pickDate(dayAfterToday(2));
+    await pickDate(dayAfterToday(5));
+
+    expect(screen.getByRole("button", { name: "직접 입력" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("3박")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "다음" }));
+
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("nights=3"));
+  });
+
+  it("같은 날짜를 두 번 클릭하면 당일치기로 자동 선택된다", async () => {
+    render(<TravelDateForm regions="HADONG" />);
+
+    const date = dayAfterToday(1);
+    await pickDate(date);
+    await pickDate(date);
+
+    expect(screen.getByRole("button", { name: "당일치기" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
   });
 });
