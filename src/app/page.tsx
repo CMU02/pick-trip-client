@@ -4,6 +4,7 @@ import { CtaSection } from "./_components/CtaSection";
 import { HeroSection } from "./_components/HeroSection";
 import { HomeGate } from "./_components/HomeGate";
 import { RegionShowcase } from "./_components/RegionShowcase";
+import { StepsSection } from "./_components/StepsSection";
 
 export const metadata: Metadata = {
   title: "PickTrip | 하동·영주·예천 여행 콘텐츠와 AI 일정",
@@ -17,6 +18,7 @@ export default function Home() {
       <HomeGate>
         <HeroSection />
         <RegionShowcase />
+        <StepsSection />
         <CtaSection />
       </HomeGate>
     </main>
