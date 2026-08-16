@@ -12,11 +12,31 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+import { useBasketStore } from "@/stores/basketStore";
+import type { BasketItem } from "@/types/basket";
+
 import { Header } from "./Header";
+
+const makeBasketItem = (id: string): BasketItem => ({
+  content: {
+    id,
+    name: `콘텐츠 ${id}`,
+    region: "HADONG",
+    category: "CULTURE",
+    imageUrl: null,
+    address: "경남 하동군",
+    summary: "요약",
+    indoor: false,
+  },
+  addedAt: Date.now(),
+  priority: null,
+});
 
 describe("Header", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/contents");
+    // 바구니는 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
+    useBasketStore.setState({ items: [], hydrated: true });
   });
 
   it("일정 공유 페이지에서는 헤더를 렌더링하지 않는다", () => {
@@ -65,7 +85,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 닉네임과 로그아웃 버튼을 보여주고, 클릭 시 logout을 호출한다", async () => {
+  it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출한다", async () => {
     const logout = vi.fn();
     mockUseAuth.mockReturnValue({
       status: "authenticated",
@@ -83,7 +103,10 @@ describe("Header", () => {
     render(<Header />);
 
     expect(screen.getByText("김여행")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "로그아웃" }),
+    );
     expect(logout).toHaveBeenCalled();
   });
 
@@ -162,7 +185,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 마이페이지 링크가 /mypage를 가리킨다", () => {
+  it("로그인 상태에서는 드롭다운의 마이페이지 링크가 /mypage를 가리킨다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -178,10 +201,11 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: "마이페이지" })).toHaveAttribute(
-      "href",
-      "/mypage",
-    );
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "마이페이지" }),
+    ).toHaveAttribute("href", "/mypage");
   });
 
   it("로그인 상태에서는 홈/콘텐츠 탐색/AI일정 대신 대시보드 링크만 보여준다", () => {
@@ -213,7 +237,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘 링크를 보여준다", () => {
+  it("로그인 상태에서는 드롭다운에 /favorites로 이동하는 찜한 콘텐츠 링크가 있다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -229,13 +253,14 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: "찜한 콘텐츠" })).toHaveAttribute(
-      "href",
-      "/favorites",
-    );
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "찜한 콘텐츠" }),
+    ).toHaveAttribute("href", "/favorites");
   });
 
-  it("비로그인 상태에서는 찜 아이콘 링크를 보여주지 않는다", () => {
+  it("비로그인 상태에서는 닉네임 드롭다운(과 찜한 콘텐츠 링크)을 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "unauthenticated",
       user: null,
@@ -245,7 +270,7 @@ describe("Header", () => {
     render(<Header />);
 
     expect(
-      screen.queryByRole("link", { name: "찜한 콘텐츠" }),
+      screen.queryByRole("menuitem", { name: "찜한 콘텐츠" }),
     ).not.toBeInTheDocument();
   });
 
@@ -262,5 +287,33 @@ describe("Header", () => {
       "href",
       "/contents",
     );
+  });
+
+  it("바구니가 비어있으면 개수 배지를 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("바구니에 담긴 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+    useBasketStore.setState({
+      items: [makeBasketItem("1"), makeBasketItem("2")],
+      hydrated: true,
+    });
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByText("2")).toBeInTheDocument();
   });
 });
