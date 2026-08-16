@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { ApiError } from "@/lib/errors";
 import type { Content } from "@/types/content";
 
-import { groupContentsByCategory, mergeUniqueContents } from "./content";
+import {
+  getContentFetchErrorMessage,
+  groupContentsByCategory,
+  mergeUniqueContents,
+} from "./content";
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
   id: "1",
@@ -71,5 +76,35 @@ describe("mergeUniqueContents", () => {
     const result = mergeUniqueContents([first, duplicate, other]);
 
     expect(result).toEqual([first, other]);
+  });
+});
+
+describe("getContentFetchErrorMessage", () => {
+  it("CONTENT_PROVIDER_FAILED면 '일시적인 오류'로 안내하는 문구를 반환한다", () => {
+    const err = new ApiError(
+      502,
+      "콘텐츠를 불러오지 못했습니다. 다시 시도해주세요.",
+      "CONTENT_PROVIDER_FAILED",
+    );
+
+    expect(getContentFetchErrorMessage(err)).toBe(
+      "일시적인 오류로 콘텐츠를 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
+    );
+  });
+
+  it("그 외 ApiError는 서버가 내려준 실제 메시지를 그대로 보여준다", () => {
+    const err = new ApiError(
+      400,
+      "지원하지 않는 지역입니다.",
+      "INVALID_REGION",
+    );
+
+    expect(getContentFetchErrorMessage(err)).toBe("지원하지 않는 지역입니다.");
+  });
+
+  it("ApiError가 아닌 오류는 공통 폴백 메시지를 보여준다", () => {
+    expect(getContentFetchErrorMessage(new Error("unexpected"))).toBe(
+      "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+    );
   });
 });
