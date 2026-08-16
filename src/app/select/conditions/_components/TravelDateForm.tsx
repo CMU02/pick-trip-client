@@ -32,6 +32,14 @@ function formatDuration(nights: number) {
   return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
 }
 
+// 로컬 자정 기준 오늘 날짜를 "YYYY-MM-DD"로. UTC 기준인 toISOString()을
+// 쓰면 시간대에 따라 하루가 밀릴 수 있어 TravelDateCalendar와 같은 방식
+// (로컬 연/월/일 각각 읽기)으로 맞춘다.
+function todayDateKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function TravelDateForm({ regions }: TravelDateFormProps) {
   const router = useRouter();
   const { clear } = useBasket();
@@ -43,7 +51,7 @@ export function TravelDateForm({ regions }: TravelDateFormProps) {
     clear();
   }, [clear]);
 
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(todayDateKey());
   const [duration, setDuration] = useState<TravelDuration | null>(null);
   const [customNights, setCustomNights] = useState(1);
   const [companions, setCompanions] = useState<CompanionCondition[]>([]);
