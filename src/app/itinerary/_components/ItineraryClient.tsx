@@ -462,7 +462,10 @@ export function ItineraryClient({
   }
 
   return (
-    <div className="space-y-4">
+    // 생성 결과(ItineraryResultLayout)는 1fr/320px 2단 레이아웃이라 헤더
+    // 너비(max-w-7xl)를 그대로 채우지만, 생성 전 요약 카드는 항목이 몇 줄뿐이라
+    // 그대로 펼치면 라벨-값 간격만 늘어져 보인다. 이 단계만 좁게 가운데 정렬한다.
+    <div className="mx-auto max-w-xl space-y-4">
       <TripSummary
         regions={parsedRegions}
         startDate={startDate}
