@@ -46,7 +46,13 @@ export function RecommendedCard({ content, detailHref }: RecommendedCardProps) {
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <div
+      className={`flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card ${
+        detailHref
+          ? "transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+          : ""
+      }`}
+    >
       {detailHref ? <Link href={detailHref}>{body}</Link> : body}
 
       <div className="p-3 pt-0">
