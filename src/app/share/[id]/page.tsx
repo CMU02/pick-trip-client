@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
@@ -33,9 +34,12 @@ export default async function SharePage({ params }: SharePageProps) {
       <main className="min-h-full bg-[oklch(0.985_0.008_30)]">
         <section className="bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] px-4 py-12 text-white">
           <div className="mx-auto max-w-[900px]">
-            <p className="text-lg font-extrabold tracking-[-0.035em]">
-              PickTrip
-            </p>
+            <div className="flex items-center gap-2">
+              <Image src="/pick-trip-icon.svg" alt="" width={22} height={22} />
+              <p className="text-lg font-extrabold tracking-[-0.035em]">
+                PickTrip
+              </p>
+            </div>
             <span className="mt-4 inline-flex items-center rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold">
               공유된 일정 · 읽기 전용
             </span>
