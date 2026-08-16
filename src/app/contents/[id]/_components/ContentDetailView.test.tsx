@@ -1,11 +1,15 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockBack = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack }),
 }));
 
+import { useBasketStore } from "@/stores/basketStore";
+import { useFavoriteStore } from "@/stores/favoriteStore";
+import { useRecentViewsStore } from "@/stores/recentViewsStore";
 import type { ContentDetail } from "@/types/content";
 
 import { ContentDetailView } from "./ContentDetailView";
@@ -29,6 +33,14 @@ const stub: ContentDetail = {
 };
 
 describe("ContentDetailView", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    // 전역 스토어는 테스트 간 상태가 누수되므로 초기 상태로 리셋한다.
+    useBasketStore.setState({ items: [], hydrated: false });
+    useFavoriteStore.setState({ items: [], hydrated: false });
+    useRecentViewsStore.setState({ items: [], hydrated: false });
+  });
+
   it("콘텐츠 이름을 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
@@ -62,5 +74,60 @@ describe("ContentDetailView", () => {
   it("담기 버튼을 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
     expect(screen.getByRole("button", { name: /담기/ })).toBeInTheDocument();
+  });
+
+  it("담기 버튼 클릭 시 새로고침 없이 담김으로 즉시 바뀐다", async () => {
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "담기" }));
+
+    expect(screen.getByRole("button", { name: "담김" })).toBeInTheDocument();
+  });
+
+  it("showBasketAction이 false이면 담기 버튼을 렌더하지 않는다", () => {
+    render(<ContentDetailView content={stub} showBasketAction={false} />);
+    expect(
+      screen.queryByRole("button", { name: /담기|담김/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("backHref가 없으면 '← 목록으로' 클릭 시 router.back을 호출한다", async () => {
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
+
+    expect(mockBack).toHaveBeenCalledOnce();
+  });
+
+  it("backHref가 주어지면 '← 목록으로'가 해당 경로로 이동하는 링크다", () => {
+    render(<ContentDetailView content={stub} backHref="/explore" />);
+
+    expect(screen.getByRole("link", { name: /목록으로/ })).toHaveAttribute(
+      "href",
+      "/explore",
+    );
+  });
+
+  it("찜 버튼을 렌더하고 클릭하면 찜 상태가 토글된다", async () => {
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "찜하기" }));
+
+    expect(screen.getByRole("button", { name: "찜 해제" })).toBeInTheDocument();
+  });
+
+  it("showBasketAction이 false이면 찜 버튼도 렌더하지 않는다", () => {
+    render(<ContentDetailView content={stub} showBasketAction={false} />);
+    expect(
+      screen.queryByRole("button", { name: /찜하기|찜 해제/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("마운트 시 최근 본 콘텐츠로 기록한다", () => {
+    render(<ContentDetailView content={stub} />);
+
+    const items = useRecentViewsStore.getState().items;
+    expect(items).toHaveLength(1);
+    expect(items[0].content.id).toBe("1");
   });
 });

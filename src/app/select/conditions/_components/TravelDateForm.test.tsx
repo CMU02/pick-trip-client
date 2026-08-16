@@ -1,34 +1,81 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+import { useBasketStore } from "@/stores/basketStore";
+import type { Content } from "@/types/content";
+
 import { TravelDateForm } from "./TravelDateForm";
 
-function fillDateAndDuration() {
+const stub: Content = {
+  id: "1",
+  name: "쌍계사",
+  region: "HADONG",
+  category: "CULTURE",
+  imageUrl: null,
+  address: "경남 하동군",
+  summary: "천년 고찰",
+  indoor: false,
+};
+
+// 캘린더가 기본으로 오늘이 속한 달을 보여주므로, 월 이동 없이 바로
+// 클릭할 수 있는 "오늘"을 출발일로 고른다(과거 날짜는 선택 불가라 today가
+// 안전한 최소값이다).
+async function pickToday() {
   const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate() + 1).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  await userEvent.click(
+    screen.getByRole("button", { name: String(today.getDate()) }),
+  );
 }
+
+// pickToday와 같은 전제: 테스트에 쓰는 오프셋(최대 5일)이 이번 달을 벗어나지
+// 않는다고 가정한다(월 이동 없이 바로 클릭).
+function dayAfterToday(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+async function pickDate(date: Date) {
+  await userEvent.click(
+    screen.getByRole("button", { name: String(date.getDate()) }),
+  );
+}
+
+describe("TravelDateForm — 바구니 초기화", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useBasketStore.setState({ items: [], hydrated: false });
+  });
+
+  it("마운트 시 이전 여행 계획에서 남은 바구니를 비운다", () => {
+    useBasketStore.setState({
+      items: [{ content: stub, addedAt: Date.now(), priority: null }],
+      hydrated: true,
+    });
+
+    render(<TravelDateForm regions="HADONG" />);
+
+    expect(useBasketStore.getState().items).toHaveLength(0);
+  });
+});
 
 describe("TravelDateForm — 동행 조건", () => {
   it("동행 조건 선택 섹션이 화면에 렌더된다", () => {
     render(<TravelDateForm regions="HADONG" />);
 
-    expect(screen.getByText("동행 조건")).toBeInTheDocument();
+    expect(screen.getAllByText("동행 조건").length).toBeGreaterThan(0);
   });
 
   it("동행 조건을 선택하지 않아도 날짜·기간 입력 시 다음 버튼이 활성화된다", async () => {
     render(<TravelDateForm regions="HADONG" />);
 
-    const dateInput = screen.getByLabelText(/출발 날짜/);
-    await userEvent.type(dateInput, fillDateAndDuration());
+    await pickToday();
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
 
     expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
@@ -37,9 +84,7 @@ describe("TravelDateForm — 동행 조건", () => {
   it("동행 조건 선택 시 URL에 companions 파라미터가 포함된다", async () => {
     render(<TravelDateForm regions="HADONG" />);
 
-    const dateInput = screen.getByLabelText(/출발 날짜/);
-    const date = fillDateAndDuration();
-    await userEvent.type(dateInput, date);
+    await pickToday();
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
     await userEvent.click(screen.getByRole("button", { name: "아이와 함께" }));
     await userEvent.click(screen.getByRole("button", { name: "다음" }));
@@ -53,14 +98,61 @@ describe("TravelDateForm — 동행 조건", () => {
     mockPush.mockClear();
     render(<TravelDateForm regions="HADONG" />);
 
-    const dateInput = screen.getByLabelText(/출발 날짜/);
-    const date = fillDateAndDuration();
-    await userEvent.type(dateInput, date);
+    await pickToday();
     await userEvent.click(screen.getByRole("button", { name: "당일치기" }));
     await userEvent.click(screen.getByRole("button", { name: "다음" }));
 
     expect(mockPush).toHaveBeenCalledWith(
       expect.not.stringContaining("companions"),
     );
+  });
+});
+
+describe("TravelDateForm — 달력만으로 기간 선택", () => {
+  it("출발일에 이어 도착일을 클릭하면 기간 버튼을 누르지 않아도 다음 버튼이 활성화된다", async () => {
+    render(<TravelDateForm regions="HADONG" />);
+
+    await pickDate(dayAfterToday(1));
+    expect(screen.getByRole("button", { name: "다음" })).toBeDisabled();
+
+    await pickDate(dayAfterToday(2));
+
+    expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
+    // 1박(하루 차이)이라 "1박 2일" 프리셋이 자동으로 선택 상태가 된다.
+    expect(screen.getByRole("button", { name: "1박 2일" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("프리셋과 맞지 않는 기간을 달력으로 고르면 직접 입력으로 전환되고 해당 박 수가 URL에 반영된다", async () => {
+    render(<TravelDateForm regions="HADONG" />);
+
+    await pickDate(dayAfterToday(2));
+    await pickDate(dayAfterToday(5));
+
+    expect(screen.getByRole("button", { name: "직접 입력" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("3박")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "다음" }));
+
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("nights=3"));
+  });
+
+  it("같은 날짜를 두 번 클릭하면 당일치기로 자동 선택된다", async () => {
+    render(<TravelDateForm regions="HADONG" />);
+
+    const date = dayAfterToday(1);
+    await pickDate(date);
+    await pickDate(date);
+
+    expect(screen.getByRole("button", { name: "당일치기" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "다음" })).toBeEnabled();
   });
 });

@@ -3,29 +3,23 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import {
-  CATEGORY_BADGE_CLASSES,
-  CATEGORY_LABELS,
-  type Content,
-} from "@/types/content";
+import { ContentCardActions } from "@/components/ContentCardActions";
+import { CATEGORY_LABELS, type Content } from "@/types/content";
+import { REGION_LABELS } from "@/types/region";
 
 interface ContentCardProps {
   content: Content;
-  isInBasket: boolean;
-  onToggleBasket: () => void;
 }
 
-export function ContentCard({
-  content,
-  isInBasket,
-  onToggleBasket,
-}: ContentCardProps) {
+// 핸드오프 스펙(4번 "콘텐츠 목록")에 맞춰 재구성: 카테고리 배지를 이미지 위
+// 코랄 단색 오버레이로, 담기/찜 액션은 ContentCardActions(ForYouCard와 동일
+// 컴포넌트)로 자체 관리한다. 바구니 상태를 상위(ContentGrid)에서 prop으로
+// 내려주던 방식은 제거했다.
+export function ContentCard({ content }: ContentCardProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}`} className="block">
-        <div className="relative aspect-video bg-muted">
+        <div className="relative h-[140px] bg-muted">
           {content.imageUrl ? (
             <Image
               src={content.imageUrl}
@@ -39,20 +33,17 @@ export function ContentCard({
               이미지 없음
             </div>
           )}
+          {content.category && (
+            <span className="absolute top-2.5 left-2.5 rounded-full bg-primary px-2.5 py-1 text-[10.5px] font-extrabold text-primary-foreground">
+              {CATEGORY_LABELS[content.category]}
+            </span>
+          )}
         </div>
 
-        <div className="flex flex-col gap-2 p-4 pb-2">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium leading-tight">{content.name}</h3>
-            {content.category && (
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE_CLASSES[content.category]}`}
-              >
-                {CATEGORY_LABELS[content.category]}
-              </span>
-            )}
-          </div>
-
+        <div className="flex flex-col gap-1.5 p-4 pb-2">
+          <h3 className="text-[14.5px] font-bold tracking-tight text-foreground">
+            {content.name}
+          </h3>
           <p className="text-xs text-muted-foreground">{content.address}</p>
           <p className="line-clamp-2 text-sm text-foreground/80">
             {content.summary}
@@ -60,16 +51,11 @@ export function ContentCard({
         </div>
       </Link>
 
-      <div className="p-4 pt-2">
-        <Button
-          variant={isInBasket ? "default" : "outline"}
-          size="sm"
-          className="mt-1 w-full"
-          onClick={onToggleBasket}
-        >
-          <Icon name={isInBasket ? "check" : "plus"} size={14} />
-          {isInBasket ? "담김" : "담기"}
-        </Button>
+      <div className="mt-auto flex flex-col gap-2 p-4 pt-2">
+        <span className="text-[11.5px] font-semibold text-muted-foreground">
+          {REGION_LABELS[content.region]}
+        </span>
+        <ContentCardActions content={content} />
       </div>
     </div>
   );

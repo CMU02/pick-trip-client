@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { parseApiError } from "@/lib/errors";
 import { createShare } from "@/services/shareService";
 
@@ -17,6 +18,7 @@ type ShareState =
   | { status: "error"; message: string };
 
 export function ShareButton({ itineraryId }: ShareButtonProps) {
+  const { runAuthed } = useAuth();
   const [state, setState] = useState<ShareState>({ status: "idle" });
   const [copied, setCopied] = useState(false);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -30,7 +32,9 @@ export function ShareButton({ itineraryId }: ShareButtonProps) {
   async function handleShare() {
     setState({ status: "loading" });
     try {
-      const { shareUrl } = await createShare(itineraryId);
+      const { shareUrl } = await runAuthed((token) =>
+        createShare(itineraryId, token),
+      );
       setState({ status: "created", shareUrl });
     } catch (err) {
       setState({ status: "error", message: parseApiError(err).message });
@@ -58,7 +62,7 @@ export function ShareButton({ itineraryId }: ShareButtonProps) {
           variant={copied ? "secondary" : "outline"}
           size="sm"
           onClick={() => handleCopy(state.shareUrl)}
-          className={copied ? "text-teal-700" : undefined}
+          className={copied ? "text-primary" : undefined}
         >
           {copied ? "복사됨" : "복사"}
         </Button>

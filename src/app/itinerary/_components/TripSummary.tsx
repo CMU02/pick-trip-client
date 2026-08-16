@@ -1,5 +1,5 @@
 import type { BasketItem, BasketPriority } from "@/types/basket";
-import { PRIORITY_LABELS, PRIORITY_SELECTED_CLASSES } from "@/types/basket";
+import { PRIORITY_LABELS } from "@/types/basket";
 import type { Region } from "@/types/region";
 import { REGION_LABELS } from "@/types/region";
 import type { CompanionCondition } from "@/types/travel-condition";
@@ -11,6 +11,9 @@ interface TripSummaryProps {
   nights: number;
   companions: CompanionCondition[];
   items: BasketItem[];
+  // 일정 생성 결과 화면에서는 담은 콘텐츠가 이미 일차 카드에 전부 나와 있어
+  // 중복 표시를 피하려고 개수만 보여준다(기본값 true = 목록까지 표시).
+  showItemList?: boolean;
 }
 
 const PRIORITY_ORDER: (BasketPriority | null)[] = [
@@ -26,6 +29,7 @@ export function TripSummary({
   nights,
   companions,
   items,
+  showItemList = true,
 }: TripSummaryProps) {
   const parts = startDate.split("-");
   const month = Number(parts[1]);
@@ -40,25 +44,29 @@ export function TripSummary({
   })).filter(({ items: groupItems }) => groupItems.length > 0);
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
-      <h2 className="text-lg font-bold text-foreground">여행 요약</h2>
-      <dl className="mt-3 space-y-2 text-sm">
-        <div>
-          <dt className="font-medium text-muted-foreground">지역</dt>
-          <dd className="text-foreground">{regionText}</dd>
+    <section className="rounded-[20px] border border-border bg-card p-5.5">
+      <h2 className="text-[17px] font-bold tracking-tight text-foreground">
+        여행 요약
+      </h2>
+      <dl className="mt-4 flex flex-col gap-2.5 text-[13.5px]">
+        <div className="flex items-start justify-between gap-3">
+          <dt className="text-muted-foreground">지역</dt>
+          <dd className="text-right font-bold text-foreground">{regionText}</dd>
         </div>
-        <div>
-          <dt className="font-medium text-muted-foreground">날짜</dt>
-          <dd className="text-foreground">{formattedDate}</dd>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="text-muted-foreground">날짜</dt>
+          <dd className="text-right font-bold text-foreground">
+            {formattedDate}
+          </dd>
         </div>
-        <div>
-          <dt className="font-medium text-muted-foreground">기간</dt>
-          <dd className="text-foreground">{duration}</dd>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="text-muted-foreground">기간</dt>
+          <dd className="text-right font-bold text-foreground">{duration}</dd>
         </div>
         {companions.length > 0 && (
-          <div>
-            <dt className="font-medium text-muted-foreground">동행 조건</dt>
-            <dd className="mt-1 flex flex-wrap gap-1">
+          <div className="flex items-start justify-between gap-3">
+            <dt className="shrink-0 text-muted-foreground">동행 조건</dt>
+            <dd className="flex flex-wrap justify-end gap-1">
               {companions.map((c) => (
                 <span
                   key={c}
@@ -70,38 +78,49 @@ export function TripSummary({
             </dd>
           </div>
         )}
-        <div>
-          <dt className="font-medium text-muted-foreground">담은 콘텐츠</dt>
-          {items.length === 0 ? (
-            <dd className="text-muted-foreground">담은 콘텐츠가 없습니다</dd>
-          ) : (
-            <dd className="mt-1 space-y-2">
-              {groupedItems.map(({ priority, items: groupItems }) => (
-                <div key={priority ?? "none"}>
-                  <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                      priority
-                        ? PRIORITY_SELECTED_CLASSES[priority]
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {priority ? PRIORITY_LABELS[priority] : "미분류"}
-                  </span>
-                  <ul className="mt-1 space-y-0.5">
-                    {groupItems.map((item) => (
-                      <li
-                        key={item.content.id}
-                        className="text-sm text-foreground"
-                      >
-                        {item.content.name}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+        {showItemList ? (
+          <div>
+            <dt className="text-muted-foreground">담은 콘텐츠</dt>
+            {items.length === 0 ? (
+              <dd className="mt-1 text-muted-foreground">
+                담은 콘텐츠가 없습니다
+              </dd>
+            ) : (
+              <dd className="mt-1.5 space-y-2">
+                {groupedItems.map(({ priority, items: groupItems }) => (
+                  <div key={priority ?? "none"}>
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                        priority
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {priority ? PRIORITY_LABELS[priority] : "미분류"}
+                    </span>
+                    <ul className="mt-1 space-y-0.5">
+                      {groupItems.map((item) => (
+                        <li
+                          key={item.content.id}
+                          className="text-sm text-foreground"
+                        >
+                          {item.content.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </dd>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-muted-foreground">담은 콘텐츠</dt>
+            <dd className="text-right font-bold text-foreground">
+              {items.length}개
             </dd>
-          )}
-        </div>
+          </div>
+        )}
       </dl>
     </section>
   );

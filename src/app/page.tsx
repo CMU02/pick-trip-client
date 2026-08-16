@@ -1,65 +1,51 @@
-import Image from "next/image";
+import type { Metadata } from "next";
 
-export default function Home() {
+import { getContents } from "@/services/contentService";
+import { REGIONS } from "@/types/region";
+import { CtaSection } from "./_components/CtaSection";
+import { HeroSection } from "./_components/HeroSection";
+import { HomeGate } from "./_components/HomeGate";
+import { RegionShowcase } from "./_components/RegionShowcase";
+import { StepsSection } from "./_components/StepsSection";
+
+export const metadata: Metadata = {
+  title: "PickTrip | 하동·영주·예천 여행 콘텐츠와 AI 일정",
+  description:
+    "하동, 영주, 예천의 여행 콘텐츠를 둘러보고 AI가 만든 맞춤 여행 일정을 받아보세요.",
+};
+
+// 히어로의 콘텐츠 개수가 데이터 추가를 매 요청마다 즉시 반영하도록 홈을
+// 정적 프리렌더 대상에서 제외한다(기본값이면 빌드 시점 값으로 굳어버린다).
+export const dynamic = "force-dynamic";
+
+// 히어로의 "여행 콘텐츠" 지표에 쓸 실제 총 개수. 콘텐츠가 늘어나도 코드
+// 수정 없이 그대로 반영되도록 하드코딩 대신 매 요청마다 조회한다.
+async function getTotalContentCount(): Promise<number | null> {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const { total } = await getContents({
+      regions: [...REGIONS],
+      startDate: today,
+      nights: 0,
+    });
+    return total;
+  } catch (err) {
+    console.error("[home] 콘텐츠 총 개수 조회 실패:", err);
+    return null;
+  }
+}
+
+export default async function Home() {
+  const contentCount = await getTotalContentCount();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="flex flex-1 flex-col">
+      <HomeGate>
+        <HeroSection contentCount={contentCount} />
+        <RegionShowcase />
+        <StepsSection />
+        <CtaSection />
+      </HomeGate>
+    </main>
   );
 }

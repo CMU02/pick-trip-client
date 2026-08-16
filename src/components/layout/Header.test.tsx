@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const mockUsePathname = vi.fn(() => "/contents");
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/contents",
+  usePathname: () => mockUsePathname(),
 }));
 
 const mockUseAuth = vi.fn();
@@ -11,9 +12,60 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+import { useBasketStore } from "@/stores/basketStore";
+import { useFavoriteStore } from "@/stores/favoriteStore";
+import type { BasketItem } from "@/types/basket";
+import type { Content } from "@/types/content";
+
 import { Header } from "./Header";
 
+const makeBasketItem = (id: string): BasketItem => ({
+  content: {
+    id,
+    name: `콘텐츠 ${id}`,
+    region: "HADONG",
+    category: "CULTURE",
+    imageUrl: null,
+    address: "경남 하동군",
+    summary: "요약",
+    indoor: false,
+  },
+  addedAt: Date.now(),
+  priority: null,
+});
+
+const makeFavoriteContent = (id: string): Content => ({
+  id,
+  name: `콘텐츠 ${id}`,
+  region: "HADONG",
+  category: "CULTURE",
+  imageUrl: null,
+  address: "경남 하동군",
+  summary: "요약",
+  indoor: false,
+});
+
 describe("Header", () => {
+  beforeEach(() => {
+    mockUsePathname.mockReturnValue("/contents");
+    // 바구니/찜은 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
+    useBasketStore.setState({ items: [], hydrated: true });
+    useFavoriteStore.setState({ items: [], hydrated: true });
+  });
+
+  it("일정 공유 페이지에서는 헤더를 렌더링하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/share/abc123");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    const { container } = render(<Header />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("로딩 상태에서는 로그인/로그아웃 컨트롤을 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "loading",
@@ -47,7 +99,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 닉네임과 로그아웃 버튼을 보여주고, 클릭 시 logout을 호출한다", async () => {
+  it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출한다", async () => {
     const logout = vi.fn();
     mockUseAuth.mockReturnValue({
       status: "authenticated",
@@ -65,7 +117,307 @@ describe("Header", () => {
     render(<Header />);
 
     expect(screen.getByText("김여행")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "로그아웃" }),
+    );
     expect(logout).toHaveBeenCalled();
+  });
+
+  it("홈/콘텐츠 탐색/AI일정 네비게이션 링크를 올바른 href로 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "홈" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
+      "href",
+      "/explore",
+    );
+    expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
+      "href",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+    );
+  });
+
+  it("현재 경로와 일치하는 nav 항목만 활성 상태로 표시한다", () => {
+    mockUsePathname.mockReturnValue("/select/conditions");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "홈" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    expect(
+      screen.getByRole("link", { name: "콘텐츠 탐색" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("/exploredetail 경로에서는 콘텐츠 탐색(/explore) 링크를 활성화하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/exploredetail");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(
+      screen.getByRole("link", { name: "콘텐츠 탐색" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("비로그인 상태에서는 마이페이지 링크와 바구니 아이콘을 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(
+      screen.queryByRole("link", { name: "마이페이지" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /바구니/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /찜한 콘텐츠/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("로그인 상태에서는 드롭다운의 마이페이지 링크가 /mypage를 가리킨다", async () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "마이페이지" }),
+    ).toHaveAttribute("href", "/mypage");
+  });
+
+  it("로그인 상태에서는 홈/콘텐츠 탐색/AI일정 대신 대시보드 링크만 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.queryByRole("link", { name: "홈" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "콘텐츠 탐색" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "AI일정" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "대시보드" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+  });
+
+  it("로그인 상태에서는 드롭다운에 /favorites로 이동하는 찜한 콘텐츠 링크가 있다", async () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "찜한 콘텐츠" }),
+    ).toHaveAttribute("href", "/favorites");
+  });
+
+  it("비로그인 상태에서는 닉네임 드롭다운(과 찜한 콘텐츠 링크)을 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(
+      screen.queryByRole("menuitem", { name: "찜한 콘텐츠" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("로그인 상태에서는 /contents로 이동하는 바구니 아이콘을 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: /바구니/ })).toHaveAttribute(
+      "href",
+      "/contents",
+    );
+  });
+
+  it("바구니가 비어있으면 개수 배지를 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("바구니에 담긴 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+    useBasketStore.setState({
+      items: [makeBasketItem("1"), makeBasketItem("2")],
+      hydrated: true,
+    });
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘을 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: /찜한 콘텐츠/ })).toHaveAttribute(
+      "href",
+      "/favorites",
+    );
+  });
+
+  it("찜한 콘텐츠가 없으면 개수 배지를 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("찜한 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+    useFavoriteStore.setState({
+      items: [makeFavoriteContent("1"), makeFavoriteContent("2")],
+      hydrated: true,
+    });
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByText("2")).toBeInTheDocument();
   });
 });

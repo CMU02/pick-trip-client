@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ import type {
   ItineraryResponse,
   SaveItineraryRequest,
 } from "@/types/itinerary";
-import type { Region } from "@/types/region";
+import { REGION_LABELS, type Region } from "@/types/region";
 import {
   COMPANION_CONDITION_TO_SERVER,
   type CompanionCondition,
@@ -33,6 +34,51 @@ import { GeneratingState } from "./GeneratingState";
 import { ItineraryResult } from "./ItineraryResult";
 import { ShareButton } from "./ShareButton";
 import { TripSummary } from "./TripSummary";
+
+function formatDuration(nights: number) {
+  return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
+}
+
+// 핸드오프 스펙(9번 "일정 결과")의 "STEP 3 · 일정 완성" 헤더 +
+// 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
+// "이동 거리 합계" 카드는 서버가 이동 거리 데이터를 내려주지 않아 뺐다
+// (핸드오프 README도 데이터 없으면 빼도 된다고 명시).
+function ItineraryResultLayout({
+  region,
+  duration,
+  actions,
+  children,
+  sidebar,
+}: {
+  region: Region;
+  duration: number;
+  actions: ReactNode;
+  children: ReactNode;
+  sidebar: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-extrabold tracking-widest text-primary/70 uppercase">
+            Step 3 · 일정 완성
+          </p>
+          <h1 className="mt-2.5 text-[32px] font-extrabold tracking-tight">
+            {REGION_LABELS[region]} {formatDuration(duration)} 일정
+          </h1>
+        </div>
+        <div className="flex flex-wrap gap-2">{actions}</div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="flex flex-col gap-4">{children}</div>
+        <div className="flex flex-col gap-3.5 lg:sticky lg:top-[86px]">
+          {sidebar}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type ItineraryPhase =
   | { status: "idle" }
@@ -56,9 +102,10 @@ function buildLoginPreviewItinerary(
   nights: number,
 ): ItineraryGenerateResponse {
   const dayCount = nights + 1;
-  const days = Array.from({ length: dayCount }, (_, dayIndex) => ({
-    dayId: `preview-day-${dayIndex}`,
-    dayIndex,
+  // 백엔드는 dayIndex를 1부터 채번하므로(DayCard.tsx 참고) 미리보기도 동일하게 맞춘다.
+  const days = Array.from({ length: dayCount }, (_, i) => ({
+    dayId: `preview-day-${i}`,
+    dayIndex: i + 1,
     items: [] as ItineraryGenerateResponse["days"][number]["items"],
   }));
 
@@ -94,7 +141,41 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
   });
 
   return (
-    <div className="space-y-4">
+    <ItineraryResultLayout
+      region={data.region}
+      duration={data.duration}
+      actions={<ShareButton itineraryId={data.itineraryId} />}
+      sidebar={
+        <section className="rounded-[20px] border border-border bg-card p-5.5">
+          <h2 className="text-[17px] font-bold tracking-tight text-foreground">
+            여행 요약
+          </h2>
+          <dl className="mt-4 flex flex-col gap-2.5 text-[13.5px]">
+            <div className="flex items-start justify-between gap-3">
+              <dt className="text-muted-foreground">지역</dt>
+              <dd className="text-right font-bold text-foreground">
+                {REGION_LABELS[data.region]}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <dt className="text-muted-foreground">기간</dt>
+              <dd className="text-right font-bold text-foreground">
+                {formatDuration(data.duration)}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <dt className="text-muted-foreground">담은 콘텐츠</dt>
+              <dd className="text-right font-bold text-foreground">
+                {editor.days.reduce((sum, day) => sum + day.items.length, 0)}개
+              </dd>
+            </div>
+          </dl>
+        </section>
+      }
+    >
+      <p className="text-sm font-semibold text-primary">
+        일정이 저장되었습니다.
+      </p>
       <ItineraryResult
         data={data}
         editor={{
@@ -112,9 +193,7 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
           onSave: editor.save,
         }}
       />
-      <p className="text-sm text-teal-700">일정이 저장되었습니다.</p>
-      <ShareButton itineraryId={data.itineraryId} />
-    </div>
+    </ItineraryResultLayout>
   );
 }
 
@@ -132,6 +211,7 @@ export function ItineraryClient({
   companions,
 }: ItineraryClientProps) {
   const [phase, setPhase] = useState<ItineraryPhase>({ status: "idle" });
+  const [titleDraft, setTitleDraft] = useState<string | null>(null);
   const { items } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const { runAuthed } = useAuth();
@@ -218,14 +298,14 @@ export function ItineraryClient({
     });
   }
 
-  function handleSave() {
+  function handleSave(title: string) {
     if (phase.status !== "preview") return;
     const previewData = phase.data;
 
     setPhase({ status: "saving", data: previewData });
 
     const request: SaveItineraryRequest = {
-      title: previewData.title,
+      title,
       region: previewData.region,
       travelDate: previewData.travelDate,
       duration: previewData.duration,
@@ -236,7 +316,7 @@ export function ItineraryClient({
           title: item.title,
           order: item.order,
           reason: item.reason,
-          pinned: item.pinned,
+          pinned: item.pinned ?? false,
         })),
       })),
     };
@@ -251,6 +331,7 @@ export function ItineraryClient({
           duration: saved.duration,
           savedAt: Date.now(),
         });
+        setTitleDraft(null);
         setPhase({ status: "saved", data: saved });
       },
       onError: (err) => {
@@ -268,52 +349,115 @@ export function ItineraryClient({
 
   if (phase.status === "loginPreview") {
     return (
-      <div className="space-y-4">
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-700">
-          지금 보시는 일정은 담아주신 콘텐츠를 기반으로 만든 예시입니다.
-          로그인하면 실제 AI 일정 생성/저장 기능을 이용할 수 있어요.
-        </p>
+      <ItineraryResultLayout
+        region={phase.data.region}
+        duration={phase.data.duration}
+        actions={
+          <>
+            <Button asChild>
+              <Link href={`/login?next=${encodeURIComponent(loginNext)}`}>
+                로그인하고 계속하기
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setPhase({ status: "idle" })}
+            >
+              다시 생성
+            </Button>
+          </>
+        }
+        sidebar={
+          <p className="rounded-[20px] border border-primary/30 bg-primary/5 p-5 text-sm text-primary">
+            지금 보시는 일정은 담아주신 콘텐츠를 기반으로 만든 예시입니다.
+            로그인하면 실제 AI 일정 생성/저장 기능을 이용할 수 있어요.
+          </p>
+        }
+      >
         <ItineraryResult data={phase.data} />
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href={`/login?next=${encodeURIComponent(loginNext)}`}>
-              로그인하고 계속하기
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setPhase({ status: "idle" })}
-          >
-            다시 생성
-          </Button>
-        </div>
-      </div>
+      </ItineraryResultLayout>
     );
   }
 
   if (phase.status === "preview" || phase.status === "saving") {
+    const isSaving = phase.status === "saving";
     return (
-      <div className="space-y-4">
-        <ItineraryResult data={phase.data} />
+      <ItineraryResultLayout
+        region={phase.data.region}
+        duration={phase.data.duration}
+        actions={
+          titleDraft === null ? (
+            <>
+              <Button
+                variant="outline"
+                disabled={isSaving}
+                onClick={() => setPhase({ status: "idle" })}
+              >
+                다시 생성
+              </Button>
+              <Button
+                disabled={isSaving}
+                onClick={() => setTitleDraft(phase.data.title)}
+              >
+                저장
+              </Button>
+            </>
+          ) : (
+            <form
+              className="flex flex-wrap gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const trimmed = titleDraft.trim();
+                if (!trimmed) return;
+                handleSave(trimmed);
+              }}
+            >
+              <label htmlFor="itinerary-title" className="sr-only">
+                일정명
+              </label>
+              <input
+                id="itinerary-title"
+                className="w-40 rounded-md border border-input px-3 py-2 text-sm sm:w-56"
+                value={titleDraft}
+                disabled={isSaving}
+                onChange={(e) => setTitleDraft(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSaving}
+                onClick={() => setTitleDraft(null)}
+              >
+                취소
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSaving || titleDraft.trim() === ""}
+              >
+                {isSaving ? "저장 중..." : "저장하기"}
+              </Button>
+            </form>
+          )
+        }
+        sidebar={
+          <TripSummary
+            regions={parsedRegions}
+            startDate={startDate}
+            nights={parsedNights}
+            companions={parsedCompanions}
+            items={items}
+            showItemList={false}
+          />
+        }
+      >
         {phase.status === "preview" && phase.error && (
           <p className="text-sm text-destructive">
             {phase.error.message}
             {phase.error.traceId && ` (참고: ${phase.error.traceId})`}
           </p>
         )}
-        <div className="flex gap-2">
-          <Button disabled={phase.status === "saving"} onClick={handleSave}>
-            {phase.status === "saving" ? "저장 중..." : "저장"}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={phase.status === "saving"}
-            onClick={() => setPhase({ status: "idle" })}
-          >
-            다시 생성
-          </Button>
-        </div>
-      </div>
+        <ItineraryResult data={phase.data} />
+      </ItineraryResultLayout>
     );
   }
 

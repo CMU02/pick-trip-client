@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import type { Item } from "@/types/itinerary";
 
@@ -34,71 +33,70 @@ export function PlaceItem({
 
   return (
     <div className="flex gap-3 py-3">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-700">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
         {item.order + 1}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <p className="font-semibold text-foreground">{item.title}</p>
           {item.pinned && (
-            <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+            <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
               고정
             </span>
           )}
         </div>
         {item.reason && (
-          <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-teal-50 px-3 py-2 text-xs text-teal-700">
+          <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-primary">
             <Icon
               name="wand"
               size={13}
-              className="mt-0.5 shrink-0 text-teal-600"
+              className="mt-0.5 shrink-0 text-primary"
             />
             <span>{item.reason}</span>
           </p>
         )}
 
         {editable && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            <Button
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <button
               type="button"
-              variant="outline"
-              size="icon-sm"
               disabled={isFirst}
               onClick={onMoveUp}
               aria-label="위로 이동"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-xs text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
             >
               ▲
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant="outline"
-              size="icon-sm"
               disabled={isLast}
               onClick={onMoveDown}
               aria-label="아래로 이동"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-xs text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
             >
               ▼
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant={item.pinned ? "secondary" : "outline"}
-              size="sm"
               onClick={onTogglePinned}
+              aria-label={item.pinned ? "고정됨" : "고정"}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border text-xs transition-colors ${
+                item.pinned
+                  ? "border-primary/40 bg-accent text-accent-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              }`}
             >
-              {item.pinned ? "고정됨" : "고정"}
-            </Button>
-            <Button
+              📌
+            </button>
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={onOpenReplacePicker}
+              className="rounded-[9px] border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
             >
               대체 장소
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant="destructive"
-              size="sm"
               onClick={() => {
                 if (confirmingRemove) {
                   onRemove?.();
@@ -107,9 +105,14 @@ export function PlaceItem({
                   setConfirmingRemove(true);
                 }
               }}
+              className={`flex h-[30px] items-center justify-center rounded-[9px] border px-2.5 text-xs font-semibold transition-colors ${
+                confirmingRemove
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+              }`}
             >
               {confirmingRemove ? "정말 삭제?" : "삭제"}
-            </Button>
+            </button>
           </div>
         )}
       </div>

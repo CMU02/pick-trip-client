@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type {
   ItineraryGenerateResponse,
@@ -5,8 +6,15 @@ import type {
   SaveItineraryRequest,
 } from "@/types/itinerary";
 
-function authHeaders(accessToken?: string) {
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+// 프론트는 duration을 UI 개념인 "박 수"(당일치기=0)로 다루지만, 백엔드는
+// "일수"(당일치기=1, 최소 1)로 정의한다(.agents/docs/domain-model.md). 서비스
+// 경계에서만 변환해 나머지 화면 코드는 계속 박 수 기준으로 다루게 한다.
+function nightsToServerDuration(nights: number): number {
+  return nights + 1;
+}
+
+function serverDurationToNights(duration: number): number {
+  return duration - 1;
 }
 
 // generate는 요청 바디를 받지 않는다 — 서버에 저장된 사용자의 바구니/조건을 읽어 생성한다.
@@ -19,7 +27,7 @@ export async function generateItinerary(
     undefined,
     { headers: authHeaders(accessToken) },
   );
-  return data;
+  return { ...data, duration: serverDurationToNights(data.duration) };
 }
 
 export async function saveItinerary(
@@ -28,28 +36,32 @@ export async function saveItinerary(
 ): Promise<ItineraryResponse> {
   const { data } = await apiClient.post<ItineraryResponse>(
     "/api/v1/itineraries",
-    request,
+    { ...request, duration: nightsToServerDuration(request.duration) },
     { headers: authHeaders(accessToken) },
   );
-  return data;
+  return { ...data, duration: serverDurationToNights(data.duration) };
 }
 
 export async function getItinerary(
   itineraryId: string,
+  accessToken?: string,
 ): Promise<ItineraryResponse> {
   const { data } = await apiClient.get<ItineraryResponse>(
     `/api/v1/itineraries/${itineraryId}`,
+    { headers: authHeaders(accessToken) },
   );
-  return data;
+  return { ...data, duration: serverDurationToNights(data.duration) };
 }
 
 export async function modifyItinerary(
   itineraryId: string,
   request: SaveItineraryRequest,
+  accessToken?: string,
 ): Promise<ItineraryResponse> {
   const { data } = await apiClient.patch<ItineraryResponse>(
     `/api/v1/itineraries/${itineraryId}`,
-    request,
+    { ...request, duration: nightsToServerDuration(request.duration) },
+    { headers: authHeaders(accessToken) },
   );
-  return data;
+  return { ...data, duration: serverDurationToNights(data.duration) };
 }
