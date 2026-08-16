@@ -36,6 +36,9 @@ export function Header() {
   const pathname = usePathname();
   const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
 
+  // 일정 공유 페이지는 헤더 없는 공개 페이지다.
+  if (pathname.startsWith("/share/")) return null;
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
