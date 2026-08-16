@@ -1,7 +1,7 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useState } from "react";
 
 import { mergeUniqueContents } from "@/lib/content";
 import { parseApiError } from "@/lib/errors";
@@ -28,9 +28,14 @@ interface UseLoadMoreContentsResult {
   contents: Content[];
   total: number;
   hasMore: boolean;
+  // 첫 페이지(서버가 이미 받아온 상태) 그대로면 접을 게 없으므로 false.
+  canCollapse: boolean;
   isLoadingMore: boolean;
   errorMessage: string | null;
   loadMore: () => void;
+  // "더보기"의 반대 — 캐시는 그대로 두고 화면에 보이는 페이지 수만 1로
+  // 되돌린다. 다시 "더보기"를 누르면 재요청 없이 즉시 펼쳐진다.
+  collapse: () => void;
 }
 
 export function useLoadMoreContents({
@@ -40,6 +45,11 @@ export function useLoadMoreContents({
   initialTotal,
   pageSize = CONTENT_PAGE_SIZE,
 }: UseLoadMoreContentsParams): UseLoadMoreContentsResult {
+  // "더보기"로 몇 페이지째까지 화면에 노출할지. 실제로 가져온 페이지
+  // 수(query.data.pages.length)와는 별개로 관리해, "간략히"가 캐시를
+  // 지우지 않고 노출 범위만 줄이게 한다.
+  const [visiblePageCount, setVisiblePageCount] = useState(1);
+
   const query = useInfiniteQuery<ContentsResponse>({
     queryKey,
     queryFn: ({ pageParam }) =>
@@ -73,21 +83,37 @@ export function useLoadMoreContents({
     staleTime: Number.POSITIVE_INFINITY,
   });
 
-  const contents = useMemo(
-    () =>
-      mergeUniqueContents(query.data?.pages.flatMap((p) => p.contents) ?? []),
-    [query.data],
-  );
-  const total = query.data?.pages.at(-1)?.total ?? initialTotal;
+  const pages = query.data?.pages ?? [];
+  const visiblePages = pages.slice(0, visiblePageCount);
+
+  // 배열 자체는 매 렌더 새로 만들어지지만 항목 수가 많지 않아(현재 최대
+  // 수백 개) 매번 다시 걸러도 비용이 미미하다. useMemo로 감쌀 필요가 없다.
+  const contents = mergeUniqueContents(visiblePages.flatMap((p) => p.contents));
+  const total = pages.at(-1)?.total ?? initialTotal;
+
+  async function loadMore() {
+    if (visiblePageCount < pages.length) {
+      // 이전에 "간략히"로 접었던 페이지라 이미 캐시돼 있다 — 재요청 없이
+      // 바로 펼친다.
+      setVisiblePageCount((n) => n + 1);
+      return;
+    }
+    const result = await query.fetchNextPage();
+    if ((result.data?.pages.length ?? pages.length) > pages.length) {
+      setVisiblePageCount((n) => n + 1);
+    }
+  }
 
   return {
     contents,
     total,
-    hasMore: query.hasNextPage ?? false,
+    hasMore: contents.length < total,
+    canCollapse: visiblePageCount > 1,
     isLoadingMore: query.isFetchingNextPage,
     errorMessage: query.isError ? parseApiError(query.error).message : null,
     loadMore: () => {
-      void query.fetchNextPage();
+      void loadMore();
     },
+    collapse: () => setVisiblePageCount(1),
   };
 }

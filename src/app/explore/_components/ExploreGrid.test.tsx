@@ -234,6 +234,17 @@ describe("ExploreGrid", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("첫 페이지 상태에서는 간략히 버튼이 보이지 않는다", () => {
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1" })],
+      initialTotal: 3,
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "간략히" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("더보기 클릭 시 다음 페이지를 요청하고 결과를 이어붙인다", async () => {
     mockGetContents.mockResolvedValueOnce({
       contents: [makeContent({ id: "2", name: "화개장터" })],
@@ -260,5 +271,32 @@ describe("ExploreGrid", () => {
         screen.queryByRole("button", { name: /더보기/ }),
       ).not.toBeInTheDocument(),
     );
+    expect(screen.getByRole("button", { name: "간략히" })).toBeInTheDocument();
+  });
+
+  it("더보기로 펼친 뒤 간략히를 누르면 처음 페이지로 되돌아간다", async () => {
+    mockGetContents.mockResolvedValueOnce({
+      contents: [makeContent({ id: "2", name: "화개장터" })],
+      total: 2,
+    });
+
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1", name: "쌍계사" })],
+      initialTotal: 2,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
+    await waitFor(() =>
+      expect(screen.getByText("화개장터")).toBeInTheDocument(),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "간략히" }));
+
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "간략히" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /더보기/ })).toBeInTheDocument();
   });
 });

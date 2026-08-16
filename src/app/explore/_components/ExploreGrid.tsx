@@ -35,9 +35,11 @@ export function ExploreGrid({
     contents: loadedContents,
     total,
     hasMore,
+    canCollapse,
     isLoadingMore,
     errorMessage,
     loadMore,
+    collapse,
   } = useLoadMoreContents({
     queryKey: ["contents", queryParams],
     queryParams,
@@ -120,13 +122,24 @@ export function ExploreGrid({
         {errorMessage && (
           <p className="text-sm text-destructive">{errorMessage}</p>
         )}
-        {hasMore && (
-          <Button variant="outline" onClick={loadMore} disabled={isLoadingMore}>
-            {isLoadingMore
-              ? "불러오는 중..."
-              : `더보기 (${loadedContents.length}/${total})`}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {hasMore && (
+            <Button
+              variant="outline"
+              onClick={loadMore}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore
+                ? "불러오는 중..."
+                : `더보기 (${loadedContents.length}/${total})`}
+            </Button>
+          )}
+          {canCollapse && (
+            <Button variant="outline" onClick={collapse}>
+              간략히
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
