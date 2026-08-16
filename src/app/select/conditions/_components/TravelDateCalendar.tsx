@@ -27,6 +27,10 @@ function formatDateKey(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
+function dateToKey(date: Date) {
+  return formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 // 핸드오프 스펙(3번 "지역·조건 선택" ★캘린더)의 달력. 출발일 클릭 시
 // nights만큼 범위가 자동으로 하이라이트된다(종료일을 따로 클릭하지 않음).
 // 스펙 프로토타입에는 없지만, 기존 <input type="date" min={today}>가 갖고
@@ -85,6 +89,31 @@ export function TravelDateCalendar({
 
   function handleDayMouseDown(dateKey: string) {
     if (toDateOnly(new Date(dateKey)).getTime() < today.getTime()) return;
+
+    // 이미 확정된 범위가 있고(nights > 0) 그 출발일 또는 도착일 마커를
+    // 정확히 누른 거라면, 반대쪽 끝을 고정점(dragAnchor)으로 삼아 그
+    // 마커만 다시 늘였다 줄였다 할 수 있게 한다(양쪽 핸들 리사이즈).
+    // 그 외(빈 곳을 새로 누른 경우)에는 지금까지처럼 이 지점 자체가
+    // 고정점이 되는 새 범위 드래그로 취급한다.
+    const committedNights = Math.max(nights, 0);
+    if (value && committedNights > 0) {
+      const committedEndKey = dateToKey(
+        new Date(
+          toDateOnly(new Date(value)).getTime() + committedNights * 86400000,
+        ),
+      );
+      if (dateKey === committedEndKey) {
+        setDragAnchor(value);
+        setDragOver(dateKey);
+        return;
+      }
+      if (dateKey === value) {
+        setDragAnchor(committedEndKey);
+        setDragOver(dateKey);
+        return;
+      }
+    }
+
     setDragAnchor(dateKey);
     setDragOver(dateKey);
   }

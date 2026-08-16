@@ -236,6 +236,52 @@ describe("TravelDateCalendar", () => {
     expect(onSelectRange).not.toHaveBeenCalled();
   });
 
+  it("확정된 범위의 출발일 마커를 다시 드래그하면 도착일은 고정된 채 출발일만 바뀐다", () => {
+    const onSelect = vi.fn();
+    const onSelectRange = vi.fn();
+    render(
+      <TravelDateCalendar
+        value="2026-09-10"
+        nights={3}
+        onSelect={onSelect}
+        onSelectRange={onSelectRange}
+        subtitle=""
+      />,
+    );
+
+    // 9/10~9/13(3박)이 이미 확정된 상태에서 출발일(10) 마커를 8로 끈다.
+    drag(screen.getByText("10"), screen.getByText("8"));
+
+    expect(onSelect).toHaveBeenCalledWith(expect.stringMatching(/-08$/));
+    expect(onSelectRange).toHaveBeenCalledWith(
+      expect.stringMatching(/-08$/),
+      5,
+    );
+  });
+
+  it("확정된 범위의 도착일 마커를 다시 드래그하면 출발일은 고정된 채 도착일만 바뀐다", () => {
+    const onSelect = vi.fn();
+    const onSelectRange = vi.fn();
+    render(
+      <TravelDateCalendar
+        value="2026-09-10"
+        nights={3}
+        onSelect={onSelect}
+        onSelectRange={onSelectRange}
+        subtitle=""
+      />,
+    );
+
+    // 9/10~9/13(3박)이 이미 확정된 상태에서 도착일(13) 마커를 15로 끈다.
+    drag(screen.getByText("13"), screen.getByText("15"));
+
+    expect(onSelect).toHaveBeenCalledWith(expect.stringMatching(/-10$/));
+    expect(onSelectRange).toHaveBeenCalledWith(
+      expect.stringMatching(/-10$/),
+      5,
+    );
+  });
+
   it("이전 달로 이동하면 그 달의 날짜는 전부 비활성화된다(과거)", async () => {
     render(
       <TravelDateCalendar value="" nights={0} onSelect={vi.fn()} subtitle="" />,
