@@ -3,11 +3,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ALL_REGIONS_QUERY } from "@/types/region";
 
-interface HeroSectionProps {
-  // 실제 콘텐츠 총 개수. 서버에서 조회해 전달하며, 조회 실패 시 null로
-  // 넘어와 지표를 숨긴다(하드코딩된 값으로 대체하지 않는다).
-  contentCount: number | null;
-}
+// 매 요청마다 TourAPI를 3지역씩 호출해 실제 총 개수를 세던 방식은 API
+// 호출량이 너무 커서 정적 값으로 바꿨다. 2026-08-16 기준 실제 총합
+// (하동 106 + 영주 70 + 예천 52 = 228)을 그대로 굳혀 둔다. 콘텐츠가 크게
+// 늘어나면 이 숫자만 수동으로 갱신한다.
+const CONTENT_COUNT = 228;
 
 // 지역마다 다른 색으로 구분하지 않고 코랄 톤으로 통일한다.
 function stripeBackground() {
@@ -17,13 +17,10 @@ function stripeBackground() {
   };
 }
 
-export function HeroSection({ contentCount }: HeroSectionProps) {
+export function HeroSection() {
   const heroStats = [
     { value: "3곳", label: "경상도 소도시" },
-    {
-      value: contentCount !== null ? `${contentCount}개` : "-",
-      label: "여행 콘텐츠",
-    },
+    { value: `${CONTENT_COUNT}개`, label: "여행 콘텐츠" },
     { value: "30초", label: "AI 일정 생성" },
   ] as const;
 
