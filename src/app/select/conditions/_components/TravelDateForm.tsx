@@ -59,6 +59,22 @@ export function TravelDateForm({ regions }: TravelDateFormProps) {
   const nights = resolveNights();
   const durationLabel = duration ? formatDuration(nights) : null;
 
+  // 달력에서 출발일에 이어 도착일을 클릭했을 때 호출된다. 계산된 박 수와
+  // 일치하는 기간 버튼(당일치기/1박2일/2박3일)을 자동으로 선택하고,
+  // 일치하는 프리셋이 없으면 직접 입력으로 전환해 그 박 수를 채운다.
+  function handleSelectRange(start: string, rangeNights: number) {
+    setStartDate(start);
+    const matched = DURATION_PRESETS.find(
+      (p) => p.value !== "CUSTOM" && p.nights === rangeNights,
+    );
+    if (matched) {
+      setDuration(matched.value);
+      return;
+    }
+    setDuration("CUSTOM");
+    setCustomNights(Math.min(9, Math.max(1, rangeNights)));
+  }
+
   const isValid =
     startDate !== "" &&
     duration !== null &&
@@ -111,6 +127,7 @@ export function TravelDateForm({ regions }: TravelDateFormProps) {
             value={startDate}
             nights={Math.max(nights, 0)}
             onSelect={setStartDate}
+            onSelectRange={handleSelectRange}
             subtitle={calendarSubtitle}
           />
           <DurationSelector
