@@ -100,4 +100,16 @@ describe("ForYouSection", () => {
       screen.queryByRole("link", { name: "더보기 →" }),
     ).not.toBeInTheDocument();
   });
+
+  it("category를 지정하면 해당 카테고리만 보여준다(퀵 카테고리 필터 연동)", () => {
+    const pool = [
+      makeContent({ id: "1", name: "쌍계사", category: "CULTURE" }),
+      makeContent({ id: "2", name: "화개장터", category: "FOOD" }),
+    ];
+
+    render(<ForYouSection recommendedPool={pool} category="FOOD" />);
+
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+    expect(screen.getByText("화개장터")).toBeInTheDocument();
+  });
 });

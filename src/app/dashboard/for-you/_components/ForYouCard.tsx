@@ -4,11 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ContentCardActions } from "@/components/ContentCardActions";
-import {
-  CATEGORY_BADGE_CLASSES,
-  CATEGORY_LABELS,
-  type Content,
-} from "@/types/content";
+import { CATEGORY_LABELS, type Content } from "@/types/content";
 
 interface ForYouCardProps {
   content: Content;
@@ -18,7 +14,7 @@ interface ForYouCardProps {
 // 찜/담기 액션(ContentCardActions)을 붙인 카드. FOR YOU 더보기 페이지 전용.
 export function ForYouCard({ content }: ForYouCardProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}?from=for-you`} className="block">
         <div className="relative aspect-video bg-muted">
           {content.imageUrl ? (
@@ -40,9 +36,7 @@ export function ForYouCard({ content }: ForYouCardProps) {
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-medium leading-tight">{content.name}</h3>
             {content.category && (
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE_CLASSES[content.category]}`}
-              >
+              <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                 {CATEGORY_LABELS[content.category]}
               </span>
             )}
