@@ -1,8 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { TravelDateCalendar } from "./TravelDateCalendar";
+
+// 실제 마우스 드래그(누른 채로 다른 칸까지 끌고 놓기)를 흉내낸다.
+// mouseup은 window 전체에서 듣기 때문에 window에 직접 쏜다.
+function drag(fromEl: HTMLElement, toEl: HTMLElement) {
+  fireEvent.mouseDown(fromEl);
+  fireEvent.mouseEnter(toEl);
+  fireEvent.mouseUp(window);
+}
 
 describe("TravelDateCalendar", () => {
   it("선택된 날짜의 연/월을 헤더에 보여준다", () => {
@@ -161,6 +169,71 @@ describe("TravelDateCalendar", () => {
 
     expect(onSelect).toHaveBeenNthCalledWith(1, expect.stringMatching(/-10$/));
     expect(onSelect).toHaveBeenNthCalledWith(2, expect.stringMatching(/-13$/));
+  });
+
+  it("출발일에서 이후 날짜까지 드래그하면 onSelectRange를 박 수와 함께 호출한다", () => {
+    const onSelect = vi.fn();
+    const onSelectRange = vi.fn();
+    render(
+      <TravelDateCalendar
+        value="2026-09-01"
+        nights={0}
+        onSelect={onSelect}
+        onSelectRange={onSelectRange}
+        subtitle=""
+      />,
+    );
+
+    drag(screen.getByText("10"), screen.getByText("13"));
+
+    expect(onSelect).toHaveBeenCalledWith(expect.stringMatching(/-10$/));
+    expect(onSelectRange).toHaveBeenCalledWith(
+      expect.stringMatching(/-10$/),
+      3,
+    );
+  });
+
+  it("늦은 날짜에서 이른 날짜로 거꾸로 드래그해도 시간순으로 정렬해 처리한다", () => {
+    const onSelect = vi.fn();
+    const onSelectRange = vi.fn();
+    render(
+      <TravelDateCalendar
+        value="2026-09-01"
+        nights={0}
+        onSelect={onSelect}
+        onSelectRange={onSelectRange}
+        subtitle=""
+      />,
+    );
+
+    drag(screen.getByText("13"), screen.getByText("10"));
+
+    expect(onSelect).toHaveBeenCalledWith(expect.stringMatching(/-10$/));
+    expect(onSelectRange).toHaveBeenCalledWith(
+      expect.stringMatching(/-10$/),
+      3,
+    );
+  });
+
+  it("이동 없이 누르고 바로 떼면(드래그 아님) 기존 클릭 로직으로 처리된다", () => {
+    const onSelect = vi.fn();
+    const onSelectRange = vi.fn();
+    render(
+      <TravelDateCalendar
+        value="2026-09-01"
+        nights={0}
+        onSelect={onSelect}
+        onSelectRange={onSelectRange}
+        subtitle=""
+      />,
+    );
+
+    const day10 = screen.getByText("10");
+    fireEvent.mouseDown(day10);
+    fireEvent.mouseUp(window);
+
+    expect(onSelect).toHaveBeenCalledWith(expect.stringMatching(/-10$/));
+    expect(onSelectRange).not.toHaveBeenCalled();
   });
 
   it("이전 달로 이동하면 그 달의 날짜는 전부 비활성화된다(과거)", async () => {
