@@ -14,6 +14,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
+import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
 import { ALL_REGIONS_QUERY } from "@/types/region";
 
@@ -44,6 +45,7 @@ export function Header() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
   const { items: basketItems } = useBasket();
+  const { items: favoriteItems } = useFavorites();
   const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
 
   // 일정 공유 페이지는 헤더 없는 공개 페이지다.
@@ -82,6 +84,21 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
+          {status === "authenticated" && (
+            <Link
+              href="/favorites"
+              aria-label={`찜한 콘텐츠 ${favoriteItems.length}개`}
+              className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
+            >
+              <Icon name="heart" size={20} />
+              {favoriteItems.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {favoriteItems.length}
+                </span>
+              )}
+            </Link>
+          )}
+
           {status === "authenticated" && (
             <Link
               href="/contents"
