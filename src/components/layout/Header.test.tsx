@@ -65,7 +65,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 닉네임과 로그아웃 버튼을 보여주고, 클릭 시 logout을 호출한다", async () => {
+  it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출한다", async () => {
     const logout = vi.fn();
     mockUseAuth.mockReturnValue({
       status: "authenticated",
@@ -83,7 +83,10 @@ describe("Header", () => {
     render(<Header />);
 
     expect(screen.getByText("김여행")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "로그아웃" }),
+    );
     expect(logout).toHaveBeenCalled();
   });
 
@@ -162,7 +165,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 마이페이지 링크가 /mypage를 가리킨다", () => {
+  it("로그인 상태에서는 드롭다운의 마이페이지 링크가 /mypage를 가리킨다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -178,10 +181,11 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: "마이페이지" })).toHaveAttribute(
-      "href",
-      "/mypage",
-    );
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "마이페이지" }),
+    ).toHaveAttribute("href", "/mypage");
   });
 
   it("로그인 상태에서는 홈/콘텐츠 탐색/AI일정 대신 대시보드 링크만 보여준다", () => {
@@ -213,7 +217,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘 링크를 보여준다", () => {
+  it("로그인 상태에서는 드롭다운에 /favorites로 이동하는 찜한 콘텐츠 링크가 있다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -229,13 +233,14 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: "찜한 콘텐츠" })).toHaveAttribute(
-      "href",
-      "/favorites",
-    );
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "찜한 콘텐츠" }),
+    ).toHaveAttribute("href", "/favorites");
   });
 
-  it("비로그인 상태에서는 찜 아이콘 링크를 보여주지 않는다", () => {
+  it("비로그인 상태에서는 닉네임 드롭다운(과 찜한 콘텐츠 링크)을 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "unauthenticated",
       user: null,
@@ -245,7 +250,7 @@ describe("Header", () => {
     render(<Header />);
 
     expect(
-      screen.queryByRole("link", { name: "찜한 콘텐츠" }),
+      screen.queryByRole("menuitem", { name: "찜한 콘텐츠" }),
     ).not.toBeInTheDocument();
   });
 

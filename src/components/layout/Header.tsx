@@ -4,6 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
@@ -84,27 +91,41 @@ export function Header() {
           </Link>
 
           {status === "authenticated" && user && (
-            <div className="flex items-center gap-3">
-              <Link
-                href="/favorites"
-                aria-label="찜한 콘텐츠"
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Icon name="heart" size={20} />
-              </Link>
-              <div className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 transition-colors hover:border-[oklch(0.82_0.06_30)]">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm text-foreground outline-none transition-colors hover:border-[oklch(0.82_0.06_30)]">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] text-xs font-semibold text-white">
                   {user.nickname[0]}
                 </span>
-                <span className="text-sm text-foreground">{user.nickname}</span>
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/mypage">마이페이지</Link>
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => logout()}>
-                로그아웃
-              </Button>
-            </div>
+                <span>{user.nickname}</span>
+                <Icon
+                  name="chevron-down"
+                  size={16}
+                  className="text-muted-foreground"
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/mypage">
+                    <Icon name="user" size={16} />
+                    마이페이지
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/favorites">
+                    <Icon name="heart" size={16} />
+                    찜한 콘텐츠
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => logout()}
+                >
+                  <Icon name="logout" size={16} />
+                  로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {status === "unauthenticated" && (
