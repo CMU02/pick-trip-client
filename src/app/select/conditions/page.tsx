@@ -16,7 +16,7 @@ export default async function ConditionsPage({
   const { regions = "" } = await searchParams;
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-9">
+    <main className="mx-auto w-full max-w-7xl px-4 py-10">
       <div className="mb-8">
         <p className="text-xs font-extrabold tracking-widest text-primary/70 uppercase">
           Step 1 · 여행 조건
