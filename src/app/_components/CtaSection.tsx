@@ -19,7 +19,7 @@ export function CtaSection() {
             size="lg"
             className="bg-white text-primary hover:bg-white/90"
           >
-            <Link href="/explore">콘텐츠부터 골라보기</Link>
+            <Link href="/explore">콘텐츠부터 보기</Link>
           </Button>
           <Button
             asChild
