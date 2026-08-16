@@ -1,4 +1,14 @@
+import { Roboto } from "next/font/google";
+
 import "./google-login-button.css";
+
+// 공식 가이드가 명시하는 버튼 폰트(Roboto Medium = weight 500)를 실제로
+// 불러온다. next/font로 셀프 호스팅해 외부 CDN 요청 없이 빌드에 포함된다.
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-google-button",
+});
 
 interface GoogleLoginButtonProps {
   href: string;
@@ -10,7 +20,7 @@ interface GoogleLoginButtonProps {
 // https://developers.google.com/identity/branding-guidelines
 export function GoogleLoginButton({ href }: GoogleLoginButtonProps) {
   return (
-    <a href={href} className="gsi-material-button">
+    <a href={href} className={`gsi-material-button ${roboto.variable}`}>
       <span className="gsi-material-button-state" />
       <span className="gsi-material-button-content-wrapper">
         <span className="gsi-material-button-icon">
