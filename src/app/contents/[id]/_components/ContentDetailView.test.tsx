@@ -8,6 +8,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { useBasketStore } from "@/stores/basketStore";
+import { useFavoriteStore } from "@/stores/favoriteStore";
 import { useRecentViewsStore } from "@/stores/recentViewsStore";
 import type { ContentDetail } from "@/types/content";
 
@@ -36,6 +37,7 @@ describe("ContentDetailView", () => {
     localStorage.clear();
     // 전역 스토어는 테스트 간 상태가 누수되므로 초기 상태로 리셋한다.
     useBasketStore.setState({ items: [], hydrated: false });
+    useFavoriteStore.setState({ items: [], hydrated: false });
     useRecentViewsStore.setState({ items: [], hydrated: false });
   });
 
@@ -104,6 +106,21 @@ describe("ContentDetailView", () => {
       "href",
       "/explore",
     );
+  });
+
+  it("찜 버튼을 렌더하고 클릭하면 찜 상태가 토글된다", async () => {
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "찜하기" }));
+
+    expect(screen.getByRole("button", { name: "찜 해제" })).toBeInTheDocument();
+  });
+
+  it("showBasketAction이 false이면 찜 버튼도 렌더하지 않는다", () => {
+    render(<ContentDetailView content={stub} showBasketAction={false} />);
+    expect(
+      screen.queryByRole("button", { name: /찜하기|찜 해제/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("마운트 시 최근 본 콘텐츠로 기록한다", () => {

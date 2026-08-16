@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@/components/ui/icon";
 import {
   CATEGORY_LABELS,
   CONTENT_CATEGORIES,
@@ -84,13 +85,20 @@ export function ContentFilter({
         })}
       </div>
 
-      <input
-        type="search"
-        placeholder="콘텐츠 검색"
-        value={keyword}
-        onChange={(e) => onKeywordChange(e.target.value)}
-        className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-      />
+      <div className="flex h-11 items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+        <Icon
+          name="search"
+          size={16}
+          className="shrink-0 text-muted-foreground"
+        />
+        <input
+          type="search"
+          placeholder="장소 이름이나 주소로 검색"
+          value={keyword}
+          onChange={(e) => onKeywordChange(e.target.value)}
+          className="h-full flex-1 border-0 bg-transparent text-sm outline-none"
+        />
+      </div>
     </div>
   );
 }
