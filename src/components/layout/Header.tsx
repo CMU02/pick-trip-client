@@ -102,26 +102,6 @@ export function Header() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link
-                  href="/favorites"
-                  aria-label={`찜한 콘텐츠 ${favoriteItems.length}개`}
-                  className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
-                >
-                  <Icon name="heart" size={20} />
-                  {favoriteItems.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                      {favoriteItems.length}
-                    </span>
-                  )}
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>찜하기</TooltipContent>
-            </Tooltip>
-          )}
-
-          {status === "authenticated" && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
                   href="/contents"
                   aria-label={`바구니 ${basketItems.length}개`}
                   className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
@@ -154,7 +134,11 @@ export function Header() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link href="/mypage">
-                    <Icon name="user" size={16} />
+                    {/* user 아이콘은 24x24 grid 안에서 실제 그림이 차지하는
+                        영역(16x16)이 heart(20x18.35)보다 작아, 같은 size 값을
+                        줘도 눈에는 더 작아 보인다. 체감 크기를 맞추려고
+                        살짝 키운다. */}
+                    <Icon name="user" size={19} />
                     마이페이지
                   </Link>
                 </DropdownMenuItem>
@@ -162,6 +146,11 @@ export function Header() {
                   <Link href="/favorites">
                     <Icon name="heart" size={16} />
                     찜한 콘텐츠
+                    {favoriteItems.length > 0 && (
+                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                        {favoriteItems.length}
+                      </span>
+                    )}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

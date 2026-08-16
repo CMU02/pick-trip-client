@@ -332,28 +332,6 @@ describe("Header", () => {
     );
   });
 
-  it("찜 아이콘에 마우스를 올리면 '찜하기' 툴팁이 뜬다", async () => {
-    mockUseAuth.mockReturnValue({
-      status: "authenticated",
-      user: {
-        uid: "uid-1",
-        email: "user@example.com",
-        nickname: "김여행",
-        profileImageUrl: "",
-        provider: "KAKAO",
-        createdAt: "2026-01-01T00:00:00Z",
-      },
-      logout: vi.fn(),
-    });
-
-    render(<Header />);
-
-    await userEvent.hover(screen.getByRole("link", { name: /찜한 콘텐츠/ }));
-
-    // Radix Tooltip은 화면표시용과 스크린리더용 두 곳에 같은 텍스트를 렌더한다.
-    expect((await screen.findAllByText("찜하기")).length).toBeGreaterThan(0);
-  });
-
   it("바구니 아이콘에 마우스를 올리면 '장바구니' 툴팁이 뜬다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
@@ -417,7 +395,7 @@ describe("Header", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
-  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘을 보여준다", () => {
+  it("드롭다운의 찜한 콘텐츠가 0개면 개수 배지를 보여주지 않는다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -433,32 +411,13 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: /찜한 콘텐츠/ })).toHaveAttribute(
-      "href",
-      "/favorites",
-    );
-  });
-
-  it("찜한 콘텐츠가 없으면 개수 배지를 보여주지 않는다", () => {
-    mockUseAuth.mockReturnValue({
-      status: "authenticated",
-      user: {
-        uid: "uid-1",
-        email: "user@example.com",
-        nickname: "김여행",
-        profileImageUrl: "",
-        provider: "KAKAO",
-        createdAt: "2026-01-01T00:00:00Z",
-      },
-      logout: vi.fn(),
-    });
-
-    render(<Header />);
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+    await screen.findByRole("menuitem", { name: "찜한 콘텐츠" });
 
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("찜한 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+  it("드롭다운의 찜한 콘텐츠가 1개 이상이면 카톡 알림 스타일 개수 배지를 보여준다", async () => {
     useFavoriteStore.setState({
       items: [makeFavoriteContent("1"), makeFavoriteContent("2")],
       hydrated: true,
@@ -478,6 +437,10 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByText("2")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: /찜한 콘텐츠/ }),
+    ).toHaveTextContent("2");
   });
 });
