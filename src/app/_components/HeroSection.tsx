@@ -9,15 +9,11 @@ interface HeroSectionProps {
   contentCount: number | null;
 }
 
-const MOSAIC_PLACEHOLDERS = [
-  { label: "하동 차밭 사진", hue: 30 },
-  { label: "영주 부석사", hue: 150 },
-  { label: "예천 회룡포", hue: 240 },
-] as const;
-
-function stripeBackground(hue: number) {
+// 지역마다 다른 색으로 구분하지 않고 코랄 톤으로 통일한다.
+function stripeBackground() {
   return {
-    background: `repeating-linear-gradient(45deg, oklch(0.93 0.025 ${hue}) 0 8px, oklch(0.97 0.012 ${hue}) 8px 16px)`,
+    background:
+      "repeating-linear-gradient(45deg, oklch(0.93 0.025 30) 0 8px, oklch(0.97 0.012 30) 8px 16px)",
   };
 }
 
@@ -76,17 +72,17 @@ export function HeroSection({ contentCount }: HeroSectionProps) {
         <div className="grid grid-cols-2 grid-rows-[150px_150px_150px] gap-3">
           <div
             aria-hidden="true"
-            style={stripeBackground(MOSAIC_PLACEHOLDERS[0].hue)}
+            style={stripeBackground()}
             className="col-start-1 row-span-2 row-start-1 rounded-2xl"
           />
           <div
             aria-hidden="true"
-            style={stripeBackground(MOSAIC_PLACEHOLDERS[1].hue)}
+            style={stripeBackground()}
             className="rounded-2xl"
           />
           <div
             aria-hidden="true"
-            style={stripeBackground(MOSAIC_PLACEHOLDERS[2].hue)}
+            style={stripeBackground()}
             className="col-start-2 row-span-2 row-start-2 rounded-2xl"
           />
           <div className="flex flex-col justify-between rounded-2xl bg-primary p-4.5 text-primary-foreground">
