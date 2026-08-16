@@ -13,7 +13,9 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 import { useBasketStore } from "@/stores/basketStore";
+import { useFavoriteStore } from "@/stores/favoriteStore";
 import type { BasketItem } from "@/types/basket";
+import type { Content } from "@/types/content";
 
 import { Header } from "./Header";
 
@@ -32,11 +34,23 @@ const makeBasketItem = (id: string): BasketItem => ({
   priority: null,
 });
 
+const makeFavoriteContent = (id: string): Content => ({
+  id,
+  name: `콘텐츠 ${id}`,
+  region: "HADONG",
+  category: "CULTURE",
+  imageUrl: null,
+  address: "경남 하동군",
+  summary: "요약",
+  indoor: false,
+});
+
 describe("Header", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/contents");
-    // 바구니는 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
+    // 바구니/찜은 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
     useBasketStore.setState({ items: [], hydrated: true });
+    useFavoriteStore.setState({ items: [], hydrated: true });
   });
 
   it("일정 공유 페이지에서는 헤더를 렌더링하지 않는다", () => {
@@ -185,6 +199,9 @@ describe("Header", () => {
     expect(
       screen.queryByRole("link", { name: /바구니/ }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /찜한 콘텐츠/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("로그인 상태에서는 드롭다운의 마이페이지 링크가 /mypage를 가리킨다", async () => {
@@ -320,6 +337,70 @@ describe("Header", () => {
   it("바구니에 담긴 콘텐츠가 있으면 개수 배지를 보여준다", () => {
     useBasketStore.setState({
       items: [makeBasketItem("1"), makeBasketItem("2")],
+      hydrated: true,
+    });
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘을 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: /찜한 콘텐츠/ })).toHaveAttribute(
+      "href",
+      "/favorites",
+    );
+  });
+
+  it("찜한 콘텐츠가 없으면 개수 배지를 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("찜한 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+    useFavoriteStore.setState({
+      items: [makeFavoriteContent("1"), makeFavoriteContent("2")],
       hydrated: true,
     });
     mockUseAuth.mockReturnValue({
