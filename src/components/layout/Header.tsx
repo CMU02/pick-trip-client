@@ -12,6 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -85,33 +90,43 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           {status === "authenticated" && (
-            <Link
-              href="/favorites"
-              aria-label={`찜한 콘텐츠 ${favoriteItems.length}개`}
-              className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
-            >
-              <Icon name="heart" size={20} />
-              {favoriteItems.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {favoriteItems.length}
-                </span>
-              )}
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/favorites"
+                  aria-label={`찜한 콘텐츠 ${favoriteItems.length}개`}
+                  className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
+                >
+                  <Icon name="heart" size={20} />
+                  {favoriteItems.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {favoriteItems.length}
+                    </span>
+                  )}
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>찜하기</TooltipContent>
+            </Tooltip>
           )}
 
           {status === "authenticated" && (
-            <Link
-              href="/contents"
-              aria-label={`바구니 ${basketItems.length}개`}
-              className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
-            >
-              <Icon name="bookmark" size={20} />
-              {basketItems.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {basketItems.length}
-                </span>
-              )}
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/contents"
+                  aria-label={`바구니 ${basketItems.length}개`}
+                  className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
+                >
+                  <Icon name="bookmark" size={20} />
+                  {basketItems.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {basketItems.length}
+                    </span>
+                  )}
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>장바구니</TooltipContent>
+            </Tooltip>
           )}
 
           {status === "authenticated" && user && (
