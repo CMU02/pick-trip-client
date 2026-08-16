@@ -1,11 +1,6 @@
 import Link from "next/link";
 
-import {
-  REGION_COLORS,
-  REGION_DESCRIPTIONS,
-  REGION_LABELS,
-  REGIONS,
-} from "@/types/region";
+import { REGION_DESCRIPTIONS, REGION_LABELS, REGIONS } from "@/types/region";
 
 export function RegionShowcase() {
   return (
@@ -37,8 +32,7 @@ export function RegionShowcase() {
               <div className="flex items-center gap-2">
                 <span
                   aria-hidden="true"
-                  className="inline-block h-1.5 w-6.5 rounded-full"
-                  style={{ backgroundColor: REGION_COLORS[region] }}
+                  className="inline-block h-1.5 w-6.5 rounded-full bg-primary"
                 />
                 <span className="text-[11px] font-extrabold tracking-widest text-muted-foreground">
                   {region}

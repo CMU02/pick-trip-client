@@ -29,7 +29,8 @@ async function getTotalContentCount(): Promise<number | null> {
       nights: 0,
     });
     return total;
-  } catch {
+  } catch (err) {
+    console.error("[home] 콘텐츠 총 개수 조회 실패:", err);
     return null;
   }
 }

@@ -14,10 +14,4 @@ export const REGION_DESCRIPTIONS: Record<Region, string> = {
   YECHEON: "체험과 자연을 함께 즐기는 조용한 가족 여행",
 };
 
-export const REGION_COLORS: Record<Region, string> = {
-  HADONG: "#059669",
-  YEONGJU: "#D97706",
-  YECHEON: "#0891B2",
-};
-
 export const ALL_REGIONS_QUERY = REGIONS.join(",");
