@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { isSafeNextPath } from "@/lib/authRedirect";
+
+import { GoogleLoginButton } from "./_components/GoogleLoginButton";
+import { KakaoLoginButton } from "./_components/KakaoLoginButton";
 
 export const metadata: Metadata = {
   title: "로그인 | PickTrip",
@@ -65,27 +67,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </Alert>
           )}
 
-          <div className="mt-7 flex flex-col gap-2.5">
-            <Button
-              asChild
-              size="lg"
-              className="h-[52px] w-full bg-[#FEE500] font-bold text-black/85 hover:bg-[#FEE500]/90"
-            >
-              <a href={`/auth/kakao/start?next=${encodeURIComponent(next)}`}>
-                카카오로 로그인
-              </a>
-            </Button>
-
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="h-[52px] w-full bg-white font-bold text-black/85"
-            >
-              <a href={`/auth/google/start?next=${encodeURIComponent(next)}`}>
-                구글로 로그인
-              </a>
-            </Button>
+          <div className="mt-7 flex flex-col items-center gap-3">
+            <KakaoLoginButton
+              href={`/auth/kakao/start?next=${encodeURIComponent(next)}`}
+            />
+            <GoogleLoginButton
+              href={`/auth/google/start?next=${encodeURIComponent(next)}`}
+            />
           </div>
 
           <div className="mt-5.5 rounded-xl bg-[oklch(0.975_0.012_30)] px-4 py-3.5 text-[12.5px] leading-relaxed text-muted-foreground">
