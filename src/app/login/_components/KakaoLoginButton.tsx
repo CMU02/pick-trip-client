@@ -14,7 +14,7 @@ export function KakaoLoginButton({ href }: KakaoLoginButtonProps) {
   return (
     <a
       href={href}
-      className="inline-flex h-10 w-[200px] items-center rounded-[4px] bg-[#FEE500] px-3 text-sm font-bold text-[#191919] transition-shadow select-none hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="inline-flex h-10 w-[200px] items-center rounded-[4px] bg-[#FEE500] px-3 text-sm font-medium text-[#191919] transition-shadow select-none hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <svg
         width="20"
