@@ -3,8 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUsePathname = vi.fn(() => "/contents");
+const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => mockUsePathname(),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 const mockUseAuth = vi.fn();
@@ -48,6 +50,7 @@ const makeFavoriteContent = (id: string): Content => ({
 describe("Header", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/contents");
+    mockPush.mockClear();
     // 바구니/찜은 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
     useBasketStore.setState({ items: [], hydrated: true });
     useFavoriteStore.setState({ items: [], hydrated: true });
@@ -99,7 +102,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출한다", async () => {
+  it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출하고 홈으로 이동한다", async () => {
     const logout = vi.fn();
     mockUseAuth.mockReturnValue({
       status: "authenticated",
@@ -122,6 +125,7 @@ describe("Header", () => {
       await screen.findByRole("menuitem", { name: "로그아웃" }),
     );
     expect(logout).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith("/");
   });
 
   it("홈/콘텐츠 탐색/AI일정 네비게이션 링크를 올바른 href로 보여준다", () => {
