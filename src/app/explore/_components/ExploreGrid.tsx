@@ -3,6 +3,11 @@
 import { useState } from "react";
 
 import { ContentFilter } from "@/components/ContentFilter";
+import { Button } from "@/components/ui/button";
+import {
+  type ContentQueryParams,
+  useLoadMoreContents,
+} from "@/hooks/useLoadMoreContents";
 import { groupContentsByCategory } from "@/lib/content";
 import type { Content, ContentCategory } from "@/types/content";
 import type { Region } from "@/types/region";
@@ -11,16 +16,38 @@ import { ExploreCard } from "./ExploreCard";
 
 interface ExploreGridProps {
   initialContents: Content[];
+  initialTotal: number;
+  queryParams: ContentQueryParams;
 }
 
-export function ExploreGrid({ initialContents }: ExploreGridProps) {
+export function ExploreGrid({
+  initialContents,
+  initialTotal,
+  queryParams,
+}: ExploreGridProps) {
   const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<
     ContentCategory[]
   >([]);
   const [keyword, setKeyword] = useState("");
 
-  const filtered = initialContents.filter((c) => {
+  const {
+    contents: loadedContents,
+    total,
+    hasMore,
+    canCollapse,
+    isLoadingMore,
+    errorMessage,
+    loadMore,
+    collapse,
+  } = useLoadMoreContents({
+    queryKey: ["contents", queryParams],
+    queryParams,
+    initialContents,
+    initialTotal,
+  });
+
+  const filtered = loadedContents.filter((c) => {
     const matchRegion =
       selectedRegions.length === 0 || selectedRegions.includes(c.region);
     const matchCategory =
@@ -34,7 +61,7 @@ export function ExploreGrid({ initialContents }: ExploreGridProps) {
     return matchRegion && matchCategory && matchKeyword;
   });
 
-  if (initialContents.length === 0) {
+  if (loadedContents.length === 0) {
     return (
       <p className="py-16 text-center text-sm text-muted-foreground">
         콘텐츠가 없습니다
@@ -90,6 +117,30 @@ export function ExploreGrid({ initialContents }: ExploreGridProps) {
           ))}
         </div>
       )}
+
+      <div className="flex flex-col items-center gap-2 pt-2">
+        {errorMessage && (
+          <p className="text-sm text-destructive">{errorMessage}</p>
+        )}
+        <div className="flex items-center gap-2">
+          {hasMore && (
+            <Button
+              variant="outline"
+              onClick={loadMore}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore
+                ? "불러오는 중..."
+                : `더보기 (${loadedContents.length}/${total})`}
+            </Button>
+          )}
+          {canCollapse && (
+            <Button variant="outline" onClick={collapse}>
+              간략히
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

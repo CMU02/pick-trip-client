@@ -1,10 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/services/contentService", () => ({
+  getContents: vi.fn(),
+}));
+
+import { getContents } from "@/services/contentService";
 import type { Content } from "@/types/content";
 
 import { ExploreGrid } from "./ExploreGrid";
+
+const mockGetContents = vi.mocked(getContents);
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
   id: "1",
@@ -18,14 +26,51 @@ const makeContent = (overrides: Partial<Content> = {}): Content => ({
   ...overrides,
 });
 
+const defaultQueryParams = {
+  regions: ["HADONG", "YEONGJU", "YECHEON"],
+  startDate: "2026-06-20",
+  nights: 0,
+};
+
+// ExploreGrid는 useLoadMoreContents(useInfiniteQuery)를 쓰므로 로컬
+// QueryClientProvider로 감싸야 한다. initialTotal은 기본적으로
+// initialContents.length와 같게 줘서(더 불러올 게 없는 상태) 더보기 버튼과
+// 무관한 기존 필터 테스트들이 그대로 통과하게 한다.
+function renderExploreGrid({
+  initialContents,
+  initialTotal = initialContents.length,
+  queryParams = defaultQueryParams,
+}: {
+  initialContents: Content[];
+  initialTotal?: number;
+  queryParams?: typeof defaultQueryParams;
+}) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <ExploreGrid
+        initialContents={initialContents}
+        initialTotal={initialTotal}
+        queryParams={queryParams}
+      />
+    </QueryClientProvider>,
+  );
+}
+
 describe("ExploreGrid", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
   it("지역 필터 선택 시 해당 지역 콘텐츠만 표시된다", async () => {
     const contents = [
       makeContent({ id: "1", name: "쌍계사", region: "HADONG" }),
       makeContent({ id: "2", name: "부석사", region: "YEONGJU" }),
     ];
 
-    render(<ExploreGrid initialContents={contents} />);
+    renderExploreGrid({ initialContents: contents });
 
     await userEvent.click(screen.getByRole("button", { name: "하동" }));
 
@@ -55,7 +100,7 @@ describe("ExploreGrid", () => {
       }),
     ];
 
-    render(<ExploreGrid initialContents={contents} />);
+    renderExploreGrid({ initialContents: contents });
 
     await userEvent.click(screen.getByRole("button", { name: "하동" }));
     await userEvent.click(screen.getByRole("button", { name: "문화" }));
@@ -71,7 +116,7 @@ describe("ExploreGrid", () => {
       makeContent({ id: "2", name: "하동 재첩국", category: "FOOD" }),
     ];
 
-    render(<ExploreGrid initialContents={contents} />);
+    renderExploreGrid({ initialContents: contents });
 
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByText("하동 재첩국")).toBeInTheDocument();
@@ -83,7 +128,7 @@ describe("ExploreGrid", () => {
       makeContent({ id: "2", name: "하동 재첩국", category: "FOOD" }),
     ];
 
-    render(<ExploreGrid initialContents={contents} />);
+    renderExploreGrid({ initialContents: contents });
 
     await userEvent.click(screen.getByRole("button", { name: "문화" }));
 
@@ -97,7 +142,7 @@ describe("ExploreGrid", () => {
       makeContent({ id: "2", name: "하동 재첩국", category: "FOOD" }),
     ];
 
-    render(<ExploreGrid initialContents={contents} />);
+    renderExploreGrid({ initialContents: contents });
 
     await userEvent.type(screen.getByRole("searchbox"), "쌍계");
 
@@ -106,7 +151,9 @@ describe("ExploreGrid", () => {
   });
 
   it("필터 결과가 없을 때 빈 상태 메시지를 표시한다", async () => {
-    render(<ExploreGrid initialContents={[makeContent({ name: "쌍계사" })]} />);
+    renderExploreGrid({
+      initialContents: [makeContent({ name: "쌍계사" })],
+    });
 
     await userEvent.type(screen.getByRole("searchbox"), "없는콘텐츠xyz");
 
@@ -116,7 +163,7 @@ describe("ExploreGrid", () => {
   });
 
   it("콘텐츠가 없을 때 빈 상태 메시지를 표시한다", () => {
-    render(<ExploreGrid initialContents={[]} />);
+    renderExploreGrid({ initialContents: [] });
 
     expect(screen.getByText(/콘텐츠가 없습니다/)).toBeInTheDocument();
   });
@@ -128,7 +175,7 @@ describe("ExploreGrid", () => {
       makeContent({ id: "3", name: "하동 재첩국", category: "FOOD" }),
     ];
 
-    render(<ExploreGrid initialContents={contents} />);
+    renderExploreGrid({ initialContents: contents });
 
     expect(screen.getByRole("heading", { name: /문화/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /음식/ })).toBeInTheDocument();
@@ -142,13 +189,11 @@ describe("ExploreGrid", () => {
   });
 
   it("카테고리가 없는 콘텐츠는 기타 섹션으로 묶인다", () => {
-    render(
-      <ExploreGrid
-        initialContents={[
-          makeContent({ id: "1", name: "쌍계사", category: undefined }),
-        ]}
-      />,
-    );
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "쌍계사", category: undefined }),
+      ],
+    });
 
     expect(screen.getByRole("heading", { name: /기타/ })).toBeInTheDocument();
   });
@@ -159,7 +204,7 @@ describe("ExploreGrid", () => {
       makeContent({ id: "2", name: "하동 재첩국", category: "FOOD" }),
     ];
 
-    render(<ExploreGrid initialContents={contents} />);
+    renderExploreGrid({ initialContents: contents });
 
     await userEvent.click(screen.getByRole("button", { name: "문화" }));
 
@@ -167,5 +212,91 @@ describe("ExploreGrid", () => {
     expect(
       screen.queryByRole("heading", { name: /음식/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it("initialTotal이 initialContents.length보다 크면 더보기 버튼이 보인다", () => {
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1" })],
+      initialTotal: 3,
+    });
+
+    expect(screen.getByRole("button", { name: /더보기/ })).toBeInTheDocument();
+  });
+
+  it("initialTotal이 initialContents.length와 같으면 더보기 버튼이 보이지 않는다", () => {
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1" })],
+      initialTotal: 1,
+    });
+
+    expect(
+      screen.queryByRole("button", { name: /더보기/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("첫 페이지 상태에서는 간략히 버튼이 보이지 않는다", () => {
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1" })],
+      initialTotal: 3,
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "간략히" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("더보기 클릭 시 다음 페이지를 요청하고 결과를 이어붙인다", async () => {
+    mockGetContents.mockResolvedValueOnce({
+      contents: [makeContent({ id: "2", name: "화개장터" })],
+      total: 2,
+    });
+
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1", name: "쌍계사" })],
+      initialTotal: 2,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
+
+    expect(mockGetContents).toHaveBeenCalledWith({
+      ...defaultQueryParams,
+      page: 1,
+      size: 20,
+    });
+    await waitFor(() =>
+      expect(screen.getByText("화개장터")).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /더보기/ }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "간략히" })).toBeInTheDocument();
+  });
+
+  it("더보기로 펼친 뒤 간략히를 누르면 처음 페이지로 되돌아간다", async () => {
+    mockGetContents.mockResolvedValueOnce({
+      contents: [makeContent({ id: "2", name: "화개장터" })],
+      total: 2,
+    });
+
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1", name: "쌍계사" })],
+      initialTotal: 2,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
+    await waitFor(() =>
+      expect(screen.getByText("화개장터")).toBeInTheDocument(),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "간략히" }));
+
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "간략히" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /더보기/ })).toBeInTheDocument();
   });
 });

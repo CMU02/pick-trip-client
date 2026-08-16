@@ -4,6 +4,11 @@ import { useState } from "react";
 
 import { BasketLayout } from "@/components/BasketLayout";
 import { ContentFilter } from "@/components/ContentFilter";
+import { Button } from "@/components/ui/button";
+import {
+  type ContentQueryParams,
+  useLoadMoreContents,
+} from "@/hooks/useLoadMoreContents";
 import { groupContentsByCategory } from "@/lib/content";
 import type { Content, ContentCategory } from "@/types/content";
 import type { Region } from "@/types/region";
@@ -12,12 +17,16 @@ import { ContentCard } from "./ContentCard";
 
 interface ContentGridProps {
   initialContents: Content[];
+  initialTotal: number;
+  queryParams: ContentQueryParams;
   itineraryHref: string;
   conditionLine: string;
 }
 
 export function ContentGrid({
   initialContents,
+  initialTotal,
+  queryParams,
   itineraryHref,
   conditionLine,
 }: ContentGridProps) {
@@ -27,7 +36,23 @@ export function ContentGrid({
   >([]);
   const [keyword, setKeyword] = useState("");
 
-  const filtered = initialContents.filter((c) => {
+  const {
+    contents: loadedContents,
+    total,
+    hasMore,
+    canCollapse,
+    isLoadingMore,
+    errorMessage,
+    loadMore,
+    collapse,
+  } = useLoadMoreContents({
+    queryKey: ["contents", queryParams],
+    queryParams,
+    initialContents,
+    initialTotal,
+  });
+
+  const filtered = loadedContents.filter((c) => {
     const matchRegion =
       selectedRegions.length === 0 || selectedRegions.includes(c.region);
     const matchCategory =
@@ -41,7 +66,7 @@ export function ContentGrid({
     return matchRegion && matchCategory && matchKeyword;
   });
 
-  if (initialContents.length === 0) {
+  if (loadedContents.length === 0) {
     return (
       <p className="py-16 text-center text-sm text-muted-foreground">
         콘텐츠가 없습니다
@@ -103,6 +128,30 @@ export function ContentGrid({
               ))}
             </div>
           )}
+
+          <div className="flex flex-col items-center gap-2 pt-2">
+            {errorMessage && (
+              <p className="text-sm text-destructive">{errorMessage}</p>
+            )}
+            <div className="flex items-center gap-2">
+              {hasMore && (
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore
+                    ? "불러오는 중..."
+                    : `더보기 (${loadedContents.length}/${total})`}
+                </Button>
+              )}
+              {canCollapse && (
+                <Button variant="outline" onClick={collapse}>
+                  간략히
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </BasketLayout>
     </div>

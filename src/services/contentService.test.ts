@@ -110,6 +110,36 @@ describe("getContents (apiClient 이관)", () => {
       getContents({ regions: ["HADONG"], startDate: "2026-06-20", nights: 0 }),
     ).rejects.toThrow("Not Found");
   });
+
+  it("page/size가 주어지면 쿼리에 포함한다(더보기 페이지네이션)", async () => {
+    mockGet.mockResolvedValueOnce({ data: { totalCount: 0, items: [] } });
+
+    await getContents({
+      regions: ["HADONG"],
+      startDate: "2026-08-01",
+      nights: 1,
+      page: 1,
+      size: 20,
+    });
+
+    expect(mockGet).toHaveBeenCalledWith(
+      "/api/v1/contents?region=HADONG&startDate=2026-08-01&nights=1&page=1&size=20",
+    );
+  });
+
+  it("page/size가 없으면 쿼리에 포함하지 않는다(기존 동작 유지)", async () => {
+    mockGet.mockResolvedValueOnce({ data: { totalCount: 0, items: [] } });
+
+    await getContents({
+      regions: ["HADONG"],
+      startDate: "2026-08-01",
+      nights: 1,
+    });
+
+    expect(mockGet).toHaveBeenCalledWith(
+      "/api/v1/contents?region=HADONG&startDate=2026-08-01&nights=1",
+    );
+  });
 });
 
 describe("getContentById (apiClient 이관)", () => {

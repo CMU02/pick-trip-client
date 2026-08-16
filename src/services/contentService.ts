@@ -8,11 +8,14 @@ import type { Region } from "@/types/region";
 
 import { apiClient } from "./apiClient";
 
-interface GetContentsParams {
+export interface GetContentsParams {
   regions: string[];
   startDate: string;
   nights: number;
   companions?: string[];
+  // "더보기" 페이지네이션용. 둘 다 없으면 백엔드 기본값(0페이지, 지역당 20개)을 쓴다.
+  page?: number;
+  size?: number;
 }
 
 // 백엔드 /api/v1/contents 목록 응답의 실제 필드 구조.
@@ -59,6 +62,8 @@ export async function getContents(
       if (params.companions && params.companions.length > 0) {
         query.set("companions", params.companions.join(","));
       }
+      if (params.page !== undefined) query.set("page", String(params.page));
+      if (params.size !== undefined) query.set("size", String(params.size));
 
       return apiClient
         .get<RawContentsResponse>(`/api/v1/contents?${query.toString()}`)
