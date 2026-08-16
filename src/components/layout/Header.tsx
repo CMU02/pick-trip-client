@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -46,10 +47,7 @@ export function Header() {
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="h-6 w-6 rounded-[8px] bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)]"
-            />
+            <Image src="/pick-trip-icon.svg" alt="" width={24} height={24} />
             <span className="text-[20px] font-extrabold tracking-[-0.035em] text-foreground">
               Pick<span className="text-primary">Trip</span>
             </span>
