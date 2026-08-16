@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Content } from "@/types/content";
 
-import { groupContentsByCategory } from "./content";
+import { groupContentsByCategory, mergeUniqueContents } from "./content";
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
   id: "1",
@@ -49,5 +49,27 @@ describe("groupContentsByCategory", () => {
     expect(groups).toEqual([
       { key: "uncategorized", label: "기타", items: contents },
     ]);
+  });
+});
+
+describe("mergeUniqueContents", () => {
+  it("빈 배열이면 빈 배열을 반환한다", () => {
+    expect(mergeUniqueContents([])).toEqual([]);
+  });
+
+  it("중복이 없으면 순서를 그대로 유지한다", () => {
+    const contents = [makeContent({ id: "1" }), makeContent({ id: "2" })];
+
+    expect(mergeUniqueContents(contents)).toEqual(contents);
+  });
+
+  it("같은 id가 여러 번 나오면 먼저 온 항목만 남긴다", () => {
+    const first = makeContent({ id: "1", name: "첫 페이지" });
+    const duplicate = makeContent({ id: "1", name: "두번째 페이지" });
+    const other = makeContent({ id: "2" });
+
+    const result = mergeUniqueContents([first, duplicate, other]);
+
+    expect(result).toEqual([first, other]);
   });
 });

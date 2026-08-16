@@ -31,3 +31,16 @@ export function groupContentsByCategory(contents: Content[]): ContentGroup[] {
 
   return groups;
 }
+
+// 여러 페이지를 이어붙일 때 같은 콘텐츠가 중복되지 않게 id 기준으로 거른다.
+// 먼저 온 항목을 유지한다.
+export function mergeUniqueContents(contents: Content[]): Content[] {
+  const seen = new Set<string>();
+  const result: Content[] = [];
+  for (const content of contents) {
+    if (seen.has(content.id)) continue;
+    seen.add(content.id);
+    result.push(content);
+  }
+  return result;
+}

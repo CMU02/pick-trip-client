@@ -47,17 +47,21 @@ export default async function ContentsPage({
     companions,
   } = await searchParams;
 
+  const queryParams = {
+    regions: regions ? regions.split(",") : [],
+    startDate,
+    nights: Number(nights),
+    companions: companions ? companions.split(",") : undefined,
+  };
+
   let contents: Awaited<ReturnType<typeof getContents>>["contents"] = [];
+  let total = 0;
   let error: string | null = null;
 
   try {
-    const res = await getContents({
-      regions: regions ? regions.split(",") : [],
-      startDate,
-      nights: Number(nights),
-      companions: companions ? companions.split(",") : undefined,
-    });
+    const res = await getContents(queryParams);
     contents = res.contents;
+    total = res.total;
   } catch {
     error = "콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.";
   }
@@ -81,6 +85,8 @@ export default async function ContentsPage({
     <main className="mx-auto w-full max-w-7xl px-4 py-10">
       <ContentGrid
         initialContents={contents}
+        initialTotal={total}
+        queryParams={queryParams}
         itineraryHref={itineraryHref}
         conditionLine={formatConditionLine(regions, startDate, nights)}
       />
