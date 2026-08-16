@@ -102,11 +102,11 @@ export function Header() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link
-                  href="/favorites"
-                  aria-label={`찜한 콘텐츠 ${favoriteItems.length}개`}
+                  href="/mypage"
+                  aria-label={`마이페이지 · 찜한 콘텐츠 ${favoriteItems.length}개`}
                   className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
                 >
-                  <Icon name="heart" size={20} />
+                  <Icon name="user" size={20} />
                   {favoriteItems.length > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                       {favoriteItems.length}
@@ -114,7 +114,7 @@ export function Header() {
                   )}
                 </Link>
               </TooltipTrigger>
-              <TooltipContent>찜하기</TooltipContent>
+              <TooltipContent>마이페이지</TooltipContent>
             </Tooltip>
           )}
 

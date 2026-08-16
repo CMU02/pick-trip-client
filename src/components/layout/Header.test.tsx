@@ -332,7 +332,7 @@ describe("Header", () => {
     );
   });
 
-  it("찜 아이콘에 마우스를 올리면 '찜하기' 툴팁이 뜬다", async () => {
+  it("마이페이지 아이콘에 마우스를 올리면 '마이페이지' 툴팁이 뜬다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -348,10 +348,12 @@ describe("Header", () => {
 
     render(<Header />);
 
-    await userEvent.hover(screen.getByRole("link", { name: /찜한 콘텐츠/ }));
+    await userEvent.hover(screen.getByRole("link", { name: /마이페이지/ }));
 
     // Radix Tooltip은 화면표시용과 스크린리더용 두 곳에 같은 텍스트를 렌더한다.
-    expect((await screen.findAllByText("찜하기")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("마이페이지")).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("바구니 아이콘에 마우스를 올리면 '장바구니' 툴팁이 뜬다", async () => {
@@ -417,7 +419,7 @@ describe("Header", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
-  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘을 보여준다", () => {
+  it("로그인 상태에서는 /mypage로 이동하는 마이페이지 아이콘을 보여준다", () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -433,13 +435,13 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: /찜한 콘텐츠/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /마이페이지/ })).toHaveAttribute(
       "href",
-      "/favorites",
+      "/mypage",
     );
   });
 
-  it("찜한 콘텐츠가 없으면 개수 배지를 보여주지 않는다", () => {
+  it("찜한 콘텐츠가 없으면 마이페이지 아이콘에 개수 배지를 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -458,7 +460,7 @@ describe("Header", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("찜한 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+  it("찜한 콘텐츠가 있으면 마이페이지 아이콘에 개수 배지를 보여준다", () => {
     useFavoriteStore.setState({
       items: [makeFavoriteContent("1"), makeFavoriteContent("2")],
       hydrated: true,
