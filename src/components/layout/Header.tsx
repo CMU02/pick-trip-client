@@ -134,7 +134,11 @@ export function Header() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link href="/mypage">
-                    <Icon name="user" size={16} />
+                    {/* user 아이콘은 24x24 grid 안에서 실제 그림이 차지하는
+                        영역(16x16)이 heart(20x18.35)보다 작아, 같은 size 값을
+                        줘도 눈에는 더 작아 보인다. 체감 크기를 맞추려고
+                        살짝 키운다. */}
+                    <Icon name="user" size={19} />
                     마이페이지
                   </Link>
                 </DropdownMenuItem>
