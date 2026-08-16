@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
+import { useBasket } from "@/hooks/useBasket";
 import { cn } from "@/lib/utils";
 import { ALL_REGIONS_QUERY } from "@/types/region";
 
@@ -34,16 +35,23 @@ function isNavActive(pathname: string, matchPath: string) {
 export function Header() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
+  const { items: basketItems } = useBasket();
   const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+    <header className="sticky top-0 z-40 h-[66px] border-b border-border bg-white/[.93] backdrop-blur-[14px]">
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-base font-semibold text-foreground">
-            PickTrip
+          <Link href="/" className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="h-6 w-6 rounded-[8px] bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)]"
+            />
+            <span className="text-[20px] font-extrabold tracking-[-0.035em] text-foreground">
+              Pick<span className="text-primary">Trip</span>
+            </span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm font-medium sm:gap-5">
+          <nav className="flex items-center gap-1 text-sm font-medium">
             {navItems.map((item) => {
               const active = isNavActive(pathname, item.matchPath);
               return (
@@ -52,8 +60,10 @@ export function Header() {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "transition-colors hover:text-foreground",
-                    active ? "text-primary" : "text-muted-foreground",
+                    "rounded-full px-[13px] py-2 transition-colors",
+                    active
+                      ? "bg-accent font-bold text-accent-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {item.label}
@@ -63,46 +73,56 @@ export function Header() {
           </nav>
         </div>
 
-        {status === "authenticated" && user && (
-          <div className="flex items-center gap-3">
-            <Link
-              href="/favorites"
-              aria-label="찜한 콘텐츠"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Icon name="heart" size={20} />
-            </Link>
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700">
-                {user.nickname[0]}
-              </span>
-              <span className="text-sm text-foreground">{user.nickname}</span>
-            </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/mypage">마이페이지</Link>
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => logout()}>
-              로그아웃
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/contents"
+            className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground transition-colors hover:bg-accent/80"
+          >
+            <Icon name="bookmark" size={14} />
+            바구니 {basketItems.length}
+          </Link>
 
-        {status === "unauthenticated" && (
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/login?next=/mypage">마이페이지</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
-                로그인
+          {status === "authenticated" && user && (
+            <div className="flex items-center gap-3">
+              <Link
+                href="/favorites"
+                aria-label="찜한 콘텐츠"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Icon name="heart" size={20} />
               </Link>
-            </Button>
-          </div>
-        )}
+              <div className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 transition-colors hover:border-[oklch(0.82_0.06_30)]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] text-xs font-semibold text-white">
+                  {user.nickname[0]}
+                </span>
+                <span className="text-sm text-foreground">{user.nickname}</span>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/mypage">마이페이지</Link>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => logout()}>
+                로그아웃
+              </Button>
+            </div>
+          )}
 
-        {status === "loading" && (
-          <div className="h-8 w-20" aria-hidden="true" />
-        )}
+          {status === "unauthenticated" && (
+            <div className="flex items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/login?next=/mypage">마이페이지</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
+                  로그인
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {status === "loading" && (
+            <div className="h-8 w-20" aria-hidden="true" />
+          )}
+        </div>
       </div>
     </header>
   );

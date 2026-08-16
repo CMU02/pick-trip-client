@@ -235,4 +235,19 @@ describe("Header", () => {
       screen.queryByRole("link", { name: "찜한 콘텐츠" }),
     ).not.toBeInTheDocument();
   });
+
+  it("로그인 여부와 무관하게 /contents로 이동하는 바구니 pill을 보여준다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: /바구니/ })).toHaveAttribute(
+      "href",
+      "/contents",
+    );
+  });
 });
