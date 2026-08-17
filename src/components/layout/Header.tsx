@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -44,12 +49,21 @@ function isNavActive(pathname: string, matchPath: string) {
 export function Header() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+
+  // 로그인 상태 전용 화면(대시보드 등)에 남아있으면 로그아웃 직후 어색하게
+  // 비어 보이거나 재로그인을 유도하게 되므로, 로그아웃하면 홈으로 보낸다.
+  async function handleLogout() {
+    await logout();
+    router.push("/");
+  }
   const { items: basketItems } = useBasket();
   const { items: favoriteItems } = useFavorites();
   const navItems = status === "authenticated" ? DASHBOARD_NAV_ITEMS : NAV_ITEMS;
 
-  // 일정 공유 페이지는 헤더 없는 공개 페이지다.
-  if (pathname.startsWith("/share/")) return null;
+  // 일정 공유 페이지와 로그인 페이지는 헤더 없는 화면이다. 로그인 페이지는
+  // 자체적으로 좌측에 브랜드 영역을 갖고 있어 헤더가 중복으로 보인다.
+  if (pathname.startsWith("/share/") || pathname === "/login") return null;
 
   return (
     <header className="sticky top-0 z-40 h-[66px] border-b border-border bg-white/[.93] backdrop-blur-[14px]">
@@ -85,33 +99,23 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           {status === "authenticated" && (
-            <Link
-              href="/favorites"
-              aria-label={`찜한 콘텐츠 ${favoriteItems.length}개`}
-              className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
-            >
-              <Icon name="heart" size={20} />
-              {favoriteItems.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {favoriteItems.length}
-                </span>
-              )}
-            </Link>
-          )}
-
-          {status === "authenticated" && (
-            <Link
-              href="/contents"
-              aria-label={`바구니 ${basketItems.length}개`}
-              className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
-            >
-              <Icon name="bookmark" size={20} />
-              {basketItems.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {basketItems.length}
-                </span>
-              )}
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/contents"
+                  aria-label={`바구니 ${basketItems.length}개`}
+                  className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
+                >
+                  <Icon name="bookmark" size={20} />
+                  {basketItems.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {basketItems.length}
+                    </span>
+                  )}
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>장바구니</TooltipContent>
+            </Tooltip>
           )}
 
           {status === "authenticated" && user && (
@@ -130,7 +134,11 @@ export function Header() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link href="/mypage">
-                    <Icon name="user" size={16} />
+                    {/* user 아이콘은 24x24 grid 안에서 실제 그림이 차지하는
+                        영역(16x16)이 heart(20x18.35)보다 작아, 같은 size 값을
+                        줘도 눈에는 더 작아 보인다. 체감 크기를 맞추려고
+                        살짝 키운다. */}
+                    <Icon name="user" size={19} />
                     마이페이지
                   </Link>
                 </DropdownMenuItem>
@@ -138,12 +146,17 @@ export function Header() {
                   <Link href="/favorites">
                     <Icon name="heart" size={16} />
                     찜한 콘텐츠
+                    {favoriteItems.length > 0 && (
+                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                        {favoriteItems.length}
+                      </span>
+                    )}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
-                  onSelect={() => logout()}
+                  onSelect={() => handleLogout()}
                 >
                   <Icon name="logout" size={16} />
                   로그아웃

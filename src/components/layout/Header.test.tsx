@@ -3,8 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUsePathname = vi.fn(() => "/contents");
+const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => mockUsePathname(),
+  useRouter: () => ({ push: mockPush }),
 }));
 
 const mockUseAuth = vi.fn();
@@ -48,6 +50,7 @@ const makeFavoriteContent = (id: string): Content => ({
 describe("Header", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/contents");
+    mockPush.mockClear();
     // 바구니/찜은 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
     useBasketStore.setState({ items: [], hydrated: true });
     useFavoriteStore.setState({ items: [], hydrated: true });
@@ -55,6 +58,19 @@ describe("Header", () => {
 
   it("일정 공유 페이지에서는 헤더를 렌더링하지 않는다", () => {
     mockUsePathname.mockReturnValue("/share/abc123");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    const { container } = render(<Header />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("로그인 페이지에서는 헤더를 렌더링하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/login");
     mockUseAuth.mockReturnValue({
       status: "unauthenticated",
       user: null,
@@ -99,7 +115,7 @@ describe("Header", () => {
     );
   });
 
-  it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출한다", async () => {
+  it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출하고 홈으로 이동한다", async () => {
     const logout = vi.fn();
     mockUseAuth.mockReturnValue({
       status: "authenticated",
@@ -122,6 +138,7 @@ describe("Header", () => {
       await screen.findByRole("menuitem", { name: "로그아웃" }),
     );
     expect(logout).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith("/");
   });
 
   it("홈/콘텐츠 탐색/AI일정 네비게이션 링크를 올바른 href로 보여준다", () => {
@@ -315,6 +332,27 @@ describe("Header", () => {
     );
   });
 
+  it("바구니 아이콘에 마우스를 올리면 '장바구니' 툴팁이 뜬다", async () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    await userEvent.hover(screen.getByRole("link", { name: /바구니/ }));
+
+    expect((await screen.findAllByText("장바구니")).length).toBeGreaterThan(0);
+  });
+
   it("바구니가 비어있으면 개수 배지를 보여주지 않는다", () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
@@ -357,7 +395,7 @@ describe("Header", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
-  it("로그인 상태에서는 /favorites로 이동하는 찜 아이콘을 보여준다", () => {
+  it("드롭다운의 찜한 콘텐츠가 0개면 개수 배지를 보여주지 않는다", async () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -373,32 +411,13 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByRole("link", { name: /찜한 콘텐츠/ })).toHaveAttribute(
-      "href",
-      "/favorites",
-    );
-  });
-
-  it("찜한 콘텐츠가 없으면 개수 배지를 보여주지 않는다", () => {
-    mockUseAuth.mockReturnValue({
-      status: "authenticated",
-      user: {
-        uid: "uid-1",
-        email: "user@example.com",
-        nickname: "김여행",
-        profileImageUrl: "",
-        provider: "KAKAO",
-        createdAt: "2026-01-01T00:00:00Z",
-      },
-      logout: vi.fn(),
-    });
-
-    render(<Header />);
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+    await screen.findByRole("menuitem", { name: "찜한 콘텐츠" });
 
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("찜한 콘텐츠가 있으면 개수 배지를 보여준다", () => {
+  it("드롭다운의 찜한 콘텐츠가 1개 이상이면 카톡 알림 스타일 개수 배지를 보여준다", async () => {
     useFavoriteStore.setState({
       items: [makeFavoriteContent("1"), makeFavoriteContent("2")],
       hydrated: true,
@@ -418,6 +437,10 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.getByText("2")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /김여행/ }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: /찜한 콘텐츠/ }),
+    ).toHaveTextContent("2");
   });
 });

@@ -26,7 +26,7 @@ export default async function ItineraryPage({
   } = await searchParams;
 
   return (
-    <main className="container mx-auto max-w-3xl px-4 py-8">
+    <main className="mx-auto w-full max-w-7xl px-4 py-8">
       <ItineraryClient
         regions={regions}
         startDate={startDate}

@@ -23,7 +23,7 @@
   box-sizing: border-box;
   color: #1f1f1f;
   cursor: pointer;
-  font-family: "Roboto", arial, sans-serif;
+  font-family: var(--font-google-button), "Roboto", arial, sans-serif;
   font-size: 14px;
   height: 40px;
   letter-spacing: 0.25px;
@@ -42,7 +42,10 @@
     box-shadow 0.218s;
   vertical-align: middle;
   white-space: nowrap;
-  width: auto;
+  /* 공식 스펙은 width: auto(컨텐츠 크기)이지만, 옆에 나란히 두는 카카오
+     버튼과 너비를 맞추려고 고정폭으로 바꿨다. padding·font-size 등
+     나머지 스펙은 그대로다. */
+  width: 200px;
   max-width: 400px;
   min-width: min-content;
 }
@@ -71,7 +74,7 @@
 .gsi-material-button .gsi-material-button-contents {
   -webkit-flex-grow: 1;
   flex-grow: 1;
-  font-family: "Roboto", arial, sans-serif;
+  font-family: var(--font-google-button), "Roboto", arial, sans-serif;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
