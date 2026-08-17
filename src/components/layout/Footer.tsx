@@ -9,6 +9,11 @@ const SITE_NAV = [
   { href: "/select/conditions", label: "AI일정" },
 ] as const;
 
+const LEGAL_NAV = [
+  { href: "/terms", label: "이용약관" },
+  { href: "/privacy", label: "개인정보처리방침" },
+] as const;
+
 export function Footer() {
   return (
     <footer className="border-t border-border bg-[oklch(0.985_0.008_30)]">
@@ -65,9 +70,25 @@ export function Footer() {
       </div>
 
       <div className="border-t border-border px-4 py-4">
-        <p className="mx-auto max-w-7xl text-xs text-muted-foreground">
-          © 2026 PickTrip. All rights reserved.
-        </p>
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">
+            © 2026 PickTrip. All rights reserved.
+          </p>
+          <nav aria-label="약관 및 정책">
+            <ul className="flex items-center gap-4">
+              {LEGAL_NAV.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="text-xs text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
       </div>
     </footer>
   );
