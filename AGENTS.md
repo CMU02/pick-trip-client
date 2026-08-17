@@ -86,7 +86,7 @@ PR을 생성할 때는 `.github/pull_request_template.md` 형식을 따른다.
 - `작업 내용`: 무엇을 변경했는지 요약한다.
 - `관련 이슈`: `Closes #<이슈 번호>` 형태로 연결한다. (먼저 이슈를 만들고 그 번호로 브랜치를 만든 흐름과 일치)
 - `테스트 플랜`: 변경을 어떻게 검증했는지 구체적으로 남긴다.
-- 병합 방식은 Rebase Merge를 기본으로 한다. (`.agents/rules/git-convention.md` 참고)
+- 병합 방식은 Merge Commit을 기본으로 한다. (`.agents/rules/git-convention.md` 참고)
 
 # Quick Start
 
