@@ -38,6 +38,18 @@ describe("Footer", () => {
     );
   });
 
+  it("약관과 개인정보처리방침 링크를 보여준다", () => {
+    render(<Footer />);
+
+    expect(screen.getByRole("link", { name: "이용약관" })).toHaveAttribute(
+      "href",
+      "/terms",
+    );
+    expect(
+      screen.getByRole("link", { name: "개인정보처리방침" }),
+    ).toHaveAttribute("href", "/privacy");
+  });
+
   it("저작권 문구를 보여준다", () => {
     render(<Footer />);
 
