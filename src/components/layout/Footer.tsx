@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { cn } from "@/lib/utils";
 import { REGION_LABELS, REGIONS } from "@/types/region";
 
 const SITE_NAV = [
@@ -10,8 +11,9 @@ const SITE_NAV = [
 ] as const;
 
 const LEGAL_NAV = [
-  { href: "/terms", label: "이용약관" },
-  { href: "/privacy", label: "개인정보처리방침" },
+  { href: "/terms", label: "이용약관", strong: false },
+  // 개인정보처리방침은 고지 의무가 있는 문서라 나머지 링크보다 눈에 띄게 둔다.
+  { href: "/privacy", label: "개인정보처리방침", strong: true },
 ] as const;
 
 export function Footer() {
@@ -80,7 +82,12 @@ export function Footer() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="text-xs text-muted-foreground transition-colors hover:text-primary"
+                    className={cn(
+                      "text-xs transition-colors hover:text-primary",
+                      item.strong
+                        ? "font-bold text-foreground"
+                        : "text-muted-foreground",
+                    )}
                   >
                     {item.label}
                   </Link>
