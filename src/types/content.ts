@@ -1,3 +1,4 @@
+import type { IconName } from "@/components/ui/icon";
 import type { Region } from "@/types/region";
 
 export type ContentCategory =
@@ -15,6 +16,16 @@ export const CATEGORY_LABELS: Record<ContentCategory, string> = {
   CULTURE: "문화",
   NATURE: "자연",
   EXPERIENCE: "체험",
+};
+
+// 카테고리 필터 칩에서 라벨 앞에 붙는 아이콘.
+export const CATEGORY_ICONS: Record<ContentCategory, IconName> = {
+  FOOD: "food",
+  FESTIVAL: "festival",
+  ATTRACTION: "attraction",
+  CULTURE: "culture",
+  NATURE: "nature",
+  EXPERIENCE: "experience",
 };
 
 export const CONTENT_CATEGORIES = Object.keys(

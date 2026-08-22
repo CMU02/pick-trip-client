@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/ui/icon";
 import {
+  CATEGORY_ICONS,
   CATEGORY_LABELS,
   CONTENT_CATEGORIES,
   type ContentCategory,
@@ -75,10 +76,11 @@ export function ContentFilter({
               onClick={() => toggleCategory(category)}
               className={
                 selected
-                  ? "rounded-full border border-primary bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
-                  : "rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/40"
+                  ? "flex items-center gap-1.5 rounded-full border border-primary bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
+                  : "flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/40"
               }
             >
+              <Icon name={CATEGORY_ICONS[category]} size={14} />
               {CATEGORY_LABELS[category]}
             </button>
           );

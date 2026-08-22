@@ -65,6 +65,25 @@ describe("ContentFilter", () => {
     );
   });
 
+  it("카테고리 칩은 라벨 글자 앞에 카테고리 아이콘을 렌더한다", () => {
+    render(
+      <ContentFilter
+        selectedRegions={[]}
+        selectedCategories={[]}
+        keyword=""
+        onRegionChange={vi.fn()}
+        onCategoryChange={vi.fn()}
+        onKeywordChange={vi.fn()}
+      />,
+    );
+
+    for (const label of ["음식", "축제", "관광지", "문화", "자연", "체험"]) {
+      const button = screen.getByRole("button", { name: label });
+      expect(button.querySelector("svg")).toBeInTheDocument();
+      expect(button.firstElementChild?.tagName.toLowerCase()).toBe("svg");
+    }
+  });
+
   it("카테고리 칩 클릭 시 onCategoryChange를 호출한다", async () => {
     const onCategoryChange = vi.fn();
     render(
