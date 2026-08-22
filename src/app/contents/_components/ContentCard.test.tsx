@@ -38,6 +38,13 @@ describe("ContentCard", () => {
     expect(screen.getByText("하동")).toBeInTheDocument();
   });
 
+  it("지역 배지를 카테고리 배지와 나란히 코랄 배경/흰 글씨로 렌더한다", () => {
+    render(<ContentCard content={stub} />);
+
+    const regionBadge = screen.getByText("하동");
+    expect(regionBadge).toHaveClass("bg-primary", "text-primary-foreground");
+  });
+
   it("담기지 않은 상태면 '담기' 버튼을 렌더한다", () => {
     render(<ContentCard content={stub} />);
     expect(screen.getByRole("button", { name: "담기" })).toBeInTheDocument();

@@ -33,11 +33,16 @@ export function ContentCard({ content }: ContentCardProps) {
               이미지 없음
             </div>
           )}
-          {content.category && (
-            <span className="absolute top-2.5 left-2.5 rounded-full bg-primary px-2.5 py-1 text-[10.5px] font-extrabold text-primary-foreground">
-              {CATEGORY_LABELS[content.category]}
+          <div className="absolute top-2.5 left-2.5 flex gap-1.5">
+            {content.category && (
+              <span className="rounded-full bg-primary px-2.5 py-1 text-[10.5px] font-extrabold text-primary-foreground">
+                {CATEGORY_LABELS[content.category]}
+              </span>
+            )}
+            <span className="rounded-full bg-primary px-2.5 py-1 text-[10.5px] font-extrabold text-primary-foreground">
+              {REGION_LABELS[content.region]}
             </span>
-          )}
+          </div>
         </div>
 
         <div className="flex flex-col gap-1.5 p-4 pb-2">
@@ -51,10 +56,7 @@ export function ContentCard({ content }: ContentCardProps) {
         </div>
       </Link>
 
-      <div className="mt-auto flex flex-col gap-2 p-4 pt-2">
-        <span className="text-[11.5px] font-semibold text-muted-foreground">
-          {REGION_LABELS[content.region]}
-        </span>
+      <div className="mt-auto p-4 pt-2">
         <ContentCardActions content={content} />
       </div>
     </div>
