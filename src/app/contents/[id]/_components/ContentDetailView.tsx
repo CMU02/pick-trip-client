@@ -81,8 +81,10 @@ export function ContentDetailView({
     { label: "주차", value: parkingText },
     { label: "예상 체류 시간", value: content.stayDuration },
     { label: "예약", value: reservationText },
+    // 백엔드가 내려주는 원본 값(TourAPI 등)과 무관하게, 실제 데이터 제공처인
+    // 한국관광공사로 표시를 통일한다.
     ...(content.dataSource
-      ? [{ label: "데이터 출처", value: content.dataSource }]
+      ? [{ label: "데이터 출처", value: "한국관광공사" }]
       : []),
   ];
 

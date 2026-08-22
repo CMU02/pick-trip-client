@@ -71,6 +71,17 @@ describe("ContentDetailView", () => {
     expect(screen.getByText("한국관광공사")).toBeInTheDocument();
   });
 
+  it("백엔드가 내려주는 원본 dataSource 값과 무관하게 데이터 출처를 한국관광공사로 표시한다", () => {
+    render(<ContentDetailView content={{ ...stub, dataSource: "TourAPI" }} />);
+    expect(screen.getByText("한국관광공사")).toBeInTheDocument();
+    expect(screen.queryByText("TourAPI")).not.toBeInTheDocument();
+  });
+
+  it("dataSource가 없으면 데이터 출처 행을 렌더하지 않는다", () => {
+    render(<ContentDetailView content={{ ...stub, dataSource: null }} />);
+    expect(screen.queryByText("데이터 출처")).not.toBeInTheDocument();
+  });
+
   it("담기 버튼을 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
     expect(screen.getByRole("button", { name: /담기/ })).toBeInTheDocument();
