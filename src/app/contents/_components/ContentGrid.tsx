@@ -66,14 +66,6 @@ export function ContentGrid({
     return matchRegion && matchCategory && matchKeyword;
   });
 
-  if (loadedContents.length === 0) {
-    return (
-      <p className="py-16 text-center text-sm text-muted-foreground">
-        콘텐츠가 없습니다
-      </p>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-5">
@@ -106,7 +98,9 @@ export function ContentGrid({
 
           {filtered.length === 0 ? (
             <p className="flex min-h-[60vh] items-center justify-center text-center text-sm text-muted-foreground">
-              조건에 맞는 콘텐츠가 없습니다
+              {loadedContents.length === 0
+                ? "콘텐츠가 없습니다"
+                : "조건에 맞는 콘텐츠가 없습니다"}
             </p>
           ) : (
             <div className="flex flex-col gap-8">

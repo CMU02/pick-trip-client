@@ -184,7 +184,26 @@ describe("ContentGrid", () => {
   it("콘텐츠가 없을 때 빈 상태 메시지를 표시한다", () => {
     renderContentGrid({ initialContents: [] });
 
-    expect(screen.getByText(/콘텐츠가 없습니다/)).toBeInTheDocument();
+    expect(screen.getByText("콘텐츠가 없습니다")).toBeInTheDocument();
+  });
+
+  it("콘텐츠 목록이 비어 있어도 이미 담아둔 바구니 항목은 계속 보여준다", () => {
+    useBasketStore.setState({
+      items: [
+        {
+          content: makeContent({ id: "1", name: "쌍계사" }),
+          addedAt: Date.now(),
+          priority: null,
+        },
+      ],
+      hydrated: true,
+    });
+
+    renderContentGrid({ initialContents: [] });
+
+    expect(screen.getByText("콘텐츠가 없습니다")).toBeInTheDocument();
+    expect(screen.getAllByText("여행 바구니").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("쌍계사").length).toBeGreaterThan(0);
   });
 
   it("콘텐츠를 카테고리별 섹션으로 나누어 표시한다", () => {
