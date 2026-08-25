@@ -33,11 +33,7 @@ export function DashboardClient({ recommendedPool }: DashboardClientProps) {
   return (
     <div className="flex flex-col gap-12">
       <DashboardHero />
-      <QuickCategoryRow
-        contents={recommendedPool}
-        selected={category}
-        onSelect={setCategory}
-      />
+      <QuickCategoryRow selected={category} onSelect={setCategory} />
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_330px]">
         <MyTripsSection />
         <RecentSection />

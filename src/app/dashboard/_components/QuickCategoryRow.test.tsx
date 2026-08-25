@@ -2,59 +2,43 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { Content } from "@/types/content";
-
 import { QuickCategoryRow } from "./QuickCategoryRow";
 
-const makeContent = (overrides: Partial<Content> = {}): Content => ({
-  id: "1",
-  name: "쌍계사",
-  region: "HADONG",
-  category: "CULTURE",
-  imageUrl: null,
-  address: "경남 하동군",
-  summary: "천년 고찰",
-  indoor: false,
-  ...overrides,
-});
-
 describe("QuickCategoryRow", () => {
-  it("카테고리별 콘텐츠 개수를 보여준다", () => {
-    const contents = [
-      makeContent({ id: "1", category: "CULTURE" }),
-      makeContent({ id: "2", category: "CULTURE" }),
-      makeContent({ id: "3", category: "FOOD" }),
-    ];
+  it("문화/음식/관광지/자연/체험/전체 6개 타일과 정적 개수를 보여준다", () => {
+    render(<QuickCategoryRow selected="ALL" onSelect={vi.fn()} />);
 
-    render(
-      <QuickCategoryRow
-        contents={contents}
-        selected="ALL"
-        onSelect={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByText("전체")).toBeInTheDocument();
-    expect(screen.getByText("문화")).toBeInTheDocument();
-    expect(screen.getAllByText("3곳")).toHaveLength(1);
-    expect(screen.getAllByText("2곳")).toHaveLength(1);
+    for (const label of ["문화", "음식", "관광지", "자연", "체험", "전체"]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    expect(screen.getByText("77곳")).toBeInTheDocument();
+    expect(screen.getByText("53곳")).toBeInTheDocument();
+    expect(screen.getByText("27곳")).toBeInTheDocument();
+    // 자연·체험이 둘 다 33곳이라 같은 라벨이 두 번 나온다.
+    expect(screen.getAllByText("33곳")).toHaveLength(2);
+    expect(screen.getByText("226곳")).toBeInTheDocument();
   });
 
   it("타일을 클릭하면 onSelect를 호출한다", async () => {
     const onSelect = vi.fn();
-    render(
-      <QuickCategoryRow contents={[]} selected="ALL" onSelect={onSelect} />,
-    );
+    render(<QuickCategoryRow selected="ALL" onSelect={onSelect} />);
 
     await userEvent.click(screen.getByText("음식"));
 
     expect(onSelect).toHaveBeenCalledWith("FOOD");
   });
 
+  it("관광지 타일을 클릭하면 onSelect를 ATTRACTION으로 호출한다", async () => {
+    const onSelect = vi.fn();
+    render(<QuickCategoryRow selected="ALL" onSelect={onSelect} />);
+
+    await userEvent.click(screen.getByText("관광지"));
+
+    expect(onSelect).toHaveBeenCalledWith("ATTRACTION");
+  });
+
   it("선택된 카테고리에 aria-pressed를 표시한다", () => {
-    render(
-      <QuickCategoryRow contents={[]} selected="FOOD" onSelect={vi.fn()} />,
-    );
+    render(<QuickCategoryRow selected="FOOD" onSelect={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: /음식/ })).toHaveAttribute(
       "aria-pressed",

@@ -1,43 +1,41 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import {
-  CATEGORY_LABELS,
-  type Content,
-  type ContentCategory,
-} from "@/types/content";
+import { CATEGORY_LABELS, type ContentCategory } from "@/types/content";
 
 export type QuickCategory = ContentCategory | "ALL";
 
 interface QuickCategoryRowProps {
-  contents: Content[];
   selected: QuickCategory;
   onSelect: (category: QuickCategory) => void;
 }
 
-// 핸드오프 스펙의 퀵 카테고리 5열. 문화/음식/자연/체험 + 전체를 클릭하면
-// 아래 "FOR YOU 추천" 섹션이 해당 카테고리로 필터링된다.
-const QUICK_DEFS: { key: QuickCategory; icon: string }[] = [
-  { key: "CULTURE", icon: "⛩" },
-  { key: "FOOD", icon: "🍽" },
-  { key: "NATURE", icon: "🌿" },
-  { key: "EXPERIENCE", icon: "🎋" },
-  { key: "ALL", icon: "📍" },
+// 핸드오프 스펙의 퀵 카테고리 6열. 문화/음식/관광지/자연/체험 + 전체를
+// 클릭하면 아래 "FOR YOU 추천" 섹션이 해당 카테고리로 필터링된다.
+//
+// 개수는 대시보드가 받아오는 작은 추천 풀(지역당 20개)이 아니라, 홈
+// 히어로(CONTENT_COUNT)와 같은 기준인 전체 카탈로그 실제 개수다. 매
+// 요청마다 전체를 세면 API 호출량이 커서 정적 값으로 굳혀 둔다.
+// 2026-08-25 기준 총합(음식 53 + 관광지 27 + 문화 77 + 자연 33 + 체험
+// 33 = 223, 카테고리 없는 축제 3개를 더하면 전체 226). 콘텐츠가 크게
+// 늘어나면 이 숫자만 수동으로 갱신한다.
+const QUICK_DEFS: { key: QuickCategory; icon: string; count: number }[] = [
+  { key: "CULTURE", icon: "⛩", count: 77 },
+  { key: "FOOD", icon: "🍽", count: 53 },
+  { key: "ATTRACTION", icon: "🏯", count: 27 },
+  { key: "NATURE", icon: "🌿", count: 33 },
+  { key: "EXPERIENCE", icon: "🎋", count: 33 },
+  { key: "ALL", icon: "📍", count: 226 },
 ];
 
 export function QuickCategoryRow({
-  contents,
   selected,
   onSelect,
 }: QuickCategoryRowProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-      {QUICK_DEFS.map(({ key, icon }) => {
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {QUICK_DEFS.map(({ key, icon, count }) => {
         const label = key === "ALL" ? "전체" : CATEGORY_LABELS[key];
-        const count =
-          key === "ALL"
-            ? contents.length
-            : contents.filter((c) => c.category === key).length;
         const on = selected === key;
         return (
           <button
