@@ -35,7 +35,7 @@ describe("ForYouGrid", () => {
 
     render(<ForYouGrid initialContents={contents} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "하동" }));
+    await userEvent.click(screen.getByRole("tab", { name: "하동" }));
 
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.queryByText("부석사")).not.toBeInTheDocument();

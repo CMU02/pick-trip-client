@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ContentFilter } from "@/components/ContentFilter";
 import { groupContentsByCategory } from "@/lib/content";
 import type { Content, ContentCategory } from "@/types/content";
-import type { Region } from "@/types/region";
+import { REGIONS, type Region } from "@/types/region";
 
 import { ForYouCard } from "./ForYouCard";
 
@@ -14,16 +14,17 @@ interface ForYouGridProps {
 }
 
 // ExploreGrid와 동일한 필터/그룹/그리드 구조에 카드만 ForYouCard(찜+담기 액션)로 교체.
+// 이 화면은 페이지네이션이 없어 ContentBrowser는 쓰지 않고 ContentFilter만
+// 재사용한다 — 지역은 여기서도 서버 요청이 아닌 순수 클라이언트 필터다.
 export function ForYouGrid({ initialContents }: ForYouGridProps) {
-  const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState<Region | "ALL">("ALL");
   const [selectedCategories, setSelectedCategories] = useState<
     ContentCategory[]
   >([]);
   const [keyword, setKeyword] = useState("");
 
   const filtered = initialContents.filter((c) => {
-    const matchRegion =
-      selectedRegions.length === 0 || selectedRegions.includes(c.region);
+    const matchRegion = selectedRegion === "ALL" || c.region === selectedRegion;
     const matchCategory =
       selectedCategories.length === 0 ||
       (c.category !== undefined && selectedCategories.includes(c.category));
@@ -46,10 +47,11 @@ export function ForYouGrid({ initialContents }: ForYouGridProps) {
   return (
     <div className="flex flex-col gap-6">
       <ContentFilter
-        selectedRegions={selectedRegions}
+        regions={[...REGIONS]}
+        selectedRegion={selectedRegion}
         selectedCategories={selectedCategories}
         keyword={keyword}
-        onRegionChange={setSelectedRegions}
+        onRegionChange={setSelectedRegion}
         onCategoryChange={setSelectedCategories}
         onKeywordChange={setKeyword}
       />
