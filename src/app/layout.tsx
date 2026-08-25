@@ -6,20 +6,18 @@ import { Header } from "@/components/layout/Header";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
-// Paperlogy는 Thin(100)~Black(900) 9개 굵기를 개별 파일로 제공한다. Tailwind
-// 기본 font-weight 스케일과 1:1 대응시켜, 굵기 유틸리티마다 실제 폰트 파일이
-// 매핑되고 브라우저가 페이크 볼드를 합성하지 않도록 한다.
+// Paperlogy는 Thin(100)~Black(900) 9개 굵기를 제공하지만, 여기 등록한 굵기는
+// 전 라우트에서 무조건 preload되므로 화면에서 실제로 쓰는 Regular(400)~
+// ExtraBold(800) 5종만 개별 파일로 등록한다. 사용 중인 굵기 유틸리티마다 실제
+// 폰트 파일이 매핑되므로 브라우저가 페이크 볼드를 합성하지 않는다. 제외한
+// 100/200/300/900을 다시 쓰려면 해당 파일과 항목을 함께 되살려야 한다.
 const paperlogy = localFont({
   src: [
-    { path: "./fonts/paperlogy/Paperlogy-1Thin.ttf", weight: "100" },
-    { path: "./fonts/paperlogy/Paperlogy-2ExtraLight.ttf", weight: "200" },
-    { path: "./fonts/paperlogy/Paperlogy-3Light.ttf", weight: "300" },
     { path: "./fonts/paperlogy/Paperlogy-4Regular.ttf", weight: "400" },
     { path: "./fonts/paperlogy/Paperlogy-5Medium.ttf", weight: "500" },
     { path: "./fonts/paperlogy/Paperlogy-6SemiBold.ttf", weight: "600" },
     { path: "./fonts/paperlogy/Paperlogy-7Bold.ttf", weight: "700" },
     { path: "./fonts/paperlogy/Paperlogy-8ExtraBold.ttf", weight: "800" },
-    { path: "./fonts/paperlogy/Paperlogy-9Black.ttf", weight: "900" },
   ],
   variable: "--font-sans",
   display: "swap",
