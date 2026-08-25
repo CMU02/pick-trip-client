@@ -105,7 +105,8 @@ describe("ContentFilter", () => {
     );
   });
 
-  it("지역·카테고리 칩이 최소 44x44 히트 영역 클래스를 갖는다", () => {
+  // jsdom은 레이아웃을 계산하지 않아 실제 픽셀 크기 대신 최소 크기 클래스를 확인한다.
+  it("지역·카테고리 칩이 최소 44px 높이 클래스를 갖는다", () => {
     render(
       <ContentFilter
         selectedRegions={[]}
@@ -118,10 +119,10 @@ describe("ContentFilter", () => {
     );
 
     expect(screen.getByRole("button", { name: "하동" })).toHaveClass(
-      "tap-target",
+      "min-h-11",
     );
     expect(screen.getByRole("button", { name: "음식" })).toHaveClass(
-      "tap-target",
+      "min-h-11",
     );
   });
 

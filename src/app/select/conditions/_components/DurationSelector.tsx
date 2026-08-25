@@ -53,7 +53,7 @@ export function DurationSelector({
             type="button"
             aria-label="숙박 일수 줄이기"
             onClick={() => onCustomNightsChange(Math.max(1, customNights - 1))}
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border bg-card"
+            className="flex h-11 w-11 items-center justify-center rounded-[9px] border border-border bg-card"
           >
             −
           </button>
@@ -64,7 +64,7 @@ export function DurationSelector({
             type="button"
             aria-label="숙박 일수 늘리기"
             onClick={() => onCustomNightsChange(Math.min(9, customNights + 1))}
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border bg-card"
+            className="flex h-11 w-11 items-center justify-center rounded-[9px] border border-border bg-card"
           >
             +
           </button>

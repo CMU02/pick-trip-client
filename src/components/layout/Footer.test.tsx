@@ -50,18 +50,16 @@ describe("Footer", () => {
     ).toHaveAttribute("href", "/privacy");
   });
 
-  it("푸터 링크가 최소 44x44 히트 영역 클래스를 갖는다", () => {
+  // jsdom은 레이아웃을 계산하지 않아 실제 픽셀 크기 대신 최소 크기 클래스를 확인한다.
+  it("푸터 링크가 최소 44x44 크기 클래스를 갖는다", () => {
     render(<Footer />);
 
-    expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveClass(
-      "tap-target",
-    );
-    expect(screen.getByRole("link", { name: "하동" })).toHaveClass(
-      "tap-target",
-    );
-    expect(screen.getByRole("link", { name: "개인정보처리방침" })).toHaveClass(
-      "tap-target",
-    );
+    for (const name of ["콘텐츠 탐색", "하동", "개인정보처리방침"]) {
+      expect(screen.getByRole("link", { name })).toHaveClass(
+        "min-h-11",
+        "min-w-11",
+      );
+    }
   });
 
   it("저작권 문구를 보여준다", () => {
