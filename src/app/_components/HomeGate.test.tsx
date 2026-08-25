@@ -31,7 +31,9 @@ describe("HomeGate", () => {
     expect(mockReplace).toHaveBeenCalledWith("/dashboard");
   });
 
-  it("loading이면 children을 렌더하지 않지만 리다이렉트하지 않는다", () => {
+  // SSR 시점 status는 항상 loading이므로, 여기서 children을 렌더해야 서버 응답
+  // HTML에 마케팅 콘텐츠가 담긴다.
+  it("loading이면 children을 렌더하고 리다이렉트하지 않는다", () => {
     mockUseAuth.mockReturnValue({ status: "loading" });
 
     render(
@@ -40,7 +42,7 @@ describe("HomeGate", () => {
       </HomeGate>,
     );
 
-    expect(screen.queryByText("마케팅 홈")).not.toBeInTheDocument();
+    expect(screen.getByText("마케팅 홈")).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
