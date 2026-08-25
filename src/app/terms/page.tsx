@@ -4,7 +4,7 @@ import { LegalDocument } from "@/components/layout/LegalDocument";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "이용약관 | PickTrip",
+  title: "이용약관",
   description: "PickTrip 서비스 이용약관",
   alternates: { canonical: new URL("/terms", SITE_URL).toString() },
 };

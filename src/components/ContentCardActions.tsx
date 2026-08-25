@@ -27,6 +27,8 @@ export function ContentCardActions({ content }: ContentCardActionsProps) {
 
   return (
     <div className="flex items-center justify-between gap-2">
+      {/* 44x44 히트 영역을 확보하되, 음수 마진으로 하트 아이콘 자체는
+          카드 본문과 같은 좌측 선에 남긴다. */}
       <button
         type="button"
         aria-label={favorited ? "찜 해제" : "찜하기"}
@@ -34,7 +36,7 @@ export function ContentCardActions({ content }: ContentCardActionsProps) {
         onClick={() =>
           favorited ? removeFavorite(content.id) : addFavorite(content)
         }
-        className={favorited ? "text-destructive" : "text-muted-foreground"}
+        className={`-ml-2.5 flex h-11 w-11 items-center justify-center ${favorited ? "text-destructive" : "text-muted-foreground"}`}
       >
         <Icon name="heart" size={18} />
       </button>

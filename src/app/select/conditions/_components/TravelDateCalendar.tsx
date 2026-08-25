@@ -216,7 +216,7 @@ export function TravelDateCalendar({
             type="button"
             onClick={goPrevMonth}
             aria-label="이전 달"
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] border border-border text-muted-foreground transition-colors hover:bg-muted"
+            className="flex h-11 w-11 items-center justify-center rounded-[11px] border border-border text-muted-foreground transition-colors hover:bg-muted"
           >
             <Icon name="chevron-left" size={16} />
           </button>
@@ -227,7 +227,7 @@ export function TravelDateCalendar({
             type="button"
             onClick={goNextMonth}
             aria-label="다음 달"
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] border border-border text-muted-foreground transition-colors hover:bg-muted"
+            className="flex h-11 w-11 items-center justify-center rounded-[11px] border border-border text-muted-foreground transition-colors hover:bg-muted"
           >
             <Icon name="chevron-right" size={16} />
           </button>

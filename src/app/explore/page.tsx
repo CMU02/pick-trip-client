@@ -8,6 +8,9 @@ import { REGIONS } from "@/types/region";
 import { ExploreGrid } from "./_components/ExploreGrid";
 
 export const metadata: Metadata = {
+  title: "콘텐츠 둘러보기",
+  description:
+    "여행 조건을 정하기 전에 하동, 영주, 예천의 관광지·맛집·축제·체험 콘텐츠를 자유롭게 둘러보세요.",
   alternates: { canonical: new URL("/explore", SITE_URL).toString() },
 };
 

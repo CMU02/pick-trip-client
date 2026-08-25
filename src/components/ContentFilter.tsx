@@ -54,8 +54,8 @@ export function ContentFilter({
               onClick={() => toggleRegion(region)}
               className={
                 selected
-                  ? "rounded-full border border-primary bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
-                  : "rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/40"
+                  ? "inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
+                  : "inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/40"
               }
             >
               {REGION_LABELS[region]}
@@ -75,8 +75,8 @@ export function ContentFilter({
               onClick={() => toggleCategory(category)}
               className={
                 selected
-                  ? "rounded-full border border-primary bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
-                  : "rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/40"
+                  ? "inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
+                  : "inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-3 py-1.5 text-sm hover:border-primary/40"
               }
             >
               {CATEGORY_LABELS[category]}

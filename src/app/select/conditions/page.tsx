@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { TravelDateForm } from "./_components/TravelDateForm";
 
 export const metadata: Metadata = {
-  title: "여행 조건 설정 | PickTrip",
+  title: "여행 조건 설정",
 };
 
 interface ConditionsPageProps {
