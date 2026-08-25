@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getContentFetchErrorMessage } from "@/lib/content";
 import { parseApiError } from "@/lib/errors";
+import { SITE_URL } from "@/lib/site";
 import { getContentById } from "@/services/contentService";
 
 import { ContentDetailView } from "./_components/ContentDetailView";
@@ -10,6 +12,14 @@ type Props = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ from?: string }>;
 };
+
+// 진입 경로를 표시하는 ?from= 파라미터가 붙어도 색인은 한 URL로 모은다.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  return {
+    alternates: { canonical: new URL(`/contents/${id}`, SITE_URL).toString() },
+  };
+}
 
 export default async function ContentDetailPage({
   params,

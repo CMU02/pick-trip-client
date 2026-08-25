@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
+
 import { getContentFetchErrorMessage } from "@/lib/content";
 import { formatDuration } from "@/lib/itinerary";
+import { SITE_URL } from "@/lib/site";
 import { getContents } from "@/services/contentService";
 import { REGION_LABELS, type Region } from "@/types/region";
 
 import { ContentGrid } from "./_components/ContentGrid";
+
+// 검색 조건 쿼리스트링마다 별도 페이지로 취급되지 않도록 조건 없는 목록으로 모은다.
+export const metadata: Metadata = {
+  alternates: { canonical: new URL("/contents", SITE_URL).toString() },
+};
 
 interface ContentsPageProps {
   searchParams: Promise<{

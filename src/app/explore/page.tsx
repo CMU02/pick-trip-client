@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
+
 import { getContentFetchErrorMessage } from "@/lib/content";
+import { SITE_URL } from "@/lib/site";
 import { getContents } from "@/services/contentService";
 import { REGIONS } from "@/types/region";
 
 import { ExploreGrid } from "./_components/ExploreGrid";
+
+export const metadata: Metadata = {
+  alternates: { canonical: new URL("/explore", SITE_URL).toString() },
+};
 
 export default async function ExplorePage() {
   const startDate = new Date().toISOString().split("T")[0];
