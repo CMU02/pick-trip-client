@@ -50,6 +50,20 @@ describe("Footer", () => {
     ).toHaveAttribute("href", "/privacy");
   });
 
+  it("푸터 링크가 최소 44x44 히트 영역 클래스를 갖는다", () => {
+    render(<Footer />);
+
+    expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveClass(
+      "tap-target",
+    );
+    expect(screen.getByRole("link", { name: "하동" })).toHaveClass(
+      "tap-target",
+    );
+    expect(screen.getByRole("link", { name: "개인정보처리방침" })).toHaveClass(
+      "tap-target",
+    );
+  });
+
   it("저작권 문구를 보여준다", () => {
     render(<Footer />);
 

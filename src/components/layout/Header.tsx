@@ -84,7 +84,7 @@ export function Header() {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-[13px] py-2 transition-colors",
+                    "tap-target rounded-full px-[13px] py-2 transition-colors",
                     active
                       ? "bg-accent font-bold text-accent-foreground"
                       : "text-muted-foreground hover:text-foreground",
@@ -104,7 +104,7 @@ export function Header() {
                 <Link
                   href="/contents"
                   aria-label={`바구니 ${basketItems.length}개`}
-                  className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
+                  className="tap-target flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
                 >
                   <Icon name="bookmark" size={20} />
                   {basketItems.length > 0 && (
@@ -120,7 +120,7 @@ export function Header() {
 
           {status === "authenticated" && user && (
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm text-foreground outline-none transition-colors hover:border-[oklch(0.82_0.06_30)]">
+              <DropdownMenuTrigger className="tap-target flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm text-foreground outline-none transition-colors hover:border-[oklch(0.82_0.06_30)]">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] text-xs font-semibold text-white">
                   {user.nickname[0]}
                 </span>

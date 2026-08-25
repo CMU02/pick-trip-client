@@ -134,3 +134,22 @@
     scrollbar-gutter: stable;
   }
 }
+
+/* 시각 크기는 그대로 두고 터치/클릭 히트 영역만 최소 44x44로 넓힌다.
+   실제 박스 대신 가상 요소를 씌우므로 레이아웃과 보이는 크기는 변하지 않는다.
+   WCAG 2.5.8과 모바일 권장 타겟 크기(44px)를 위한 장치다. */
+@utility tap-target {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    min-width: 44px;
+    height: 100%;
+    min-height: 44px;
+    translate: -50% -50%;
+  }
+}

@@ -23,6 +23,14 @@ describe("Button", () => {
     expect(button).toHaveAttribute("data-size", "sm");
   });
 
+  it("모든 크기 변형이 최소 44x44 히트 영역 클래스를 갖는다", () => {
+    render(<Button size="sm">담기</Button>);
+
+    expect(screen.getByRole("button", { name: "담기" })).toHaveClass(
+      "tap-target",
+    );
+  });
+
   it("asChild로 다른 요소에 버튼 스타일을 위임한다", () => {
     render(
       <Button asChild>

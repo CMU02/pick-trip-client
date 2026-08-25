@@ -34,7 +34,7 @@ export function ContentCardActions({ content }: ContentCardActionsProps) {
         onClick={() =>
           favorited ? removeFavorite(content.id) : addFavorite(content)
         }
-        className={favorited ? "text-destructive" : "text-muted-foreground"}
+        className={`tap-target ${favorited ? "text-destructive" : "text-muted-foreground"}`}
       >
         <Icon name="heart" size={18} />
       </button>

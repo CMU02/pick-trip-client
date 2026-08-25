@@ -43,7 +43,7 @@ export function Footer() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-[13.5px] text-foreground transition-colors hover:text-primary"
+                  className="tap-target text-[13.5px] text-foreground transition-colors hover:text-primary"
                 >
                   {item.label}
                 </Link>
@@ -61,7 +61,7 @@ export function Footer() {
               <li key={region}>
                 <Link
                   href={`/select/conditions?regions=${region}`}
-                  className="text-[13.5px] text-foreground transition-colors hover:text-primary"
+                  className="tap-target text-[13.5px] text-foreground transition-colors hover:text-primary"
                 >
                   {REGION_LABELS[region]}
                 </Link>
@@ -83,7 +83,7 @@ export function Footer() {
                   <Link
                     href={item.href}
                     className={cn(
-                      "text-xs transition-colors hover:text-primary",
+                      "tap-target text-xs transition-colors hover:text-primary",
                       item.strong
                         ? "font-bold text-foreground"
                         : "text-muted-foreground",

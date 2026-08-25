@@ -105,6 +105,26 @@ describe("ContentFilter", () => {
     );
   });
 
+  it("지역·카테고리 칩이 최소 44x44 히트 영역 클래스를 갖는다", () => {
+    render(
+      <ContentFilter
+        selectedRegions={[]}
+        selectedCategories={[]}
+        keyword=""
+        onRegionChange={vi.fn()}
+        onCategoryChange={vi.fn()}
+        onKeywordChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "하동" })).toHaveClass(
+      "tap-target",
+    );
+    expect(screen.getByRole("button", { name: "음식" })).toHaveClass(
+      "tap-target",
+    );
+  });
+
   it("검색어 입력 시 onKeywordChange를 호출한다", async () => {
     const onKeywordChange = vi.fn();
     render(
