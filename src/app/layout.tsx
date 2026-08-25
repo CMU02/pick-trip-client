@@ -11,13 +11,15 @@ import { Providers } from "./providers";
 // ExtraBold(800) 5종만 개별 파일로 등록한다. 사용 중인 굵기 유틸리티마다 실제
 // 폰트 파일이 매핑되므로 브라우저가 페이크 볼드를 합성하지 않는다. 제외한
 // 100/200/300/900을 다시 쓰려면 해당 파일과 항목을 함께 되살려야 한다.
+// 남긴 5종은 서버 압축 설정에 기대지 않도록 자체 압축 포맷인 WOFF2로
+// 재인코딩해 두었다.
 const paperlogy = localFont({
   src: [
-    { path: "./fonts/paperlogy/Paperlogy-4Regular.ttf", weight: "400" },
-    { path: "./fonts/paperlogy/Paperlogy-5Medium.ttf", weight: "500" },
-    { path: "./fonts/paperlogy/Paperlogy-6SemiBold.ttf", weight: "600" },
-    { path: "./fonts/paperlogy/Paperlogy-7Bold.ttf", weight: "700" },
-    { path: "./fonts/paperlogy/Paperlogy-8ExtraBold.ttf", weight: "800" },
+    { path: "./fonts/paperlogy/Paperlogy-4Regular.woff2", weight: "400" },
+    { path: "./fonts/paperlogy/Paperlogy-5Medium.woff2", weight: "500" },
+    { path: "./fonts/paperlogy/Paperlogy-6SemiBold.woff2", weight: "600" },
+    { path: "./fonts/paperlogy/Paperlogy-7Bold.woff2", weight: "700" },
+    { path: "./fonts/paperlogy/Paperlogy-8ExtraBold.woff2", weight: "800" },
   ],
   variable: "--font-sans",
   display: "swap",
