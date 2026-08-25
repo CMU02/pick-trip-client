@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { cache } from "react";
 
 import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
 import { Button } from "@/components/ui/button";
@@ -8,23 +9,46 @@ import { getSharedItinerary } from "@/services/shareService";
 import { REGION_LABELS } from "@/types/region";
 import { CopyLinkBox } from "./_components/CopyLinkBox";
 
-export const metadata: Metadata = {
-  title: "공유된 일정 | Pick Trip",
-};
+// generateMetadata와 페이지 본문이 같은 공유 일정을 쓴다. apiClient는 fetch가
+// 아니라 axios라 Next.js의 fetch 자동 메모이제이션이 걸리지 않으므로, React
+// cache로 요청 단위 메모이제이션을 걸어 같은 요청 안에서 한 번만 호출한다.
+const getShared = cache(getSharedItinerary);
+
+function formatDurationText(duration: number): string {
+  return duration === 0 ? "당일치기" : `${duration}박 ${duration + 1}일`;
+}
 
 interface SharePageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: SharePageProps): Promise<Metadata> {
+  const { id: token } = await params;
+
+  let data: Awaited<ReturnType<typeof getShared>>;
+  try {
+    data = await getShared(token);
+  } catch {
+    // 만료되었거나 잘못된 링크. 페이지 본문과 같은 안내 성격의 메타데이터를 준다.
+    return { title: "공유된 일정" };
+  }
+
+  const placeCount = data.days.reduce((sum, day) => sum + day.items.length, 0);
+
+  return {
+    title: data.title,
+    description: `${REGION_LABELS[data.region]} ${formatDurationText(data.duration)} 여행 일정 · ${data.travelDate} 출발 · 여행지 ${placeCount}곳`,
+  };
 }
 
 export default async function SharePage({ params }: SharePageProps) {
   const { id: token } = await params;
 
   try {
-    const data = await getSharedItinerary(token);
-    const durationText =
-      data.duration === 0
-        ? "당일치기"
-        : `${data.duration}박 ${data.duration + 1}일`;
+    const data = await getShared(token);
+    const durationText = formatDurationText(data.duration);
     const placeCount = data.days.reduce(
       (sum, day) => sum + day.items.length,
       0,

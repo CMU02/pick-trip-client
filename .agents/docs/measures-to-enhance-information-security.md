@@ -12,6 +12,7 @@
 | 유형 | 사용 가능 여부 |
 | --- | --- |
 | `NEXT_PUBLIC_API_BASE_URL` | 가능 |
+| `NEXT_PUBLIC_SITE_URL` | 가능 |
 | OAuth client ID | 공개용이면 가능 |
 | OAuth client secret | 금지 |
 | JWT secret | 금지 |

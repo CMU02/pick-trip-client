@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ItineraryClient } from "./_components/ItineraryClient";
 
 export const metadata: Metadata = {
-  title: "AI 일정 생성 | Pick Trip",
+  title: "AI 일정 생성",
 };
 
 interface ItineraryPageProps {

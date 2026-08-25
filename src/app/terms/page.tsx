@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/layout/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "이용약관 | PickTrip",
+  title: "이용약관",
   description: "PickTrip 서비스 이용약관",
 };
 

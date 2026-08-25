@@ -6,8 +6,8 @@ import { HomeGate } from "./_components/HomeGate";
 import { RegionShowcase } from "./_components/RegionShowcase";
 import { StepsSection } from "./_components/StepsSection";
 
+// title은 루트 layout의 title.default를 그대로 쓴다. (같은 세그먼트라 template 미적용)
 export const metadata: Metadata = {
-  title: "PickTrip | 하동·영주·예천 여행 콘텐츠와 AI 일정",
   description:
     "하동, 영주, 예천의 여행 콘텐츠를 둘러보고 AI가 만든 맞춤 여행 일정을 받아보세요.",
 };
