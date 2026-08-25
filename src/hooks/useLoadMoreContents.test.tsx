@@ -60,7 +60,6 @@ describe("useLoadMoreContents", () => {
     expect(result.current.contents).toHaveLength(2);
     expect(result.current.total).toBe(5);
     expect(result.current.hasMore).toBe(true);
-    expect(result.current.canCollapse).toBe(false);
     expect(mockGetContents).not.toHaveBeenCalled();
   });
 
@@ -90,7 +89,6 @@ describe("useLoadMoreContents", () => {
       page: 1,
       size: 20,
     });
-    expect(result.current.canCollapse).toBe(true);
   });
 
   it("응답에 중복 id가 포함돼도 최종 contents에는 한 번만 남는다", async () => {
@@ -190,10 +188,10 @@ describe("useLoadMoreContents", () => {
     expect(result.current.isLoadingMore).toBe(false);
   });
 
-  it("collapse 호출 시 첫 페이지만 남고 hasMore가 다시 true가 된다", async () => {
+  it("initialContents/initialTotal을 넘기지 않으면 마운트 즉시 0페이지를 요청한다", async () => {
     mockGetContents.mockResolvedValueOnce({
-      contents: [makeContent("2")],
-      total: 3,
+      contents: [makeContent("1")],
+      total: 1,
     } satisfies ContentsResponse);
 
     const { result } = renderHook(
@@ -201,52 +199,20 @@ describe("useLoadMoreContents", () => {
         useLoadMoreContents({
           queryKey: ["contents", queryParams],
           queryParams,
-          initialContents: [makeContent("1")],
-          initialTotal: 3,
         }),
       { wrapper: createWrapper() },
     );
 
-    act(() => result.current.loadMore());
-    await waitFor(() => expect(result.current.contents).toHaveLength(2));
-    expect(result.current.canCollapse).toBe(true);
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.contents).toHaveLength(0);
 
-    act(() => result.current.collapse());
-
-    expect(result.current.contents).toHaveLength(1);
-    expect(result.current.contents[0]?.id).toBe("1");
-    expect(result.current.canCollapse).toBe(false);
-    expect(result.current.hasMore).toBe(true);
-  });
-
-  it("collapse 후 loadMore를 다시 호출하면 재요청 없이 캐시된 페이지를 즉시 펼친다", async () => {
-    mockGetContents.mockResolvedValueOnce({
-      contents: [makeContent("2")],
-      total: 3,
-    } satisfies ContentsResponse);
-
-    const { result } = renderHook(
-      () =>
-        useLoadMoreContents({
-          queryKey: ["contents", queryParams],
-          queryParams,
-          initialContents: [makeContent("1")],
-          initialTotal: 3,
-        }),
-      { wrapper: createWrapper() },
-    );
-
-    act(() => result.current.loadMore());
-    await waitFor(() => expect(result.current.contents).toHaveLength(2));
-    act(() => result.current.collapse());
-    expect(result.current.contents).toHaveLength(1);
-
-    act(() => result.current.loadMore());
-
-    expect(result.current.contents).toHaveLength(2);
-    // 캐시된 페이지를 재사용했으므로 loadMore를 두 번 눌렀어도 API는 처음
-    // 한 번만 호출된다.
-    expect(mockGetContents).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockGetContents).toHaveBeenCalledWith({
+      ...queryParams,
+      page: 0,
+      size: 20,
+    });
+    expect(result.current.contents.map((c) => c.id)).toEqual(["1"]);
   });
 
   it("queryKey가 바뀌면(검색 조건 변경) 누적 상태가 새 초기값으로 리셋된다", () => {
