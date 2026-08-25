@@ -199,4 +199,89 @@ describe("ExploreGrid", () => {
       .map((h) => h.textContent);
     expect(names).toEqual(["쌍계사", "화개장터"]);
   });
+
+  it("카테고리 필터를 선택하면 남은 페이지를 자동으로 받아와 그 카테고리 개수 기준으로 완료 문구를 보여준다", async () => {
+    mockGetContents.mockResolvedValueOnce({
+      contents: [
+        makeContent({ id: "3", name: "재첩국3", category: "FOOD" }),
+        makeContent({ id: "4", name: "화개장터", category: "CULTURE" }),
+      ],
+      total: 5,
+    });
+
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "재첩국1", category: "FOOD" }),
+        makeContent({ id: "2", name: "쌍계사", category: "CULTURE" }),
+        makeContent({ id: "5", name: "재첩국2", category: "FOOD" }),
+      ],
+      initialTotal: 5,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "음식" }));
+
+    // 사용자가 "더보기"를 누르지 않아도 필터가 걸리자마자 남은 페이지를
+    // 자동으로(백그라운드로) 받아온다.
+    await waitFor(() =>
+      expect(mockGetContents).toHaveBeenCalledWith({
+        ...defaultQueryParams,
+        page: 1,
+        size: 20,
+      }),
+    );
+
+    // 완료 문구는 전체 total(5)이 아니라 필터링된 개수(FOOD 3개) 기준이다.
+    await waitFor(() =>
+      expect(screen.getByText("3개를 모두 확인했어요")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("재첩국1")).toBeInTheDocument();
+    expect(screen.getByText("재첩국2")).toBeInTheDocument();
+    expect(screen.getByText("재첩국3")).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+  });
+
+  it("필터링된 개수가 한 페이지 분량을 넘으면 더보기가 그 개수만큼만 늘고 중복 없이 끝난다", async () => {
+    // FOOD 19개 + CULTURE 1개 = 20개를 초기 페이지로, FOOD 3개를 다음
+    // 페이지로 받는다 — 전체 23개 중 FOOD는 22개.
+    const initialContents = [
+      ...Array.from({ length: 19 }, (_, i) =>
+        makeContent({ id: `f${i}`, name: `재첩국${i}`, category: "FOOD" }),
+      ),
+      makeContent({ id: "c0", name: "쌍계사", category: "CULTURE" }),
+    ];
+    const nextPageContents = Array.from({ length: 3 }, (_, i) =>
+      makeContent({
+        id: `f${19 + i}`,
+        name: `재첩국${19 + i}`,
+        category: "FOOD",
+      }),
+    );
+    mockGetContents.mockResolvedValueOnce({
+      contents: nextPageContents,
+      total: 23,
+    });
+
+    renderExploreGrid({ initialContents, initialTotal: 23 });
+
+    await userEvent.click(screen.getByRole("button", { name: "음식" }));
+
+    // 백그라운드 로딩이 끝나면(총 22개 FOOD 확보) 페이지 크기(20)를 넘긴
+    // 만큼만 "더보기"로 남는다.
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /더보기/ })).toHaveTextContent(
+        "2개 더보기",
+      ),
+    );
+    expect(screen.getAllByText(/^재첩국\d+$/)).toHaveLength(20);
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
+
+    await waitFor(() =>
+      expect(screen.getByText("22개를 모두 확인했어요")).toBeInTheDocument(),
+    );
+    // 새로 펼쳐진 뒤에도 중복 없이 정확히 22장만 보인다.
+    expect(screen.getAllByText(/^재첩국\d+$/)).toHaveLength(22);
+  });
 });

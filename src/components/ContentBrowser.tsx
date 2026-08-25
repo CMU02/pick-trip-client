@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { ContentFilter } from "@/components/ContentFilter";
 import { Icon } from "@/components/ui/icon";
@@ -77,6 +77,37 @@ export function ContentBrowser({
     return matchCategory && matchKeyword;
   });
 
+  // 카테고리/검색어는 여전히 클라이언트 필터라(백엔드에 category 파라미터가
+  // 없음), 서버 페이지 하나에 여러 카테고리가 섞여 온다. 필터가 걸린 채로
+  // "더보기"를 누르면 한 번에 얼마가 늘지 예측할 수 없고, 계속 누르다 보면
+  // 결국 전체 데이터가 다 로드돼 필터를 건 의미가 없어진다.
+  // 그래서 필터가 걸리면 남은 서버 페이지를 조용히 백그라운드로 끝까지
+  // 받아두고(전체가 최대 수백 개 수준이라 비용이 작다), 화면 노출은 아래
+  // visibleCount로 filtered 배열을 client-side로 끊어 보여준다 — "더보기"를
+  // 눌러도 네트워크 없이 그 카테고리 개수만큼만 정확히 늘고, 이미 보여준
+  // 항목이 다시 나오는(중복) 일도 없다.
+  useEffect(() => {
+    if (!hasClientFilter) return;
+    if (!hasMore) return;
+    if (isLoadingMore) return;
+    if (errorMessage) return;
+    loadMore();
+  }, [hasClientFilter, hasMore, isLoadingMore, errorMessage, loadMore]);
+
+  // 필터가 걸려있을 때 화면에 몇 개까지 펼쳐 보여줄지. 지역/카테고리/검색어
+  // 조합이 바뀌면 처음(한 페이지 분량)으로 되돌아간다. 이펙트 본문은 이
+  // 값들을 읽지 않고 리셋 트리거로만 쓰므로 exhaustive-deps 경고를 끈다.
+  const [visibleCount, setVisibleCount] = useState(CONTENT_PAGE_SIZE);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 값을 읽지 않고 변경 트리거로만 사용
+  useEffect(() => {
+    setVisibleCount(CONTENT_PAGE_SIZE);
+  }, [selectedRegion, selectedCategories, keyword]);
+
+  const backgroundLoading = hasClientFilter && hasMore;
+  const visibleFiltered = hasClientFilter
+    ? filtered.slice(0, visibleCount)
+    : filtered;
+
   function resetFilters() {
     setSelectedRegion("ALL");
     setSelectedCategories([]);
@@ -115,16 +146,23 @@ export function ContentBrowser({
         <div className={`grid gap-4 ${gridClassName}`}>
           <SkeletonCards count={8} />
         </div>
-      ) : filtered.length === 0 ? (
-        <p className="flex min-h-[40vh] items-center justify-center text-center text-sm text-muted-foreground">
-          {loadedContents.length === 0
-            ? "콘텐츠가 없습니다"
-            : "조건에 맞는 콘텐츠가 없습니다"}
-        </p>
+      ) : visibleFiltered.length === 0 ? (
+        backgroundLoading ? (
+          // 아직 남은 페이지를 다 안 뒤져봤으니 "없다"고 단정하지 않는다.
+          <div className={`grid gap-4 ${gridClassName}`}>
+            <SkeletonCards count={4} />
+          </div>
+        ) : (
+          <p className="flex min-h-[40vh] items-center justify-center text-center text-sm text-muted-foreground">
+            {loadedContents.length === 0
+              ? "콘텐츠가 없습니다"
+              : "조건에 맞는 콘텐츠가 없습니다"}
+          </p>
+        )
       ) : (
         <div className={`grid gap-4 ${gridClassName}`}>
-          {filtered.map((c) => renderCard(c))}
-          {isLoadingMore && <SkeletonCards count={4} />}
+          {visibleFiltered.map((c) => renderCard(c))}
+          {!hasClientFilter && isLoadingMore && <SkeletonCards count={4} />}
         </div>
       )}
 
@@ -132,13 +170,22 @@ export function ContentBrowser({
         <p className="text-center text-sm text-destructive">{errorMessage}</p>
       )}
 
-      <MoreZone
-        loadedCount={loadedContents.length}
-        total={total}
-        hasMore={hasMore}
-        isLoadingMore={isLoadingMore}
-        onLoadMore={loadMore}
-      />
+      {hasClientFilter ? (
+        <FilteredMoreZone
+          visibleCount={visibleFiltered.length}
+          filteredTotal={filtered.length}
+          backgroundLoading={backgroundLoading}
+          onReveal={() => setVisibleCount((v) => v + CONTENT_PAGE_SIZE)}
+        />
+      ) : (
+        <MoreZone
+          loadedCount={loadedContents.length}
+          total={total}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={loadMore}
+        />
+      )}
     </div>
   );
 }
@@ -283,6 +330,68 @@ function MoreZone({
       </span>
     </div>
   );
+}
+
+// 카테고리/검색어 필터가 걸려있을 때의 더보기 — 서버가 아니라 이미 불러온
+// filtered 배열을 client-side로 끊어 보여준다. 라벨/진행바가 그 필터의
+// 실제 개수(filteredTotal) 기준이라 여러 카테고리가 섞여 늘어나는 일이 없다.
+function FilteredMoreZone({
+  visibleCount,
+  filteredTotal,
+  backgroundLoading,
+  onReveal,
+}: {
+  visibleCount: number;
+  filteredTotal: number;
+  backgroundLoading: boolean;
+  onReveal: () => void;
+}) {
+  const hasUnrevealed = visibleCount < filteredTotal;
+
+  if (hasUnrevealed) {
+    const pct =
+      filteredTotal > 0 ? Math.round((visibleCount / filteredTotal) * 100) : 0;
+    const nextCount = Math.min(CONTENT_PAGE_SIZE, filteredTotal - visibleCount);
+
+    return (
+      <div className="flex flex-col items-center gap-3 py-6">
+        <button
+          type="button"
+          onClick={onReveal}
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-6 text-[15px] font-bold shadow-sm transition hover:border-primary hover:text-primary"
+        >
+          {`${nextCount}개 더보기`}
+        </button>
+        <div className="h-[3px] w-48 overflow-hidden rounded-full bg-border">
+          <div
+            className="h-full rounded-full bg-primary transition-[width]"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {visibleCount} / {filteredTotal}
+        </span>
+      </div>
+    );
+  }
+
+  if (backgroundLoading) {
+    return (
+      <p className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+        더 있는지 확인하는 중...
+      </p>
+    );
+  }
+
+  if (filteredTotal > 0) {
+    return (
+      <p className="flex items-center justify-center gap-1.5 py-6 text-sm font-medium text-muted-foreground">
+        {filteredTotal}개를 모두 확인했어요
+      </p>
+    );
+  }
+
+  return null;
 }
 
 function SkeletonCards({ count }: { count: number }) {
