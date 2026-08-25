@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { SITE_URL } from "@/lib/site";
+
 import { CtaSection } from "./_components/CtaSection";
 import { HeroSection } from "./_components/HeroSection";
 import { HomeGate } from "./_components/HomeGate";
@@ -10,6 +12,7 @@ import { StepsSection } from "./_components/StepsSection";
 export const metadata: Metadata = {
   description:
     "하동, 영주, 예천의 여행 콘텐츠를 둘러보고 AI가 만든 맞춤 여행 일정을 받아보세요.",
+  alternates: { canonical: new URL("/", SITE_URL).toString() },
 };
 
 export default function Home() {

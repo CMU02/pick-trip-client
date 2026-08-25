@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 
 import { ItineraryClient } from "./_components/ItineraryClient";
 
+// 입력한 조건에 따라 매번 달라지는 개인화 결과라 검색 결과에 노출될 이유가 없다.
 export const metadata: Metadata = {
   title: "AI 일정 생성",
+  robots: { index: false },
 };
 
 interface ItineraryPageProps {

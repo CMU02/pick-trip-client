@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 
 import { SavedItinerariesList } from "./_components/SavedItinerariesList";
 
+// 브라우저에 저장된 개인 일정 목록이라 검색 결과에 노출될 이유가 없다.
 export const metadata: Metadata = {
   title: "저장한 일정",
+  robots: { index: false },
 };
 
 export default function ItinerariesPage() {

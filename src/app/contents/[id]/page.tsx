@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { getContentFetchErrorMessage } from "@/lib/content";
 import { parseApiError } from "@/lib/errors";
+import { SITE_URL } from "@/lib/site";
 import { getContentById } from "@/services/contentService";
 import { REGION_LABELS } from "@/types/region";
 
@@ -14,6 +15,7 @@ type Props = {
   searchParams: Promise<{ from?: string }>;
 };
 
+// 진입 경로를 표시하는 ?from= 파라미터가 붙어도 색인은 한 URL로 모은다.
 // generateMetadata와 페이지 본문이 같은 상세 데이터를 쓴다. apiClient는 fetch가
 // 아니라 axios라 Next.js의 fetch 자동 메모이제이션이 걸리지 않으므로, React
 // cache로 요청 단위 메모이제이션을 걸어 같은 요청 안에서 한 번만 호출한다.
@@ -38,7 +40,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     content = await getContent(id);
   } catch {
     // 상세를 못 불러와도 화면은 안내 문구로 렌더되므로, 메타데이터만 기본값으로 둔다.
-    return { title: "여행 콘텐츠" };
+    return {
+      title: "여행 콘텐츠",
+      alternates: {
+        canonical: new URL(`/contents/${id}`, SITE_URL).toString(),
+      },
+    };
   }
 
   const regionLabel = REGION_LABELS[content.region];
@@ -48,6 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${content.name} · ${regionLabel} 여행 콘텐츠`,
+    alternates: { canonical: new URL(`/contents/${id}`, SITE_URL).toString() },
     description,
     openGraph: {
       type: "article",
