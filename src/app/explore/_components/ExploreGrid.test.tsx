@@ -64,52 +64,6 @@ describe("ExploreGrid", () => {
     vi.resetAllMocks();
   });
 
-  it("지역 필터 선택 시 해당 지역 콘텐츠만 표시된다", async () => {
-    const contents = [
-      makeContent({ id: "1", name: "쌍계사", region: "HADONG" }),
-      makeContent({ id: "2", name: "부석사", region: "YEONGJU" }),
-    ];
-
-    renderExploreGrid({ initialContents: contents });
-
-    await userEvent.click(screen.getByRole("button", { name: "하동" }));
-
-    expect(screen.getByText("쌍계사")).toBeInTheDocument();
-    expect(screen.queryByText("부석사")).not.toBeInTheDocument();
-  });
-
-  it("지역 필터와 카테고리 필터를 동시에 적용하면 두 조건을 모두 만족하는 콘텐츠만 표시된다", async () => {
-    const contents = [
-      makeContent({
-        id: "1",
-        name: "쌍계사",
-        region: "HADONG",
-        category: "CULTURE",
-      }),
-      makeContent({
-        id: "2",
-        name: "하동 재첩국",
-        region: "HADONG",
-        category: "FOOD",
-      }),
-      makeContent({
-        id: "3",
-        name: "부석사",
-        region: "YEONGJU",
-        category: "CULTURE",
-      }),
-    ];
-
-    renderExploreGrid({ initialContents: contents });
-
-    await userEvent.click(screen.getByRole("button", { name: "하동" }));
-    await userEvent.click(screen.getByRole("button", { name: "문화" }));
-
-    expect(screen.getByText("쌍계사")).toBeInTheDocument();
-    expect(screen.queryByText("하동 재첩국")).not.toBeInTheDocument();
-    expect(screen.queryByText("부석사")).not.toBeInTheDocument();
-  });
-
   it("전달받은 콘텐츠 카드를 모두 렌더한다", () => {
     const contents = [
       makeContent({ id: "1", name: "쌍계사" }),
@@ -168,50 +122,30 @@ describe("ExploreGrid", () => {
     expect(screen.getByText(/콘텐츠가 없습니다/)).toBeInTheDocument();
   });
 
-  it("콘텐츠를 카테고리별 섹션으로 나누어 표시한다", () => {
-    const contents = [
-      makeContent({ id: "1", name: "쌍계사", category: "CULTURE" }),
-      makeContent({ id: "2", name: "화개장터", category: "CULTURE" }),
-      makeContent({ id: "3", name: "하동 재첩국", category: "FOOD" }),
-    ];
+  it("지역 탭 전환 시 그 지역으로만 getContents를 호출하고, 이전 지역 카드는 사라진다", async () => {
+    mockGetContents.mockResolvedValueOnce({
+      contents: [makeContent({ id: "2", name: "부석사", region: "YEONGJU" })],
+      total: 1,
+    });
 
-    renderExploreGrid({ initialContents: contents });
-
-    expect(screen.getByRole("heading", { name: /문화/ })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /음식/ })).toBeInTheDocument();
-
-    expect(screen.getByRole("heading", { name: /문화/ })).toHaveTextContent(
-      "2개",
-    );
-    expect(screen.getByRole("heading", { name: /음식/ })).toHaveTextContent(
-      "1개",
-    );
-  });
-
-  it("카테고리가 없는 콘텐츠는 기타 섹션으로 묶인다", () => {
     renderExploreGrid({
       initialContents: [
-        makeContent({ id: "1", name: "쌍계사", category: undefined }),
+        makeContent({ id: "1", name: "쌍계사", region: "HADONG" }),
       ],
     });
 
-    expect(screen.getByRole("heading", { name: /기타/ })).toBeInTheDocument();
-  });
+    await userEvent.click(screen.getByRole("tab", { name: "영주" }));
 
-  it("카테고리 필터 적용 시 선택한 카테고리 섹션만 표시된다", async () => {
-    const contents = [
-      makeContent({ id: "1", name: "쌍계사", category: "CULTURE" }),
-      makeContent({ id: "2", name: "하동 재첩국", category: "FOOD" }),
-    ];
-
-    renderExploreGrid({ initialContents: contents });
-
-    await userEvent.click(screen.getByRole("button", { name: "문화" }));
-
-    expect(screen.getByRole("heading", { name: /문화/ })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: /음식/ }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockGetContents).toHaveBeenCalledWith({
+        ...defaultQueryParams,
+        regions: ["YEONGJU"],
+        page: 0,
+        size: 20,
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("부석사")).toBeInTheDocument());
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
   });
 
   it("initialTotal이 initialContents.length보다 크면 더보기 버튼이 보인다", () => {
@@ -223,7 +157,7 @@ describe("ExploreGrid", () => {
     expect(screen.getByRole("button", { name: /더보기/ })).toBeInTheDocument();
   });
 
-  it("initialTotal이 initialContents.length와 같으면 더보기 버튼이 보이지 않는다", () => {
+  it("initialTotal이 initialContents.length와 같으면 완료 문구가 보인다", () => {
     renderExploreGrid({
       initialContents: [makeContent({ id: "1" })],
       initialTotal: 1,
@@ -232,20 +166,10 @@ describe("ExploreGrid", () => {
     expect(
       screen.queryByRole("button", { name: /더보기/ }),
     ).not.toBeInTheDocument();
+    expect(screen.getByText(/모두 확인했어요/)).toBeInTheDocument();
   });
 
-  it("첫 페이지 상태에서는 간략히 버튼이 보이지 않는다", () => {
-    renderExploreGrid({
-      initialContents: [makeContent({ id: "1" })],
-      initialTotal: 3,
-    });
-
-    expect(
-      screen.queryByRole("button", { name: "간략히" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("더보기 클릭 시 다음 페이지를 요청하고 결과를 이어붙인다", async () => {
+  it("더보기 클릭 시 다음 페이지를 요청하고 결과를 끝에 이어붙인다", async () => {
     mockGetContents.mockResolvedValueOnce({
       contents: [makeContent({ id: "2", name: "화개장터" })],
       total: 2,
@@ -258,45 +182,131 @@ describe("ExploreGrid", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
 
+    // "전체" 탭은 3개 지역을 동시에 조회하므로, size는 20이 아니라
+    // 지역 수만큼 나눈 값(ceil(20/3)=7)이다 — 안 그러면 한 번에
+    // 20개가 아니라 60개(20×3)가 늘어난다.
     expect(mockGetContents).toHaveBeenCalledWith({
       ...defaultQueryParams,
       page: 1,
-      size: 20,
+      size: 7,
     });
     await waitFor(() =>
       expect(screen.getByText("화개장터")).toBeInTheDocument(),
     );
     await waitFor(() =>
-      expect(
-        screen.queryByRole("button", { name: /더보기/ }),
-      ).not.toBeInTheDocument(),
+      expect(screen.getByText(/모두 확인했어요/)).toBeInTheDocument(),
     );
-    expect(screen.getByRole("button", { name: "간략히" })).toBeInTheDocument();
+
+    const names = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(names).toEqual(["쌍계사", "화개장터"]);
   });
 
-  it("더보기로 펼친 뒤 간략히를 누르면 처음 페이지로 되돌아간다", async () => {
+  it("카테고리 필터를 선택하면 남은 페이지를 자동으로 받아와 그 카테고리 개수 기준으로 완료 문구를 보여준다", async () => {
     mockGetContents.mockResolvedValueOnce({
-      contents: [makeContent({ id: "2", name: "화개장터" })],
-      total: 2,
+      contents: [
+        makeContent({ id: "3", name: "재첩국3", category: "FOOD" }),
+        makeContent({ id: "4", name: "화개장터", category: "CULTURE" }),
+      ],
+      total: 5,
     });
 
     renderExploreGrid({
-      initialContents: [makeContent({ id: "1", name: "쌍계사" })],
-      initialTotal: 2,
+      initialContents: [
+        makeContent({ id: "1", name: "재첩국1", category: "FOOD" }),
+        makeContent({ id: "2", name: "쌍계사", category: "CULTURE" }),
+        makeContent({ id: "5", name: "재첩국2", category: "FOOD" }),
+      ],
+      initialTotal: 5,
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
+    await userEvent.click(screen.getByRole("button", { name: "음식" }));
+
+    // 사용자가 "더보기"를 누르지 않아도 필터가 걸리자마자 남은 페이지를
+    // 자동으로(백그라운드로) 받아온다.
     await waitFor(() =>
-      expect(screen.getByText("화개장터")).toBeInTheDocument(),
+      expect(mockGetContents).toHaveBeenCalledWith({
+        ...defaultQueryParams,
+        page: 1,
+        size: 7,
+      }),
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "간략히" }));
-
+    // 완료 문구는 전체 total(5)이 아니라 필터링된 개수(FOOD 3개) 기준이다.
+    await waitFor(() =>
+      expect(screen.getByText("3개를 모두 확인했어요")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("재첩국1")).toBeInTheDocument();
+    expect(screen.getByText("재첩국2")).toBeInTheDocument();
+    expect(screen.getByText("재첩국3")).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
     expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
-    expect(screen.getByText("쌍계사")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "간략히" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /더보기/ })).toBeInTheDocument();
+  });
+
+  it("필터링된 개수가 한 페이지 분량을 넘으면 더보기가 그 개수만큼만 늘고 중복 없이 끝난다", async () => {
+    // FOOD 19개 + CULTURE 1개 = 20개를 초기 페이지로, FOOD 3개를 다음
+    // 페이지로 받는다 — 전체 23개 중 FOOD는 22개.
+    const initialContents = [
+      ...Array.from({ length: 19 }, (_, i) =>
+        makeContent({ id: `f${i}`, name: `재첩국${i}`, category: "FOOD" }),
+      ),
+      makeContent({ id: "c0", name: "쌍계사", category: "CULTURE" }),
+    ];
+    const nextPageContents = Array.from({ length: 3 }, (_, i) =>
+      makeContent({
+        id: `f${19 + i}`,
+        name: `재첩국${19 + i}`,
+        category: "FOOD",
+      }),
+    );
+    mockGetContents.mockResolvedValueOnce({
+      contents: nextPageContents,
+      total: 23,
+    });
+
+    renderExploreGrid({ initialContents, initialTotal: 23 });
+
+    await userEvent.click(screen.getByRole("button", { name: "음식" }));
+
+    // 백그라운드 로딩이 끝나면(총 22개 FOOD 확보) 페이지 크기(20)를 넘긴
+    // 만큼만 "더보기"로 남는다.
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /더보기/ })).toHaveTextContent(
+        "2개 더보기",
+      ),
+    );
+    expect(screen.getAllByText(/^재첩국\d+$/)).toHaveLength(20);
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
+
+    await waitFor(() =>
+      expect(screen.getByText("22개를 모두 확인했어요")).toBeInTheDocument(),
+    );
+    // 새로 펼쳐진 뒤에도 중복 없이 정확히 22장만 보인다.
+    expect(screen.getAllByText(/^재첩국\d+$/)).toHaveLength(22);
+  });
+
+  it("카테고리를 여러 개 선택하면 로드 순서와 무관하게 카테고리 선언 순서로 묶여서 보인다", async () => {
+    // 로드 순서는 문화-음식-문화-음식으로 일부러 뒤섞는다.
+    const contents = [
+      makeContent({ id: "c1", name: "문화1", category: "CULTURE" }),
+      makeContent({ id: "f1", name: "음식1", category: "FOOD" }),
+      makeContent({ id: "c2", name: "문화2", category: "CULTURE" }),
+      makeContent({ id: "f2", name: "음식2", category: "FOOD" }),
+    ];
+
+    renderExploreGrid({ initialContents: contents, initialTotal: 4 });
+
+    await userEvent.click(screen.getByRole("button", { name: "음식" }));
+    await userEvent.click(screen.getByRole("button", { name: "문화" }));
+
+    // CONTENT_CATEGORIES 선언 순서(FOOD가 CULTURE보다 앞)대로 묶이고,
+    // 같은 카테고리 안에서는 원래 로드 순서를 유지한다.
+    const names = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(names).toEqual(["음식1", "음식2", "문화1", "문화2"]);
   });
 });
