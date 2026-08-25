@@ -1,43 +1,39 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import {
-  CATEGORY_LABELS,
-  type Content,
-  type ContentCategory,
-} from "@/types/content";
+import { CATEGORY_LABELS, type ContentCategory } from "@/types/content";
 
 export type QuickCategory = ContentCategory | "ALL";
 
 interface QuickCategoryRowProps {
-  contents: Content[];
   selected: QuickCategory;
   onSelect: (category: QuickCategory) => void;
 }
 
-// 핸드오프 스펙의 퀵 카테고리 5열. 문화/음식/자연/체험 + 전체를 클릭하면
-// 아래 "FOR YOU 추천" 섹션이 해당 카테고리로 필터링된다.
-const QUICK_DEFS: { key: QuickCategory; icon: string }[] = [
-  { key: "CULTURE", icon: "⛩" },
-  { key: "FOOD", icon: "🍽" },
-  { key: "NATURE", icon: "🌿" },
-  { key: "EXPERIENCE", icon: "🎋" },
-  { key: "ALL", icon: "📍" },
+// 핸드오프 스펙의 퀵 카테고리 6열. 문화/음식/관광지/자연/체험 + 전체를
+// 클릭하면 아래 "FOR YOU 추천" 섹션이 해당 카테고리로 필터링된다.
+//
+// 개수는 매번 recommendedPool(대시보드가 받아오는 추천 풀)을 세어
+// 보여주던 걸 정적 값으로 바꿨다. 2026-08-25 기준 그 추천 풀(지역 3개 ×
+// 20개 = 60개) 안의 실제 카테고리별 개수를 그대로 굳혀 둔다. 추천 풀
+// 구성이 크게 달라지면 이 숫자만 수동으로 갱신한다.
+const QUICK_DEFS: { key: QuickCategory; icon: string; count: number }[] = [
+  { key: "CULTURE", icon: "⛩", count: 25 },
+  { key: "FOOD", icon: "🍽", count: 13 },
+  { key: "ATTRACTION", icon: "🏯", count: 9 },
+  { key: "NATURE", icon: "🌿", count: 9 },
+  { key: "EXPERIENCE", icon: "🎋", count: 4 },
+  { key: "ALL", icon: "📍", count: 60 },
 ];
 
 export function QuickCategoryRow({
-  contents,
   selected,
   onSelect,
 }: QuickCategoryRowProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-      {QUICK_DEFS.map(({ key, icon }) => {
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {QUICK_DEFS.map(({ key, icon, count }) => {
         const label = key === "ALL" ? "전체" : CATEGORY_LABELS[key];
-        const count =
-          key === "ALL"
-            ? contents.length
-            : contents.filter((c) => c.category === key).length;
         const on = selected === key;
         return (
           <button
