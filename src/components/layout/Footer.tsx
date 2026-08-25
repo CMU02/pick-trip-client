@@ -38,12 +38,14 @@ export function Footer() {
           <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
             메뉴
           </p>
-          <ul className="mt-3 flex flex-col gap-2">
+          {/* 링크가 세로 여백 대신 44px 높이를 직접 차지하게 해서 히트 영역을
+              확보한다. 여기에 gap까지 주면 링크 사이가 필요 이상으로 벌어진다. */}
+          <ul className="mt-3 flex flex-col">
             {SITE_NAV.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-[13.5px] text-foreground transition-colors hover:text-primary"
+                  className="inline-flex min-h-11 min-w-11 items-center text-[13.5px] text-foreground transition-colors hover:text-primary"
                 >
                   {item.label}
                 </Link>
@@ -56,12 +58,12 @@ export function Footer() {
           <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
             지역
           </p>
-          <ul className="mt-3 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col">
             {REGIONS.map((region) => (
               <li key={region}>
                 <Link
                   href={`/select/conditions?regions=${region}`}
-                  className="text-[13.5px] text-foreground transition-colors hover:text-primary"
+                  className="inline-flex min-h-11 min-w-11 items-center text-[13.5px] text-foreground transition-colors hover:text-primary"
                 >
                   {REGION_LABELS[region]}
                 </Link>
@@ -83,7 +85,7 @@ export function Footer() {
                   <Link
                     href={item.href}
                     className={cn(
-                      "text-xs transition-colors hover:text-primary",
+                      "inline-flex min-h-11 min-w-11 items-center text-xs transition-colors hover:text-primary",
                       item.strong
                         ? "font-bold text-foreground"
                         : "text-muted-foreground",

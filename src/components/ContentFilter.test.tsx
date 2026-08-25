@@ -105,6 +105,27 @@ describe("ContentFilter", () => {
     );
   });
 
+  // jsdom은 레이아웃을 계산하지 않아 실제 픽셀 크기 대신 최소 크기 클래스를 확인한다.
+  it("지역·카테고리 칩이 최소 44px 높이 클래스를 갖는다", () => {
+    render(
+      <ContentFilter
+        selectedRegions={[]}
+        selectedCategories={[]}
+        keyword=""
+        onRegionChange={vi.fn()}
+        onCategoryChange={vi.fn()}
+        onKeywordChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "하동" })).toHaveClass(
+      "min-h-11",
+    );
+    expect(screen.getByRole("button", { name: "음식" })).toHaveClass(
+      "min-h-11",
+    );
+  });
+
   it("검색어 입력 시 onKeywordChange를 호출한다", async () => {
     const onKeywordChange = vi.fn();
     render(

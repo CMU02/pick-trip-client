@@ -72,7 +72,7 @@ export function AlternativePlacePicker({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="text-muted-foreground hover:text-foreground"
+            className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
           >
             <Icon name="close" size={18} />
           </button>

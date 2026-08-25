@@ -91,7 +91,7 @@ export function ContentDetailView({
       {backHref ? (
         <Link
           href={backHref}
-          className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground"
+          className="mb-4 inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground"
         >
           ← 목록으로
         </Link>
@@ -99,7 +99,7 @@ export function ContentDetailView({
         <button
           type="button"
           onClick={() => router.back()}
-          className="mb-4 text-sm text-muted-foreground hover:text-foreground"
+          className="mb-4 inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground"
         >
           ← 목록으로
         </button>
