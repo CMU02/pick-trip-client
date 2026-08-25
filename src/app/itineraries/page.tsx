@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { SavedItinerariesList } from "./_components/SavedItinerariesList";
 
 export const metadata: Metadata = {
-  title: "저장한 일정 | Pick Trip",
+  title: "저장한 일정",
 };
 
 export default function ItinerariesPage() {

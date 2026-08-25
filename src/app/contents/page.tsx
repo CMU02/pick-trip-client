@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
+
 import { getContentFetchErrorMessage } from "@/lib/content";
 import { formatDuration } from "@/lib/itinerary";
 import { getContents } from "@/services/contentService";
 import { REGION_LABELS, type Region } from "@/types/region";
 
 import { ContentGrid } from "./_components/ContentGrid";
+
+// 조건은 searchParams마다 달라지지만 페이지 성격은 고정이라 정적 metadata로 둔다.
+export const metadata: Metadata = {
+  title: "여행 콘텐츠 고르기",
+  description:
+    "선택한 지역과 여행 조건에 맞는 하동, 영주, 예천의 여행 콘텐츠를 골라 일정에 담아보세요.",
+};
 
 interface ContentsPageProps {
   searchParams: Promise<{

@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { SITE_URL } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
@@ -26,9 +27,31 @@ const paperlogy = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "PickTrip | 하동·영주·예천 여행 콘텐츠와 AI 일정",
+  // OG/Twitter 이미지처럼 절대 URL이 필요한 필드가 상대 경로로 선언될 수 있게
+  // 기준 origin을 지정한다. 없으면 배포 환경에서 localhost로 대체된다.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "PickTrip | 하동·영주·예천 여행 콘텐츠와 AI 일정",
+    // 하위 라우트가 title을 문자열로 선언하면 뒤에 브랜드가 붙는다.
+    // (루트 layout과 같은 세그먼트인 app/page.tsx에는 적용되지 않는다)
+    template: "%s | PickTrip",
+  },
   description:
-    "하동, 영주, 예천의 여행 콘텐츠와 AI 맞춤 일정을 제공하는 Pick Trip",
+    "하동, 영주, 예천의 여행 콘텐츠와 AI 맞춤 일정을 제공하는 PickTrip",
+  openGraph: {
+    type: "website",
+    siteName: "PickTrip",
+    locale: "ko_KR",
+    // "./"는 현재 경로로 해석되므로 페이지마다 og:url이 자기 주소를 가리킨다.
+    url: "./",
+    // title/description은 일부러 비워 둔다. 비워 두면 각 페이지의 최종
+    // title/description을 og:title, og:description으로 그대로 물려받는다.
+    images: [
+      { url: "/og-image.png", width: 1200, height: 630, alt: "PickTrip" },
+    ],
+  },
+  // title/description/images는 위 openGraph 값에서 자동으로 채워진다.
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({

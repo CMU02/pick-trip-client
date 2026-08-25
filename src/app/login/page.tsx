@@ -8,7 +8,7 @@ import { GoogleLoginButton } from "./_components/GoogleLoginButton";
 import { KakaoLoginButton } from "./_components/KakaoLoginButton";
 
 export const metadata: Metadata = {
-  title: "로그인 | PickTrip",
+  title: "로그인",
 };
 
 interface LoginPageProps {

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/layout/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "개인정보처리방침 | PickTrip",
+  title: "개인정보처리방침",
   description: "PickTrip이 이용자의 개인정보를 어떻게 수집하고 이용하는지 안내",
 };
 
