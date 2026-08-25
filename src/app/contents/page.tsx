@@ -1,7 +1,7 @@
 import { getContentFetchErrorMessage } from "@/lib/content";
 import { formatDuration } from "@/lib/itinerary";
 import { getContents } from "@/services/contentService";
-import { REGION_LABELS, type Region } from "@/types/region";
+import { ALL_REGIONS_QUERY, REGION_LABELS, type Region } from "@/types/region";
 
 import { ContentGrid } from "./_components/ContentGrid";
 
@@ -48,9 +48,16 @@ export default async function ContentsPage({
     companions,
   } = await searchParams;
 
+  // 헤더의 바구니 링크처럼 조건 없이 /contents로 들어오는 경로가 있다. 이때
+  // 빈 조건 그대로 조회하면 결과가 항상 0건이라, /explore와 같은 기본 조건
+  // (전체 지역 · 오늘 출발)으로 채워 목록과 바구니 패널을 보여준다.
+  const effectiveRegions = regions || ALL_REGIONS_QUERY;
+  const effectiveStartDate =
+    startDate || new Date().toISOString().split("T")[0];
+
   const queryParams = {
-    regions: regions ? regions.split(",") : [],
-    startDate,
+    regions: effectiveRegions.split(","),
+    startDate: effectiveStartDate,
     nights: Number(nights),
     companions: companions ? companions.split(",") : undefined,
   };
@@ -76,8 +83,8 @@ export default async function ContentsPage({
   }
 
   const itineraryHref = `/itinerary?${new URLSearchParams({
-    regions,
-    startDate,
+    regions: effectiveRegions,
+    startDate: effectiveStartDate,
     nights,
     ...(companions ? { companions } : {}),
   }).toString()}`;
@@ -89,7 +96,11 @@ export default async function ContentsPage({
         initialTotal={total}
         queryParams={queryParams}
         itineraryHref={itineraryHref}
-        conditionLine={formatConditionLine(regions, startDate, nights)}
+        conditionLine={formatConditionLine(
+          effectiveRegions,
+          effectiveStartDate,
+          nights,
+        )}
       />
     </main>
   );
