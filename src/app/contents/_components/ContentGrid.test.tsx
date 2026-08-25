@@ -243,10 +243,12 @@ describe("ContentGrid", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
 
+    // 이 스위트의 기본 조건은 지역 2개(HADONG, YEONGJU)라, size는 20이
+    // 아니라 지역 수만큼 나눈 값(ceil(20/2)=10)이다.
     expect(mockGetContents).toHaveBeenCalledWith({
       ...defaultQueryParams,
       page: 1,
-      size: 20,
+      size: 10,
     });
     await waitFor(() =>
       expect(screen.getByText("화개장터")).toBeInTheDocument(),

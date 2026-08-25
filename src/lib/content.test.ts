@@ -4,9 +4,11 @@ import { ApiError } from "@/lib/errors";
 import type { Content } from "@/types/content";
 
 import {
+  distributePageSize,
   getContentFetchErrorMessage,
   groupContentsByCategory,
   mergeUniqueContents,
+  sortContentsByCategory,
 } from "./content";
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
@@ -76,6 +78,81 @@ describe("mergeUniqueContents", () => {
     const result = mergeUniqueContents([first, duplicate, other]);
 
     expect(result).toEqual([first, other]);
+  });
+});
+
+describe("distributePageSize", () => {
+  it("지역이 1개면 페이지 크기를 그대로 준다", () => {
+    expect(distributePageSize(1, 20)).toBe(20);
+  });
+
+  it("지역이 여러 개면 나눠서 준다(합쳐서 대략 페이지 크기가 되도록)", () => {
+    expect(distributePageSize(3, 20)).toBe(7);
+    expect(distributePageSize(2, 20)).toBe(10);
+  });
+
+  it("결과가 0 이하로 내려가지 않는다", () => {
+    expect(distributePageSize(100, 20)).toBe(1);
+  });
+
+  it("지역 수가 0이어도 나누기 오류 없이 안전하게 처리한다", () => {
+    expect(distributePageSize(0, 20)).toBe(20);
+  });
+});
+
+describe("sortContentsByCategory", () => {
+  it("CONTENT_CATEGORIES 선언 순서로 정렬한다", () => {
+    const contents = [
+      makeContent({ id: "1", category: "NATURE" }),
+      makeContent({ id: "2", category: "FOOD" }),
+      makeContent({ id: "3", category: "CULTURE" }),
+    ];
+
+    const sorted = sortContentsByCategory(contents);
+
+    expect(sorted.map((c) => c.category)).toEqual([
+      "FOOD",
+      "CULTURE",
+      "NATURE",
+    ]);
+  });
+
+  it("같은 카테고리 안에서는 원래 순서를 유지한다(안정 정렬)", () => {
+    const contents = [
+      makeContent({ id: "1", category: "FOOD", name: "첫번째 음식" }),
+      makeContent({ id: "2", category: "CULTURE" }),
+      makeContent({ id: "3", category: "FOOD", name: "두번째 음식" }),
+    ];
+
+    const sorted = sortContentsByCategory(contents);
+
+    expect(sorted.map((c) => c.name)).toEqual([
+      "첫번째 음식",
+      "두번째 음식",
+      "쌍계사",
+    ]);
+  });
+
+  it("category가 없는 항목은 맨 뒤로 보낸다", () => {
+    const contents = [
+      makeContent({ id: "1", category: undefined }),
+      makeContent({ id: "2", category: "FOOD" }),
+    ];
+
+    const sorted = sortContentsByCategory(contents);
+
+    expect(sorted.map((c) => c.id)).toEqual(["2", "1"]);
+  });
+
+  it("원본 배열을 변경하지 않는다", () => {
+    const contents = [
+      makeContent({ id: "1", category: "NATURE" }),
+      makeContent({ id: "2", category: "FOOD" }),
+    ];
+
+    sortContentsByCategory(contents);
+
+    expect(contents.map((c) => c.category)).toEqual(["NATURE", "FOOD"]);
   });
 });
 

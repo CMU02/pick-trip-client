@@ -182,10 +182,13 @@ describe("ExploreGrid", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
 
+    // "전체" 탭은 3개 지역을 동시에 조회하므로, size는 20이 아니라
+    // 지역 수만큼 나눈 값(ceil(20/3)=7)이다 — 안 그러면 한 번에
+    // 20개가 아니라 60개(20×3)가 늘어난다.
     expect(mockGetContents).toHaveBeenCalledWith({
       ...defaultQueryParams,
       page: 1,
-      size: 20,
+      size: 7,
     });
     await waitFor(() =>
       expect(screen.getByText("화개장터")).toBeInTheDocument(),
@@ -226,7 +229,7 @@ describe("ExploreGrid", () => {
       expect(mockGetContents).toHaveBeenCalledWith({
         ...defaultQueryParams,
         page: 1,
-        size: 20,
+        size: 7,
       }),
     );
 
@@ -283,5 +286,27 @@ describe("ExploreGrid", () => {
     );
     // 새로 펼쳐진 뒤에도 중복 없이 정확히 22장만 보인다.
     expect(screen.getAllByText(/^재첩국\d+$/)).toHaveLength(22);
+  });
+
+  it("카테고리를 여러 개 선택하면 로드 순서와 무관하게 카테고리 선언 순서로 묶여서 보인다", async () => {
+    // 로드 순서는 문화-음식-문화-음식으로 일부러 뒤섞는다.
+    const contents = [
+      makeContent({ id: "c1", name: "문화1", category: "CULTURE" }),
+      makeContent({ id: "f1", name: "음식1", category: "FOOD" }),
+      makeContent({ id: "c2", name: "문화2", category: "CULTURE" }),
+      makeContent({ id: "f2", name: "음식2", category: "FOOD" }),
+    ];
+
+    renderExploreGrid({ initialContents: contents, initialTotal: 4 });
+
+    await userEvent.click(screen.getByRole("button", { name: "음식" }));
+    await userEvent.click(screen.getByRole("button", { name: "문화" }));
+
+    // CONTENT_CATEGORIES 선언 순서(FOOD가 CULTURE보다 앞)대로 묶이고,
+    // 같은 카테고리 안에서는 원래 로드 순서를 유지한다.
+    const names = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(names).toEqual(["음식1", "음식2", "문화1", "문화2"]);
   });
 });

@@ -5,10 +5,14 @@ import { type ReactNode, useEffect, useState } from "react";
 import { ContentFilter } from "@/components/ContentFilter";
 import { Icon } from "@/components/ui/icon";
 import {
-  CONTENT_PAGE_SIZE,
   type ContentQueryParams,
   useLoadMoreContents,
 } from "@/hooks/useLoadMoreContents";
+import {
+  CONTENT_PAGE_SIZE,
+  distributePageSize,
+  sortContentsByCategory,
+} from "@/lib/content";
 import {
   CATEGORY_LABELS,
   type Content,
@@ -48,6 +52,11 @@ export function ContentBrowser({
     ...queryParams,
     regions: effectiveRegions,
   };
+  // /api/v1/contents는 지역마다 같은 size로 fan-out 하므로, 여러 지역을
+  // 동시에("전체" 탭) 조회할 때 size를 그대로 두면 한 번에 20개가 아니라
+  // 20개 × 지역 수(예: 60개)가 온다. 지역 수만큼 나눠 요청해 합계가 대략
+  // CONTENT_PAGE_SIZE(20)에 맞게 한다.
+  const fetchPageSize = distributePageSize(effectiveRegions.length);
 
   const {
     contents: loadedContents,
@@ -58,15 +67,16 @@ export function ContentBrowser({
     errorMessage,
     loadMore,
   } = useLoadMoreContents({
-    queryKey: ["contents", effectiveParams],
+    queryKey: ["contents", effectiveParams, fetchPageSize],
     queryParams: effectiveParams,
     initialContents: isInitial ? initialContents : undefined,
     initialTotal: isInitial ? initialTotal : undefined,
+    pageSize: fetchPageSize,
   });
 
   const q = keyword.trim().toLowerCase();
   const hasClientFilter = selectedCategories.length > 0 || q !== "";
-  const filtered = loadedContents.filter((c) => {
+  const matched = loadedContents.filter((c) => {
     const matchCategory =
       selectedCategories.length === 0 ||
       (c.category !== undefined && selectedCategories.includes(c.category));
@@ -76,6 +86,11 @@ export function ContentBrowser({
       c.address.toLowerCase().includes(q);
     return matchCategory && matchKeyword;
   });
+  // 카테고리를 여러 개 동시에 선택하면(예: 음식+관광지+문화) 원래 로드
+  // 순서(지역·페이지 뒤섞임) 그대로 보여주면 뒤죽박죽으로 보인다. 그럴 때만
+  // CONTENT_CATEGORIES 선언 순서로 묶어서 보여준다.
+  const filtered =
+    selectedCategories.length > 1 ? sortContentsByCategory(matched) : matched;
 
   // 카테고리/검색어는 여전히 클라이언트 필터라(백엔드에 category 파라미터가
   // 없음), 서버 페이지 하나에 여러 카테고리가 섞여 온다. 필터가 걸린 채로

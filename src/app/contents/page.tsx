@@ -1,4 +1,4 @@
-import { getContentFetchErrorMessage } from "@/lib/content";
+import { distributePageSize, getContentFetchErrorMessage } from "@/lib/content";
 import { formatDuration } from "@/lib/itinerary";
 import { getContents } from "@/services/contentService";
 import { REGION_LABELS, type Region } from "@/types/region";
@@ -60,7 +60,13 @@ export default async function ContentsPage({
   let error: string | null = null;
 
   try {
-    const res = await getContents(queryParams);
+    // getContents는 지역마다 같은 size로 fan-out 하므로, size를 그대로
+    // 두면 첫 화면부터 20개가 아니라 20개 × 지역 수가 온다. 지역 수만큼
+    // 나눠 요청해 첫 페이지도 대략 20개로 맞춘다.
+    const res = await getContents({
+      ...queryParams,
+      size: distributePageSize(queryParams.regions.length),
+    });
     contents = res.contents;
     total = res.total;
   } catch (err) {

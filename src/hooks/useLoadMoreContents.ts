@@ -3,15 +3,14 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import {
+  CONTENT_PAGE_SIZE,
   getContentFetchErrorMessage,
   mergeUniqueContents,
 } from "@/lib/content";
 import { type GetContentsParams, getContents } from "@/services/contentService";
 import type { Content, ContentsResponse } from "@/types/content";
 
-// 백엔드 /api/v1/contents의 기본 size(20)와 동일하게 맞춰, "더보기"가 항상
-// 서버 기본 페이지와 같은 크기로 다음 페이지를 요청하게 한다.
-export const CONTENT_PAGE_SIZE = 20;
+export { CONTENT_PAGE_SIZE };
 
 export type ContentQueryParams = Omit<GetContentsParams, "page" | "size">;
 
