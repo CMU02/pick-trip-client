@@ -27,7 +27,7 @@ describe("HeroSection", () => {
 
     expect(screen.getByText("3곳")).toBeInTheDocument();
     expect(screen.getByText("경상도 소도시")).toBeInTheDocument();
-    expect(screen.getByText("228개")).toBeInTheDocument();
+    expect(screen.getByText("226개")).toBeInTheDocument();
     expect(screen.getByText("여행 콘텐츠")).toBeInTheDocument();
     expect(screen.getByText("30초")).toBeInTheDocument();
     expect(screen.getByText("AI 일정 생성")).toBeInTheDocument();
