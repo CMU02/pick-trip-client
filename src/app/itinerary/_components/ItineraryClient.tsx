@@ -80,17 +80,13 @@ function ItineraryResultLayout({
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-4">{children}</div>
         <div>
-          {/* ItineraryResult의 "생성된 일정" 제목(text-lg font-bold) + mt-4를
-              보이지 않게 그대로 재현해, 여행 요약 카드가 그 제목이 아니라
-              바로 아래 일차 카드 박스와 같은 높이에서 시작하게 한다. sticky
-              박스 밖에 둬서, 스크롤로 실제 고정될 때는 이 여백 없이
-              top-[86px]에 바로 붙는다. */}
-          <div
-            aria-hidden="true"
-            className="invisible hidden text-lg font-bold text-foreground lg:block"
-          >
-            생성된 일정
-          </div>
+          {/* 왼쪽 컬럼은 ItineraryResult의 "생성된 일정" 제목(text-lg =
+              line-height 1.75rem = h-7) + mt-4 뒤에 일차 카드가 온다. 오른쪽
+              여행 요약 카드가 그 일차 카드와 같은 y에서 시작하도록 동일한
+              높이(h-7 + mt-4)를 비워둔다. 폰트 렌더링에 의존하지 않도록
+              텍스트 대신 고정 높이 스페이서를 쓴다. sticky 박스 밖에 둬서,
+              스크롤로 고정될 때는 이 여백 없이 top-[86px]에 바로 붙는다. */}
+          <div aria-hidden="true" className="hidden h-7 lg:block" />
           <div className="flex flex-col gap-3.5 lg:mt-4 lg:sticky lg:top-[86px]">
             {sidebar}
           </div>
