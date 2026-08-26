@@ -1,11 +1,31 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
+
+// 달력 테스트는 "오늘"에서 며칠 뒤 날짜 셀을 클릭한다. 실제 오늘이 월말이면
+// 그 날짜가 다음 달로 넘어가 달력에 없는(또는 과거 달의 동일 일자) 셀을 눌러
+// 선택이 무시된다. 시스템 시간을 월 중순으로 고정해 오프셋(최대 5일)이 항상
+// 같은 달 안에 있게 한다. shouldAdvanceTime로 userEvent 지연은 정상 동작한다.
+beforeAll(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 import { useBasketStore } from "@/stores/basketStore";
 import type { Content } from "@/types/content";
