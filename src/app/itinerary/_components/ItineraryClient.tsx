@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useItineraryEditor } from "@/hooks/useItineraryEditor";
@@ -31,9 +30,9 @@ import {
   COMPANION_CONDITION_TO_SERVER,
   type CompanionCondition,
 } from "@/types/travel-condition";
-import { ErrorState } from "./ErrorState";
 import { GeneratingState } from "./GeneratingState";
 import { ItineraryResult } from "./ItineraryResult";
+import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
 import { TripSummary } from "./TripSummary";
 
@@ -506,42 +505,25 @@ export function ItineraryClient({
     );
   }
 
+  // 생성 중에는 핸드오프 스펙(§9 "생성 중")대로 화면 전체를 스피너로 채운다.
+  if (phase.status === "loading") {
+    return <GeneratingState />;
+  }
+
+  // 생성 전(idle) · 생성 실패(error) 화면. 오류는 재시도 버튼과 함께
+  // PreGenerateView 상단에 배너로 노출한다.
   return (
-    // 생성 결과(ItineraryResultLayout)는 1fr/320px 2단 레이아웃이라 헤더
-    // 너비(max-w-7xl)를 그대로 채우지만, 생성 전 요약 카드는 항목이 몇 줄뿐이라
-    // 그대로 펼치면 라벨-값 간격만 늘어져 보인다. 이 단계만 좁게 가운데 정렬한다.
-    <div className="mx-auto max-w-xl space-y-4">
-      <TripSummary
-        regions={parsedRegions}
-        startDate={startDate}
-        nights={parsedNights}
-        companions={parsedCompanions}
-        items={items}
-      />
-
-      {phase.status === "loading" && <GeneratingState />}
-      {phase.status === "error" && (
-        <ErrorState
-          message={phase.message}
-          traceId={phase.traceId}
-          onRetry={handleGenerate}
-        />
-      )}
-
-      <div className="space-y-2">
-        {items.length < 2 && phase.status === "idle" && (
-          <p className="text-sm text-muted-foreground">
-            2개 이상 담아야 일정을 생성할 수 있어요
-          </p>
-        )}
-        <Button
-          disabled={phase.status === "loading" || items.length < 2}
-          onClick={handleGenerate}
-        >
-          <Icon name="wand" size={16} />
-          일정 생성하기
-        </Button>
-      </div>
-    </div>
+    <PreGenerateView
+      regions={regions}
+      startDate={startDate}
+      nights={nights}
+      companions={companions}
+      onGenerate={handleGenerate}
+      error={
+        phase.status === "error"
+          ? { message: phase.message, traceId: phase.traceId }
+          : null
+      }
+    />
   );
 }
