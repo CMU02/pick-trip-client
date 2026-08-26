@@ -21,7 +21,8 @@ GitHub 이슈: #92 · 관련(미머지): [[basket-persist-through-conditions]] (
    - 본문: `RecommendedCard` 그리드(상세 링크 `/contents/{id}`)
    - 담긴 지역이 2곳 이상이면 지역 탭(`전체` + 담긴 지역들)으로 클라이언트 필터
    - 우측/하단: 기존 `BasketLayout`의 여행 바구니 패널·드로어 재사용
-   - 빈 상태: 안내 문구 + `/explore` 링크
+   - 빈 상태: 안내 문구 + 여행 조건 페이지(`/select/conditions?regions=<전체>`) 링크
+     — 담기 없는 `/explore`가 아니라 계획 시작점으로 보낸다(조건 → 콘텐츠 담기)
    - 전부 클라이언트(localStorage) 상태라 `page.tsx`는 껍데기, 로직은
      `_components/BasketPageClient.tsx`
 2. **헤더 장바구니 아이콘 → `/basket`**, **마이페이지 "여행 바구니" 카드 → `/basket`**

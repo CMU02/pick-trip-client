@@ -44,13 +44,16 @@ describe("BasketPageClient", () => {
     useFavoriteStore.setState({ items: [], hydrated: true });
   });
 
-  it("바구니가 비어 있으면 안내 문구와 콘텐츠 탐색 링크를 보여준다", () => {
+  it("바구니가 비어 있으면 안내 문구와 여행 조건 페이지 링크를 보여준다", () => {
     render(<BasketPageClient />);
 
     expect(screen.getByText("아직 담은 콘텐츠가 없습니다")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /콘텐츠 탐색하러 가기/ }),
-    ).toHaveAttribute("href", "/explore");
+      screen.getByRole("link", { name: /여행 조건 정하러 가기/ }),
+    ).toHaveAttribute(
+      "href",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+    );
   });
 
   it("담은 콘텐츠를 상세 링크가 걸린 카드로 렌더한다", () => {

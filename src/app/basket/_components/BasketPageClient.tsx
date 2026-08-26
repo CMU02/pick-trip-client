@@ -59,11 +59,16 @@ export function BasketPageClient() {
             <p className="text-[15px] font-bold text-foreground/80">
               아직 담은 콘텐츠가 없습니다
             </p>
+            <p className="text-[13px] text-muted-foreground">
+              여행 조건을 정하면 지역에 맞는 콘텐츠를 담을 수 있어요
+            </p>
+            {/* 바구니가 비면 콘텐츠만 훑는 /explore(담기 없음)가 아니라 계획
+                시작점인 여행 조건 페이지로 보낸다 — 조건 → 콘텐츠 담기 흐름. */}
             <Link
-              href="/explore"
+              href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}
               className="mt-1 rounded-xl bg-primary px-5.5 py-3 text-[13.5px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              콘텐츠 탐색하러 가기 →
+              여행 조건 정하러 가기 →
             </Link>
           </div>
         ) : (
