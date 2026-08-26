@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -320,6 +320,45 @@ describe("ItineraryClient", () => {
     });
 
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
+  });
+
+  it("결과 화면 여행 요약의 '담은 콘텐츠' 수는 생성된 일정의 장소 수로 표시한다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    // 생성된 일정에는 장소가 1곳뿐 — 바구니(mock 2개)가 아니라 이 값이 나와야 한다.
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+    await screen.findByRole("button", { name: "저장" });
+
+    const summary = screen.getByText("여행 요약").closest("section");
+    expect(summary).not.toBeNull();
+    expect(within(summary as HTMLElement).getByText("1개")).toBeInTheDocument();
   });
 
   it("저장 버튼 클릭 시 미리보기 데이터를 SaveItineraryRequest로 변환해 save API를 호출한다", async () => {

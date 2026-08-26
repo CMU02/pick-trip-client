@@ -40,8 +40,9 @@ function formatDuration(nights: number) {
   return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
 }
 
-// 핸드오프 스펙(9번 "일정 결과")의 "STEP 3 · 일정 완성" 헤더 +
+// 핸드오프 스펙(9번 "일정 결과")의 "STEP 4 · 일정 완성" 헤더 +
 // 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
+// (Step 1 조건 → Step 2 콘텐츠 담기 → Step 3 일정 생성(PreGenerateView) → Step 4 완성)
 // "이동 거리 합계" 카드는 서버가 이동 거리 데이터를 내려주지 않아 뺐다
 // (핸드오프 README도 데이터 없으면 빼도 된다고 명시).
 function ItineraryResultLayout({
@@ -62,7 +63,7 @@ function ItineraryResultLayout({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-extrabold tracking-widest text-primary/70 uppercase">
-            Step 3 · 일정 완성
+            Step 4 · 일정 완성
           </p>
           <h1 className="mt-2.5 text-[32px] font-extrabold tracking-tight">
             {REGION_LABELS[region]} {formatDuration(duration)} 일정
@@ -491,6 +492,12 @@ export function ItineraryClient({
             companions={parsedCompanions}
             items={items}
             showItemList={false}
+            // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
+            // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
+            itemCount={phase.data.days.reduce(
+              (sum, day) => sum + day.items.length,
+              0,
+            )}
           />
         }
       >

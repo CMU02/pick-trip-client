@@ -422,7 +422,7 @@ export function PreGenerateView({
               type="button"
               disabled={!canGenerate}
               onClick={onGenerate}
-              className="mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-[13px] px-4 py-3.5 text-[15px] font-bold transition-transform enabled:bg-white enabled:text-[oklch(0.52_0.19_28)] enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/70"
+              className="mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-[13px] px-4 py-3.5 text-[15px] font-bold transition-transform enabled:cursor-pointer enabled:bg-white enabled:text-[oklch(0.52_0.19_28)] enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/70"
             >
               <Icon name="wand" size={16} />
               일정 생성하기
