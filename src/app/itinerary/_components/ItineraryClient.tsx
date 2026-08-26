@@ -14,6 +14,8 @@ import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
 import {
   addBasketItem,
+  getBasket,
+  removeBasketItem,
   updateBasketConditions,
 } from "@/services/basketService";
 import { generateItinerary, saveItinerary } from "@/services/itineraryService";
@@ -70,10 +72,28 @@ function ItineraryResultLayout({
         <div className="flex flex-wrap gap-2">{actions}</div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
+      {/* items-start를 빼면(기본값 stretch) 사이드바 칼럼 자체가 일차 카드
+          목록과 같은 높이(그리드 행 높이)로 늘어난다. sticky는 그 안쪽의
+          별도 wrapper에 걸어서, 늘어난 칼럼 높이 안에서만 스크롤을 따라다니고
+          칼럼 바닥(=일정 목록 하단)을 넘어가면 자연히 멈춘다 — "최소 높이는
+          일정 목록에 맞추되 sticky 동작은 유지" 요청에 맞춘 구조. */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-4">{children}</div>
-        <div className="flex flex-col gap-3.5 lg:sticky lg:top-[86px]">
-          {sidebar}
+        <div>
+          {/* ItineraryResult의 "생성된 일정" 제목(text-lg font-bold) + mt-4를
+              보이지 않게 그대로 재현해, 여행 요약 카드가 그 제목이 아니라
+              바로 아래 일차 카드 박스와 같은 높이에서 시작하게 한다. sticky
+              박스 밖에 둬서, 스크롤로 실제 고정될 때는 이 여백 없이
+              top-[86px]에 바로 붙는다. */}
+          <div
+            aria-hidden="true"
+            className="invisible hidden text-lg font-bold text-foreground lg:block"
+          >
+            생성된 일정
+          </div>
+          <div className="flex flex-col gap-3.5 lg:mt-4 lg:sticky lg:top-[86px]">
+            {sidebar}
+          </div>
         </div>
       </div>
     </div>
@@ -212,7 +232,7 @@ export function ItineraryClient({
 }: ItineraryClientProps) {
   const [phase, setPhase] = useState<ItineraryPhase>({ status: "idle" });
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
-  const { items } = useBasket();
+  const { items, clear: clearBasket } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const { runAuthed } = useAuth();
 
@@ -242,7 +262,26 @@ export function ItineraryClient({
           token,
         );
 
+        // 로컬 바구니가 유일한 "진짜" 상태이고, 서버 바구니는 generate 직전에만
+        // 로컬과 맞춰주는 일회용 스냅샷이다. addBasketItem만 반복 호출하면
+        // 서버 쪽엔 과거 세션에서 추가된 항목이 지워지지 않고 영구히 쌓여서(서버는
+        // 삭제 API를 따로 호출해야만 지워짐), 지금 로컬엔 없는 콘텐츠까지
+        // generate에 딸려 들어가는 문제가 있었다(예: 예전에 담았다 뺀 콘텐츠가
+        // 중복으로 재등장). 그래서 여기서 서버 바구니를 조회해 로컬과 diff를 떠서
+        // 로컬에 없는 항목은 지우고, 서버에 없는 항목만 추가한다.
+        const serverBasket = await getBasket(token);
+        const localContentIds = new Set(items.map((item) => item.content.id));
+        const serverContentIds = new Set(
+          serverBasket.items.map((item) => item.contentId),
+        );
+
+        for (const serverItem of serverBasket.items) {
+          if (localContentIds.has(serverItem.contentId)) continue;
+          await removeBasketItem(serverItem.itemId, token);
+        }
+
         for (const item of items) {
+          if (serverContentIds.has(item.content.id)) continue;
           try {
             await addBasketItem(
               {
@@ -278,7 +317,13 @@ export function ItineraryClient({
     setPhase({ status: "loading" });
 
     generateMutation.mutate(undefined, {
-      onSuccess: (data) => setPhase({ status: "preview", data }),
+      // 이 시점 바구니 내용은 이미 서버 바구니로 반영돼 AI 생성에 쓰였으니
+      // 로컬 바구니(장바구니)는 비운다 — 담아둔 콘텐츠가 생성 후에도 그대로
+      // 남아있던 문제를 해결한다.
+      onSuccess: (data) => {
+        clearBasket();
+        setPhase({ status: "preview", data });
+      },
       onError: (err) => {
         const { message, code, traceId } = parseApiError(err);
         // runAuthed가 이미 재발급+재시도를 1회 했으므로, 여기 도달한 AUTH_REQUIRED는
