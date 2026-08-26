@@ -1,9 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { useBasket } from "@/hooks/useBasket";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
   COMPANION_CONDITION_LABELS,
@@ -42,14 +41,10 @@ function todayDateKey() {
 
 export function TravelDateForm({ regions }: TravelDateFormProps) {
   const router = useRouter();
-  const { clear } = useBasket();
 
-  // Step2(여행 조건 입력)가 새 여행 계획의 실질적 시작점이므로, 이전 계획에서
-  // 남은 바구니를 비운다. 원래 이 책임은 /select(Step1)에 있었으나 해당
-  // 페이지가 제거되며 이곳으로 옮겨왔다.
-  useEffect(() => {
-    clear();
-  }, [clear]);
+  // 여행 조건 페이지는 바구니를 건드리지 않는다. 여행 바구니·찜한 콘텐츠·추천
+  // 페이지에서 담아온 콘텐츠가 이 페이지를 거쳐 /contents까지 그대로 유지되도록
+  // 한다. 일정 생성을 완료하면 ItineraryClient가 바구니를 비운다.
 
   const [startDate, setStartDate] = useState(todayDateKey());
   const [duration, setDuration] = useState<TravelDuration | null>(null);

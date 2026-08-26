@@ -67,13 +67,13 @@ async function pickDate(date: Date) {
   );
 }
 
-describe("TravelDateForm — 바구니 초기화", () => {
+describe("TravelDateForm — 바구니 유지", () => {
   beforeEach(() => {
     localStorage.clear();
     useBasketStore.setState({ items: [], hydrated: false });
   });
 
-  it("마운트 시 이전 여행 계획에서 남은 바구니를 비운다", () => {
+  it("마운트해도 담아둔 바구니를 비우지 않는다", () => {
     useBasketStore.setState({
       items: [{ content: stub, addedAt: Date.now(), priority: null }],
       hydrated: true,
@@ -81,7 +81,7 @@ describe("TravelDateForm — 바구니 초기화", () => {
 
     render(<TravelDateForm regions="HADONG" />);
 
-    expect(useBasketStore.getState().items).toHaveLength(0);
+    expect(useBasketStore.getState().items).toHaveLength(1);
   });
 });
 

@@ -143,7 +143,7 @@ describe("MyPageClient", () => {
     );
     expect(screen.getByRole("link", { name: /여행 바구니/ })).toHaveAttribute(
       "href",
-      "/explore",
+      "/basket",
     );
   });
 

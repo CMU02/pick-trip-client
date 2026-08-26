@@ -113,7 +113,7 @@ export function Header() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link
-                  href="/contents"
+                  href="/basket"
                   aria-label={`바구니 ${basketItems.length}개`}
                   className="relative flex h-7 w-7 items-center justify-center text-primary transition-colors hover:text-primary/80"
                 >

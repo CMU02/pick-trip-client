@@ -60,7 +60,7 @@ export function MyPageClient() {
       label: "여행 바구니",
       value: `${basketItems.length}개`,
       hint: "담은 콘텐츠 확인",
-      href: "/explore",
+      href: "/basket",
     },
   ];
 
