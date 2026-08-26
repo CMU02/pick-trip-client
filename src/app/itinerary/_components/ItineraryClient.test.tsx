@@ -13,9 +13,11 @@ import type {
 } from "@/types/itinerary";
 import { ItineraryClient } from "./ItineraryClient";
 
-// useSavedItineraries.add를 테스트에서 참조하기 위해 hoisted mock으로 선언한다.
-const { mockAddSavedItinerary } = vi.hoisted(() => ({
+// useSavedItineraries.add/useBasket.clear를 테스트에서 참조하기 위해
+// hoisted mock으로 선언한다.
+const { mockAddSavedItinerary, mockClearBasket } = vi.hoisted(() => ({
   mockAddSavedItinerary: vi.fn(),
+  mockClearBasket: vi.fn(),
 }));
 
 vi.mock("@/services/basketService");
@@ -55,6 +57,7 @@ vi.mock("@/hooks/useBasket", () => ({
         priority: null,
       },
     ],
+    clear: mockClearBasket,
   }),
 }));
 vi.mock("@/hooks/useSavedItineraries", () => ({
@@ -112,6 +115,8 @@ describe("ItineraryClient", () => {
     basketServiceModule.updateBasketConditions,
   );
   const mockAddBasketItem = vi.mocked(basketServiceModule.addBasketItem);
+  const mockGetBasket = vi.mocked(basketServiceModule.getBasket);
+  const mockRemoveBasketItem = vi.mocked(basketServiceModule.removeBasketItem);
   const mockGenerateItinerary = vi.mocked(
     itineraryServiceModule.generateItinerary,
   );
@@ -120,6 +125,20 @@ describe("ItineraryClient", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    // 대부분의 테스트는 reconcile 자체가 아니라 그 이후 흐름을 검증하므로,
+    // 서버 바구니가 비어있다고 가정해 기존과 동일하게 로컬 항목이 전부
+    // addBasketItem으로 추가되게 한다. reconcile 자체를 검증하는 테스트는
+    // 이 기본값을 개별적으로 덮어쓴다.
+    mockGetBasket.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
   });
 
   it("일정 생성하기 클릭 시 바구니/조건을 서버에 동기화한 뒤 generate를 호출하고 미리보기를 표시한다", async () => {
@@ -177,8 +196,89 @@ describe("ItineraryClient", () => {
 
     // save API는 아직 호출되지 않아야 한다 — generate 응답은 미리보기일 뿐이다
     expect(mockSaveItinerary).not.toHaveBeenCalled();
+    // generate 성공 시 로컬 바구니(장바구니)는 비운다 — 담아둔 콘텐츠가
+    // 생성 이후에도 그대로 남아있던 문제를 해결한다.
+    expect(mockClearBasket).toHaveBeenCalledTimes(1);
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
+  });
+
+  it("서버 바구니를 로컬 바구니에 맞춰 정리한다: 로컬에 없는 서버 항목은 지우고, 이미 서버에 있는 항목은 다시 추가하지 않는다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    // 서버엔 로컬에도 있는 content-1(이미 있으니 재추가 불필요)과,
+    // 로컬 바구니엔 없는 과거 세션 잔재 content-stale(지워져야 함)이 있다.
+    mockGetBasket.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [
+        {
+          itemId: "server-item-1",
+          contentId: "content-1",
+          title: "쌍계사",
+          priority: "MUST_VISIT",
+        },
+        {
+          itemId: "server-item-stale",
+          contentId: "content-stale",
+          title: "예전에 담았던 콘텐츠",
+          priority: "OPTIONAL",
+        },
+      ],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-2",
+      contentId: "content-2",
+      title: "화개장터",
+      priority: "OPTIONAL",
+    });
+    mockRemoveBasketItem.mockResolvedValue(undefined);
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockGenerateItinerary).toHaveBeenCalled();
+    });
+
+    // 로컬에 없는 서버 잔재(content-stale)만 지운다.
+    expect(mockRemoveBasketItem).toHaveBeenCalledTimes(1);
+    expect(mockRemoveBasketItem).toHaveBeenCalledWith(
+      "server-item-stale",
+      undefined,
+    );
+
+    // 이미 서버에 있는 content-1은 다시 추가하지 않고, 서버에 없는
+    // content-2만 추가한다.
+    expect(mockAddBasketItem).toHaveBeenCalledTimes(1);
+    expect(mockAddBasketItem).toHaveBeenCalledWith(
+      expect.objectContaining({ contentId: "content-2" }),
+      undefined,
+    );
   });
 
   it("이미 담긴 콘텐츠(BASKET_ITEM_DUPLICATE) 오류는 무시하고 generate를 계속 진행한다", async () => {
@@ -463,6 +563,9 @@ describe("ItineraryClient", () => {
     expect(
       screen.getByRole("button", { name: "다시 생성" }),
     ).toBeInTheDocument();
+    // 실제 generate가 성공한 게 아니라 바구니 기반 클라이언트 미리보기이므로
+    // 바구니를 비우지 않는다.
+    expect(mockClearBasket).not.toHaveBeenCalled();
   });
 
   it("generate가 AUTH_REQUIRED가 아닌 오류로 실패하면 기존처럼 오류 메시지를 표시한다", async () => {
@@ -505,6 +608,7 @@ describe("ItineraryClient", () => {
     expect(
       screen.getByRole("button", { name: "다시 시도" }),
     ).toBeInTheDocument();
+    expect(mockClearBasket).not.toHaveBeenCalled();
   });
 
   it("저장 성공 시 저장한 일정 목록에 요약이 기록된다", async () => {

@@ -32,7 +32,6 @@ export function DashboardHero() {
   return (
     <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr]">
       <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] p-8 text-white">
-        <div className="absolute -right-[60px] -bottom-[90px] h-[250px] w-[250px] rounded-full bg-white/10" />
         <div className="relative">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.18] px-3 py-1.5 text-[11.5px] font-bold">
             여행 준비 {stepNow}단계

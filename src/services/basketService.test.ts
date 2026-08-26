@@ -7,7 +7,12 @@ import type {
   UpdateBasketConditionsRequest,
 } from "@/types/basket";
 import { apiClient } from "./apiClient";
-import { addBasketItem, updateBasketConditions } from "./basketService";
+import {
+  addBasketItem,
+  getBasket,
+  removeBasketItem,
+  updateBasketConditions,
+} from "./basketService";
 
 vi.mock("./apiClient", () => ({
   apiClient: {
@@ -19,8 +24,10 @@ vi.mock("./apiClient", () => ({
   },
 }));
 
+const mockGet = vi.mocked(apiClient.get);
 const mockPost = vi.mocked(apiClient.post);
 const mockPut = vi.mocked(apiClient.put);
+const mockDelete = vi.mocked(apiClient.delete);
 
 describe("updateBasketConditions", () => {
   const mockRequest: UpdateBasketConditionsRequest = {
@@ -126,5 +133,76 @@ describe("addBasketItem", () => {
       mockRequest,
       { headers: { Authorization: "Bearer access-1" } },
     );
+  });
+});
+
+describe("getBasket", () => {
+  const mockResponse: BasketResponse = {
+    basketId: "basket-1",
+    conditions: {
+      region: "HADONG",
+      travelDate: "2025-01-15",
+      duration: 1,
+      companions: [],
+    },
+    items: [
+      {
+        itemId: "item-1",
+        contentId: "content-1",
+        title: "쌍계사",
+        priority: "MUST_VISIT",
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("GET /api/v1/baskets를 호출하고 응답을 그대로 반환", async () => {
+    mockGet.mockResolvedValueOnce({ data: mockResponse });
+
+    const result = await getBasket();
+
+    expect(mockGet).toHaveBeenCalledWith("/api/v1/baskets", {
+      headers: undefined,
+    });
+    expect(result).toEqual(mockResponse);
+  });
+
+  it("accessToken을 전달하면 Authorization 헤더를 붙인다", async () => {
+    mockGet.mockResolvedValueOnce({ data: mockResponse });
+
+    await getBasket("access-1");
+
+    expect(mockGet).toHaveBeenCalledWith("/api/v1/baskets", {
+      headers: { Authorization: "Bearer access-1" },
+    });
+  });
+});
+
+describe("removeBasketItem", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("DELETE /api/v1/baskets/items/{itemId}를 호출한다", async () => {
+    mockDelete.mockResolvedValueOnce({ data: undefined });
+
+    await removeBasketItem("item-1");
+
+    expect(mockDelete).toHaveBeenCalledWith("/api/v1/baskets/items/item-1", {
+      headers: undefined,
+    });
+  });
+
+  it("accessToken을 전달하면 Authorization 헤더를 붙인다", async () => {
+    mockDelete.mockResolvedValueOnce({ data: undefined });
+
+    await removeBasketItem("item-1", "access-1");
+
+    expect(mockDelete).toHaveBeenCalledWith("/api/v1/baskets/items/item-1", {
+      headers: { Authorization: "Bearer access-1" },
+    });
   });
 });

@@ -1,7 +1,12 @@
 "use client";
 
+import { Icon, type IconName } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
-import { CATEGORY_LABELS, type ContentCategory } from "@/types/content";
+import {
+  CATEGORY_ICONS,
+  CATEGORY_LABELS,
+  type ContentCategory,
+} from "@/types/content";
 
 export type QuickCategory = ContentCategory | "ALL";
 
@@ -19,13 +24,14 @@ interface QuickCategoryRowProps {
 // 2026-08-25 기준 총합(음식 53 + 관광지 27 + 문화 77 + 자연 33 + 체험
 // 33 = 223, 카테고리 없는 축제 3개를 더하면 전체 226). 콘텐츠가 크게
 // 늘어나면 이 숫자만 수동으로 갱신한다.
-const QUICK_DEFS: { key: QuickCategory; icon: string; count: number }[] = [
-  { key: "CULTURE", icon: "⛩", count: 77 },
-  { key: "FOOD", icon: "🍽", count: 53 },
-  { key: "ATTRACTION", icon: "🏯", count: 27 },
-  { key: "NATURE", icon: "🌿", count: 33 },
-  { key: "EXPERIENCE", icon: "🎋", count: 33 },
-  { key: "ALL", icon: "📍", count: 226 },
+// 아이콘은 CATEGORY_ICONS와 마찬가지로 pick-trip-app(Ionicons)에 맞춘다.
+const QUICK_DEFS: { key: QuickCategory; icon: IconName; count: number }[] = [
+  { key: "CULTURE", icon: CATEGORY_ICONS.CULTURE, count: 77 },
+  { key: "FOOD", icon: CATEGORY_ICONS.FOOD, count: 53 },
+  { key: "ATTRACTION", icon: CATEGORY_ICONS.ATTRACTION, count: 27 },
+  { key: "NATURE", icon: CATEGORY_ICONS.NATURE, count: 33 },
+  { key: "EXPERIENCE", icon: CATEGORY_ICONS.EXPERIENCE, count: 33 },
+  { key: "ALL", icon: "map-outline", count: 226 },
 ];
 
 export function QuickCategoryRow({
@@ -52,11 +58,15 @@ export function QuickCategoryRow({
           >
             <span
               className={cn(
-                "flex h-[33px] w-[33px] shrink-0 items-center justify-center rounded-[11px] text-[15px]",
+                "flex h-[33px] w-[33px] shrink-0 items-center justify-center rounded-[11px]",
                 on ? "bg-[oklch(0.92_0.07_30)]" : "bg-muted",
               )}
             >
-              {icon}
+              <Icon
+                name={icon}
+                size={17}
+                className={on ? "text-accent-foreground" : "text-foreground"}
+              />
             </span>
             <span>
               <span
