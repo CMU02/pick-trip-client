@@ -137,6 +137,31 @@ describe("useLoadMoreContents", () => {
     await waitFor(() => expect(result.current.hasMore).toBe(false));
   });
 
+  it("다음 페이지의 total이 첫 페이지와 달라도 표시 total은 첫 페이지 값으로 고정된다", async () => {
+    // 백엔드 totalCount가 재동기화로 흔들리는 상황을 흉내낸다.
+    mockGetContents.mockResolvedValueOnce({
+      contents: [makeContent("3")],
+      total: 226,
+    } satisfies ContentsResponse);
+
+    const { result } = renderHook(
+      () =>
+        useLoadMoreContents({
+          queryKey: ["contents", queryParams],
+          queryParams,
+          initialContents: [makeContent("1"), makeContent("2")],
+          initialTotal: 222,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.total).toBe(222);
+    act(() => result.current.loadMore());
+
+    await waitFor(() => expect(result.current.contents).toHaveLength(3));
+    expect(result.current.total).toBe(222);
+  });
+
   it("일부 지역이 소진돼 빈 페이지를 받으면 예외 없이 처리되고 더 요청하지 않는다", async () => {
     mockGetContents.mockResolvedValueOnce({
       contents: [],

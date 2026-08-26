@@ -86,12 +86,17 @@ export function useLoadMoreContents({
 
   const pages = query.data?.pages ?? [];
   const contents = mergeUniqueContents(pages.flatMap((p) => p.contents));
-  const total = pages.at(-1)?.total ?? initialTotal ?? 0;
+  // total은 첫 페이지(0페이지 = 모든 지역을 한 번에 조회) 값으로 고정한다.
+  // 마지막 페이지 값을 쓰면 백엔드 totalCount가 재동기화 등으로 조금이라도
+  // 흔들릴 때 "더보기"를 누를 때마다 표시 개수(222 ↔ 226)가 달라진다.
+  const total = pages[0]?.total ?? initialTotal ?? 0;
 
   return {
     contents,
     total,
-    hasMore: contents.length < total,
+    // 다음 페이지 존재 여부는 React Query의 판단(getNextPageParam 결과)을
+    // 따른다. total이 흔들려도 눌리지 않는 "더보기" 버튼이 생기지 않는다.
+    hasMore: query.hasNextPage ?? contents.length < total,
     isLoading: query.isLoading,
     isLoadingMore: query.isFetchingNextPage,
     errorMessage: query.isError
