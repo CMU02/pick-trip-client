@@ -164,7 +164,12 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
     <ItineraryResultLayout
       region={data.region}
       duration={data.duration}
-      actions={<ShareButton itineraryId={data.itineraryId} />}
+      actions={
+        <ShareButton
+          itineraryId={data.itineraryId}
+          linkBoxClassName="w-full sm:w-[28rem]"
+        />
+      }
       sidebar={
         <section className="rounded-[20px] border border-border bg-card p-5.5">
           <h2 className="text-[17px] font-bold tracking-tight text-foreground">
@@ -434,17 +439,17 @@ export function ItineraryClient({
           titleDraft === null ? (
             <>
               <Button
+                disabled={isSaving}
+                onClick={() => setTitleDraft(phase.data.title)}
+              >
+                저장
+              </Button>
+              <Button
                 variant="outline"
                 disabled={isSaving}
                 onClick={() => setPhase({ status: "idle" })}
               >
                 다시 생성
-              </Button>
-              <Button
-                disabled={isSaving}
-                onClick={() => setTitleDraft(phase.data.title)}
-              >
-                저장
               </Button>
             </>
           ) : (
@@ -462,7 +467,7 @@ export function ItineraryClient({
               </label>
               <input
                 id="itinerary-title"
-                className="w-40 rounded-md border border-input px-3 py-2 text-sm sm:w-56"
+                className="w-80 rounded-md border border-input px-3 py-2 text-sm sm:w-[28rem]"
                 value={titleDraft}
                 disabled={isSaving}
                 onChange={(e) => setTitleDraft(e.target.value)}
