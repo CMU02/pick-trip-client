@@ -37,6 +37,13 @@ describe("ForYouCard", () => {
     ).toBeInTheDocument();
   });
 
+  it("지역 라벨을 썸네일 우상단 반투명 배지로 렌더한다", () => {
+    render(<ForYouCard content={stub} />);
+
+    const regionBadge = screen.getByText("하동");
+    expect(regionBadge).toHaveClass("bg-white/90");
+  });
+
   it("카드 본문이 from=for-you가 붙은 상세 페이지 링크를 포함한다", () => {
     render(<ForYouCard content={stub} />);
 

@@ -34,6 +34,19 @@ describe("RecommendedCard", () => {
     expect(screen.getByText("문화")).toBeInTheDocument();
   });
 
+  it("지역 라벨을 썸네일 우상단 반투명 배지로 렌더한다", () => {
+    render(<RecommendedCard content={stub} />);
+
+    const regionBadge = screen.getByText("하동");
+    expect(regionBadge).toHaveClass("bg-white/90");
+  });
+
+  it("요약을 렌더한다", () => {
+    render(<RecommendedCard content={stub} />);
+
+    expect(screen.getByText("천년 고찰")).toBeInTheDocument();
+  });
+
   it("담기 버튼 클릭 시 바구니에 담기고 담김으로 바뀐다", async () => {
     render(<RecommendedCard content={stub} />);
 
