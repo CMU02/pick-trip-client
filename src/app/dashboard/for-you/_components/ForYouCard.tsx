@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { ContentCardActions } from "@/components/ContentCardActions";
+import { ContentImage } from "@/components/ContentImage";
 import { CATEGORY_LABELS, type Content } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
 
@@ -19,19 +19,13 @@ export function ForYouCard({ content }: ForYouCardProps) {
     <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}?from=for-you`} className="block">
         <div className="relative h-[140px] bg-muted">
-          {content.imageUrl ? (
-            <Image
-              src={content.imageUrl}
-              alt={content.name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              이미지 없음
-            </div>
-          )}
+          <ContentImage
+            src={content.imageUrl}
+            alt={content.name}
+            category={content.category}
+            size="lg"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
           {content.category && (
             <span className="absolute top-2.5 left-2.5 rounded-full bg-primary px-2.5 py-1 text-[10.5px] font-extrabold text-primary-foreground">
               {CATEGORY_LABELS[content.category]}

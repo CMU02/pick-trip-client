@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
+import { ContentImage } from "@/components/ContentImage";
 import { useRecentViews } from "@/hooks/useRecentViews";
 
 const MAX_ITEMS = 4;
@@ -40,19 +40,13 @@ export function RecentSection() {
               className="flex items-center gap-2.5 rounded-[14px] border border-[oklch(0.94_0.01_30)] bg-white p-2.5 transition-colors hover:border-[oklch(0.8_0.09_30)]"
             >
               <div className="relative h-[42px] w-[42px] shrink-0 overflow-hidden rounded-[11px] bg-muted">
-                {content.imageUrl ? (
-                  <Image
-                    src={content.imageUrl}
-                    alt={content.name}
-                    fill
-                    className="object-cover"
-                    sizes="42px"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
-                    없음
-                  </div>
-                )}
+                <ContentImage
+                  src={content.imageUrl}
+                  alt={content.name}
+                  category={content.category}
+                  size="sm"
+                  sizes="42px"
+                />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-bold">{content.name}</p>
