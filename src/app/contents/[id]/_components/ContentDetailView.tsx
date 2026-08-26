@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { ContentImage } from "@/components/ContentImage";
 import { Icon } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -108,19 +108,13 @@ export function ContentDetailView({
       )}
 
       <div className="relative mb-6 h-[230px] overflow-hidden rounded-[24px] bg-muted">
-        {allImages.length > 0 ? (
-          <Image
-            src={allImages[0]}
-            alt={content.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 672px"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            이미지 없음
-          </div>
-        )}
+        <ContentImage
+          src={allImages[0]}
+          alt={content.name}
+          category={content.category}
+          size="xl"
+          sizes="(max-width: 768px) 100vw, 672px"
+        />
         {content.category && (
           <span className="absolute top-3.5 left-3.5 rounded-full bg-primary px-3.5 py-1.5 text-[11.5px] font-extrabold text-primary-foreground">
             {CATEGORY_LABELS[content.category]}
