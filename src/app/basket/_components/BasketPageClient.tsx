@@ -42,18 +42,21 @@ export function BasketPageClient() {
       : items.filter((item) => item.content.region === activeRegion);
 
   return (
-    <BasketLayout generateHref={conditionsHref(regionsInBasket)}>
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-2.5">
-          <span className="h-[22px] w-1 rounded-full bg-primary" />
-          <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">
-            여행 바구니
-          </h1>
-          <span className="rounded-full bg-accent px-3 py-1 text-[12.5px] font-bold text-accent-foreground">
-            {items.length}개
-          </span>
-        </div>
+    // 제목 행은 BasketLayout 밖에 둔다 — 그래야 우측 "여행 바구니" 패널이
+    // 제목이 아니라 아래 콘텐츠 박스(빈 상태 안내 / 카드 그리드)와 같은
+    // 높이에서 시작한다(/contents의 ContentGrid와 같은 구조).
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-2.5">
+        <span className="h-[22px] w-1 rounded-full bg-primary" />
+        <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">
+          여행 바구니
+        </h1>
+        <span className="rounded-full bg-accent px-3 py-1 text-[12.5px] font-bold text-accent-foreground">
+          {items.length}개
+        </span>
+      </div>
 
+      <BasketLayout generateHref={conditionsHref(regionsInBasket)}>
         {items.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-[22px] border-[1.5px] border-dashed border-[oklch(0.88_0.055_30)] bg-[oklch(0.99_0.012_30)] py-[70px] text-center">
             <p className="text-[15px] font-bold text-foreground/80">
@@ -72,7 +75,7 @@ export function BasketPageClient() {
             </Link>
           </div>
         ) : (
-          <>
+          <div className="flex flex-col gap-4">
             {regionsInBasket.length > 1 && (
               <div
                 role="tablist"
@@ -104,10 +107,10 @@ export function BasketPageClient() {
                 />
               ))}
             </div>
-          </>
+          </div>
         )}
-      </div>
-    </BasketLayout>
+      </BasketLayout>
+    </div>
   );
 }
 
