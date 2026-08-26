@@ -5,17 +5,24 @@ import { useEffect } from "react";
 
 import { BasketLayout } from "@/components/BasketLayout";
 import { useAuth } from "@/hooks/useAuth";
+import type { ContentQueryParams } from "@/hooks/useLoadMoreContents";
 import type { Content } from "@/types/content";
 import { ALL_REGIONS_QUERY } from "@/types/region";
 
 import { ForYouGrid } from "./ForYouGrid";
 
 interface ForYouClientProps {
-  recommendedPool: Content[];
+  initialContents: Content[];
+  initialTotal: number;
+  queryParams: ContentQueryParams;
 }
 
 // 비로그인 직접 접근 가드. DashboardClient와 동일한 리다이렉트 패턴이다.
-export function ForYouClient({ recommendedPool }: ForYouClientProps) {
+export function ForYouClient({
+  initialContents,
+  initialTotal,
+  queryParams,
+}: ForYouClientProps) {
   const { status, user } = useAuth();
   const router = useRouter();
 
@@ -40,7 +47,11 @@ export function ForYouClient({ recommendedPool }: ForYouClientProps) {
             {user?.nickname}님을 위한 추천 더보기
           </h2>
         </div>
-        <ForYouGrid initialContents={recommendedPool} />
+        <ForYouGrid
+          initialContents={initialContents}
+          initialTotal={initialTotal}
+          queryParams={queryParams}
+        />
       </div>
     </BasketLayout>
   );
