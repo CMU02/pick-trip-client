@@ -7,9 +7,11 @@
 색·폰트는 기존 그대로(코랄 / 제목 Paperlogy / 본문 Pretendard). 토큰은 `design_handoff_picktrip_redesign/README.md` 참고.
 아이콘은 모두 `@/components/ui/icon`의 `Icon` 사용. 이모지 금지.
 
-> 진행 메모 (2026-08-27): 이번 브랜치에서는 **A. 푸터 확장만** 구현한다. B. FAQ 페이지는 별도 이슈로 분리.
+> 진행 메모 (2026-08-27): A. 푸터 확장 + B. FAQ 페이지 모두 `feat/93`에서 구현 완료.
 > 연락처 이메일은 `hyeonjun1968@naver.com`, 응답 시간은 `평일 09:00 – 18:00`으로 확정.
-> 구글 폼(콘텐츠 오류 신고) URL은 미정이라 해당 링크는 렌더하지 않고 TODO 주석만 남긴다.
+> 구글 폼(콘텐츠 오류 신고) URL은 미정이라 관련 링크는 전부 `mailto:` + TODO 주석으로 대체.
+> B의 답변 원문(`FAQ 페이지.dc.html`)이 핸드오프 번들에 없어, 질문 8개 + README 동작 기준으로
+> 답변을 직접 작성했다(사용자 승인). 구현이 바뀌면 `src/app/faq/_lib/faqs.ts` 주석대로 수치를 갱신할 것.
 
 ---
 
@@ -103,7 +105,7 @@ const LEGAL_NAV = [
 
 ---
 
-# B. FAQ 페이지 (`/faq`)  — 별도 이슈로 분리 (이번 브랜치 범위 아님)
+# B. FAQ 페이지 (`/faq`)  — feat/93에서 구현 완료
 
 백엔드 없음. Q&A를 상수 배열로 두고 아코디언으로 렌더합니다.
 
@@ -186,7 +188,7 @@ JSON-LD `FAQPage` 스키마를 `<script type="application/ld+json">`으로 함�
 ## 테스트
 
 - `Footer.test.tsx` — `SUPPORT_NAV` 항목이 렌더된다 / 외부 링크에 `rel="noopener noreferrer"`가 붙는다 / 하단 바 법적 링크가 2개(이용약관, 개인정보처리방침)뿐인지 확인한다
-- `faq/page.test.tsx` — 기본 상태에서 첫 항목만 열려 있다 / 항목 클릭 시 토글된다 / 카테고리 탭으로 필터된다 / `aria-expanded`가 상태와 일치한다
+- `faq/_components/FaqAccordion.test.tsx` — 기본 상태에서 첫 항목만 열려 있다 / 항목 클릭 시 토글된다 / 카테고리 탭으로 필터된다(탭 전환 시 열린 항목 닫힘) / `aria-expanded`가 상태와 일치한다 / 오류 신고 답변의 외부 링크에 `rel="noopener noreferrer"`
 
 ## 하지 말 것
 
