@@ -923,7 +923,7 @@ describe("ItineraryClient", () => {
     expect(mockCreateShare).toHaveBeenCalledWith("itinerary-1", undefined);
     expect(
       await screen.findByDisplayValue(
-        "https://pick-trip.example.com/share/share-token-1",
+        `${window.location.origin}/share/share-token-1`,
       ),
     ).toBeInTheDocument();
   });

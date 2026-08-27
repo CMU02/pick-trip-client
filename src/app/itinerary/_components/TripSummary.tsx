@@ -36,10 +36,11 @@ export function TripSummary({
   itemCount,
 }: TripSummaryProps) {
   const displayCount = itemCount ?? items.length;
-  const parts = startDate.split("-");
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  const formattedDate = `${month}월 ${day}일`;
+  // 조건 없이 /itinerary로 직접 들어오면 startDate가 빈 문자열이라 "NaN월 NaN일"이
+  // 되던 자리다. 조건 요약을 보여주는 /contents와 같은 문구로 맞춘다.
+  const [, month, day] = startDate.split("-");
+  const formattedDate =
+    month && day ? `${Number(month)}월 ${Number(day)}일` : "날짜 미선택";
   const duration = nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
   const regionText = regions.map((r) => REGION_LABELS[r]).join(", ");
 

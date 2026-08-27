@@ -48,7 +48,7 @@ describe("ShareButton", () => {
     );
     expect(
       await screen.findByDisplayValue(
-        "https://pick-trip.example.com/share/share-token-1",
+        `${window.location.origin}/share/share-token-1`,
       ),
     ).toBeInTheDocument();
   });
@@ -62,13 +62,13 @@ describe("ShareButton", () => {
     render(<ShareButton itineraryId="itinerary-1" />);
     await userEvent.click(screen.getByRole("button", { name: "공유하기" }));
     await screen.findByDisplayValue(
-      "https://pick-trip.example.com/share/share-token-1",
+      `${window.location.origin}/share/share-token-1`,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "복사" }));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      "https://pick-trip.example.com/share/share-token-1",
+      `${window.location.origin}/share/share-token-1`,
     );
     expect(
       await screen.findByRole("button", { name: "복사됨" }),
@@ -109,7 +109,7 @@ describe("ShareButton", () => {
 
     expect(
       await screen.findByDisplayValue(
-        "https://pick-trip.example.com/share/share-token-1",
+        `${window.location.origin}/share/share-token-1`,
       ),
     ).toBeInTheDocument();
     expect(mockCreateShare).toHaveBeenCalledTimes(2);

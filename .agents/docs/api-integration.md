@@ -46,7 +46,11 @@ src/
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+`NEXT_PUBLIC_SITE_URL`은 OpenGraph 이미지와 `og:url` 같은 절대 URL의 기준이 되는 서비스 주소다.
+배포 환경에서는 실제 서비스 도메인으로 설정한다. 설정하지 않으면 로컬 개발 주소가 그대로 쓰여 공유 카드가 깨진다.
 
 `NEXT_PUBLIC_` 값은 브라우저에 노출된다. 다음 값은 절대 넣지 않는다.
 

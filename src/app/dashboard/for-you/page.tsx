@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
+
 import { distributePageSize, getContentFetchErrorMessage } from "@/lib/content";
 import { getContents } from "@/services/contentService";
 import { REGIONS } from "@/types/region";
 
 import { ForYouClient } from "./_components/ForYouClient";
+
+// 로그인한 사용자 개인화 화면이라 검색 결과에 노출될 이유가 없다.
+export const metadata: Metadata = {
+  robots: { index: false },
+};
 
 export default async function ForYouPage() {
   const startDate = new Date().toISOString().split("T")[0];

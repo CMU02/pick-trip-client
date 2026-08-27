@@ -1,8 +1,11 @@
 import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type {
+  Day,
   ItineraryGenerateResponse,
   ItineraryResponse,
+  RawGeneratedDay,
+  RawItineraryGenerateResponse,
   SaveItineraryRequest,
 } from "@/types/itinerary";
 
@@ -17,17 +20,40 @@ function serverDurationToNights(duration: number): number {
   return duration - 1;
 }
 
+// 생성 응답은 저장 전 미리보기라 dayId/itemId/pinned가 없다. 화면(DayCard,
+// 순서 이동/삭제)은 저장된 일정과 같은 Day[]를 전제로 id를 key와 조작 대상으로
+// 쓰므로, 여기서 응답 안에서만 유일한 id를 합성해 채운다. 저장 후에는 서버가
+// 발급한 진짜 id로 교체된다.
+function withSyntheticIds(days: RawGeneratedDay[]): Day[] {
+  return days.map((day) => ({
+    dayId: `generated-day-${day.dayIndex}`,
+    dayIndex: day.dayIndex,
+    items: day.items.map((item) => ({
+      itemId: `generated-item-${day.dayIndex}-${item.order}-${item.contentId}`,
+      contentId: item.contentId,
+      title: item.title,
+      order: item.order,
+      reason: item.reason,
+      pinned: false,
+    })),
+  }));
+}
+
 // generate는 요청 바디를 받지 않는다 — 서버에 저장된 사용자의 바구니/조건을 읽어 생성한다.
 // 호출 전에 basketService로 바구니/조건을 서버에 반영해야 한다.
 export async function generateItinerary(
   accessToken?: string,
 ): Promise<ItineraryGenerateResponse> {
-  const { data } = await apiClient.post<ItineraryGenerateResponse>(
+  const { data } = await apiClient.post<RawItineraryGenerateResponse>(
     "/api/v1/itineraries/generate",
     undefined,
     { headers: authHeaders(accessToken) },
   );
-  return { ...data, duration: serverDurationToNights(data.duration) };
+  return {
+    ...data,
+    duration: serverDurationToNights(data.duration),
+    days: withSyntheticIds(data.days),
+  };
 }
 
 export async function saveItinerary(

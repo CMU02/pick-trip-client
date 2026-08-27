@@ -71,7 +71,7 @@ export function BasketDrawer({
               <button
                 type="button"
                 onClick={onClear}
-                className="text-xs text-muted-foreground hover:text-destructive"
+                className="inline-flex min-h-11 items-center text-xs text-muted-foreground hover:text-destructive"
               >
                 전체 비우기
               </button>
@@ -79,7 +79,7 @@ export function BasketDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
+              className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
               aria-label="바구니 닫기"
             >
               <Icon name="close" size={18} />
@@ -113,7 +113,7 @@ export function BasketDrawer({
                     <button
                       type="button"
                       onClick={() => onRemove(item.content.id)}
-                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
                       aria-label={`${item.content.name} 삭제`}
                     >
                       <Icon name="trash" size={14} />
@@ -132,7 +132,7 @@ export function BasketDrawer({
                           )
                         }
                         className={cn(
-                          "flex-1 rounded px-1 py-0.5 text-[10px] transition-colors",
+                          "flex min-h-11 flex-1 items-center justify-center rounded px-1 text-[10px] transition-colors",
                           item.priority === level
                             ? PRIORITY_SELECTED_CLASSES[level]
                             : "bg-muted text-muted-foreground hover:bg-muted/80",

@@ -3,6 +3,7 @@ import { ApiError } from "@/lib/errors";
 import type {
   ItineraryGenerateResponse,
   ItineraryResponse,
+  RawItineraryGenerateResponse,
   SaveItineraryRequest,
 } from "@/types/itinerary";
 import { apiClient } from "./apiClient";
@@ -28,19 +29,39 @@ const mockPost = vi.mocked(apiClient.post);
 const mockPatch = vi.mocked(apiClient.patch);
 
 describe("generateItinerary", () => {
-  // 백엔드 원본 응답: duration은 일수(박 수+1) 기준
-  const rawServerResponse: ItineraryGenerateResponse = {
+  // 백엔드 원본 응답: duration은 일수(박 수+1) 기준이고, 저장 전 미리보기라
+  // dayId/itemId/pinned가 없다.
+  const rawServerResponse: RawItineraryGenerateResponse = {
     title: "하동 1박 2일 여행",
     region: "HADONG",
     travelDate: "2025-01-15",
     duration: 2,
     days: [
       {
-        dayId: "day-1",
         dayIndex: 0,
         items: [
           {
-            itemId: "item-1",
+            contentId: "content-1",
+            title: "예천군 문화유산",
+            order: 0,
+            reason: "지역 대표 명소",
+          },
+        ],
+      },
+    ],
+  };
+
+  // 화면이 key와 조작 대상으로 쓰는 id는 서비스 경계에서 합성해 채운다.
+  const expectedResult: ItineraryGenerateResponse = {
+    ...rawServerResponse,
+    duration: 1,
+    days: [
+      {
+        dayId: "generated-day-0",
+        dayIndex: 0,
+        items: [
+          {
+            itemId: "generated-item-0-0-content-1",
             contentId: "content-1",
             title: "예천군 문화유산",
             order: 0,
@@ -50,11 +71,6 @@ describe("generateItinerary", () => {
         ],
       },
     ],
-  };
-
-  const expectedResult: ItineraryGenerateResponse = {
-    ...rawServerResponse,
-    duration: 1,
   };
 
   beforeEach(() => {

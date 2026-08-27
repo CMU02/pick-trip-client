@@ -3,6 +3,47 @@ import type { NextConfig } from "next";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
+const isDev = process.env.NODE_ENV === "development";
+
+// VisitKorea 원본 이미지 호스트. next/image 최적화를 거치면 same-origin
+// (/_next/image)으로 서빙되지만, 최적화를 끈 경로나 원본 URL을 그대로 쓰는
+// 화면이 생겨도 이미지가 차단되지 않도록 img-src에 함께 열어둔다.
+// 프로덕션은 upgrade-insecure-requests가 http 요청을 https로 올리지만,
+// 그 지시어가 없는 dev를 위해 http 스킴도 함께 둔다.
+const IMAGE_HOSTS =
+  "https://tong.visitkorea.or.kr http://tong.visitkorea.or.kr";
+
+// 브라우저 리소스는 전부 same-origin이다.
+// - 스크립트/스타일: Next.js와 next/font가 셀프 호스팅한다. (외부 CDN 없음)
+// - API: apiClient가 브라우저에서 상대 경로로 요청하고 아래 rewrites가 백엔드로
+//   프록시하므로 connect-src는 'self'로 충분하다.
+// - OAuth: /auth/{google,kakao}/start의 서버 리다이렉트로 백엔드 origin까지
+//   전체 페이지 이동한다. 최상위 내비게이션은 CSP 지시어 대상이 아니라
+//   form-action 'self'와 무관하게 로그인 플로우가 유지된다.
+//
+// 'unsafe-inline'을 남긴 이유:
+// - script-src: App Router가 RSC 페이로드를 매 페이지 인라인
+//   <script>self.__next_f.push(...)</script>로 심는다. nonce로 대체하려면
+//   proxy.ts와 전 페이지 동적 렌더링이 필요해 정적 생성을 포기해야 한다.
+// - style-src: next/image가 붙이는 style="color:transparent" 등 인라인 style
+//   속성이 같은 이유로 nonce 없이는 허용이 필요하다.
+// dev에서만 필요한 것:
+// - 'unsafe-eval': React가 서버 에러 스택 복원을 위해 eval을 쓴다.
+// - ws:: HMR 웹소켓.
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' blob: data: ${IMAGE_HOSTS}`,
+  "font-src 'self'",
+  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+].join("; ");
+
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
@@ -43,6 +84,27 @@ const nextConfig: NextConfig = {
         hostname: "tong.visitkorea.or.kr",
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        // 모든 응답에 공통 보안 헤더를 붙인다.
+        source: "/(.*)",
+        headers: [
+          // MIME 스니핑을 막아 업로드/프록시된 응답이 스크립트로 해석되지 않게 한다.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // frame-ancestors를 이해하지 못하는 구형 브라우저용 클릭재킹 방어.
+          { key: "X-Frame-Options", value: "DENY" },
+          // 외부 도메인으로는 origin만, 다운그레이드 시에는 아무것도 보내지 않는다.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          { key: "Content-Security-Policy", value: CSP },
+        ],
+      },
+    ];
   },
   async rewrites() {
     return [
