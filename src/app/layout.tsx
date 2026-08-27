@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { SITE_URL } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
@@ -26,6 +27,7 @@ const paperlogy = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "PickTrip | 하동·영주·예천 여행 콘텐츠와 AI 일정",
   description:
     "하동, 영주, 예천의 여행 콘텐츠와 AI 맞춤 일정을 제공하는 Pick Trip",

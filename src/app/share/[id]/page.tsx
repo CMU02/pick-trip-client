@@ -10,6 +10,8 @@ import { CopyLinkBox } from "./_components/CopyLinkBox";
 
 export const metadata: Metadata = {
   title: "공유된 일정 | Pick Trip",
+  // 개인이 만든 일정이므로 검색 결과에 노출하지 않는다.
+  robots: { index: false, follow: false },
 };
 
 interface SharePageProps {
