@@ -15,21 +15,15 @@ describe("RegionShowcase", () => {
     ).toBeInTheDocument();
   });
 
-  it("각 지역 카드가 해당 지역 조건 입력 화면으로 연결된다", () => {
+  it("각 지역 카드가 전체 지역 여행 조건 화면으로 연결된다", () => {
     render(<RegionShowcase />);
 
-    expect(screen.getByText("하동").closest("a")).toHaveAttribute(
-      "href",
-      "/select/conditions?regions=HADONG",
-    );
-    expect(screen.getByText("영주").closest("a")).toHaveAttribute(
-      "href",
-      "/select/conditions?regions=YEONGJU",
-    );
-    expect(screen.getByText("예천").closest("a")).toHaveAttribute(
-      "href",
-      "/select/conditions?regions=YECHEON",
-    );
+    for (const label of ["하동", "영주", "예천"]) {
+      expect(screen.getByText(label).closest("a")).toHaveAttribute(
+        "href",
+        "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+      );
+    }
   });
 
   it("각 카드에 일정 만들기 CTA 문구를 보여준다", () => {

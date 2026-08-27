@@ -6,6 +6,7 @@ const mockReplace = vi.fn();
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
+  usePathname: () => "/favorites",
 }));
 
 const mockUseAuth = vi.fn();

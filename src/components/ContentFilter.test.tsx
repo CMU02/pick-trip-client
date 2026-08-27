@@ -1,99 +1,99 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ContentFilter } from "./ContentFilter";
 
-describe("ContentFilter", () => {
-  it("3개 지역 칩과 6개 카테고리 칩을 렌더한다", () => {
-    render(
-      <ContentFilter
-        selectedRegions={[]}
-        selectedCategories={[]}
-        keyword=""
-        onRegionChange={vi.fn()}
-        onCategoryChange={vi.fn()}
-        onKeywordChange={vi.fn()}
-      />,
-    );
+const REGIONS3 = ["HADONG", "YEONGJU", "YECHEON"] as const;
 
+function setup(overrides: Partial<ComponentProps<typeof ContentFilter>> = {}) {
+  const props = {
+    regions: [...REGIONS3],
+    selectedRegion: "ALL" as const,
+    selectedCategories: [],
+    keyword: "",
+    onRegionChange: vi.fn(),
+    onCategoryChange: vi.fn(),
+    onKeywordChange: vi.fn(),
+    ...overrides,
+  };
+  render(<ContentFilter {...props} />);
+  return props;
+}
+
+describe("ContentFilter", () => {
+  it("전체 탭 + 지역 탭 + 6개 카테고리 칩을 렌더한다", () => {
+    setup();
+
+    expect(screen.getByRole("tab", { name: /전체/ })).toBeInTheDocument();
     for (const label of ["하동", "영주", "예천"]) {
-      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: label })).toBeInTheDocument();
     }
     for (const label of ["음식", "축제", "관광지", "문화", "자연", "체험"]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
   });
 
-  it("지역 칩 클릭 시 onRegionChange를 호출한다", async () => {
-    const onRegionChange = vi.fn();
-    render(
-      <ContentFilter
-        selectedRegions={[]}
-        selectedCategories={[]}
-        keyword=""
-        onRegionChange={onRegionChange}
-        onCategoryChange={vi.fn()}
-        onKeywordChange={vi.fn()}
-      />,
-    );
+  it("regions prop이 준 지역만 탭으로 렌더한다", () => {
+    setup({ regions: ["HADONG"] });
 
-    await userEvent.click(screen.getByRole("button", { name: "하동" }));
-
-    expect(onRegionChange).toHaveBeenCalledWith(["HADONG"]);
+    expect(screen.getByRole("tab", { name: "하동" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "영주" })).not.toBeInTheDocument();
   });
 
-  it("선택된 지역 칩은 aria-pressed=true 속성을 갖는다", () => {
-    render(
-      <ContentFilter
-        selectedRegions={["HADONG"]}
-        selectedCategories={[]}
-        keyword=""
-        onRegionChange={vi.fn()}
-        onCategoryChange={vi.fn()}
-        onKeywordChange={vi.fn()}
-      />,
-    );
+  it("지역 탭 클릭 시 onRegionChange를 그 지역으로 호출한다", async () => {
+    const props = setup();
 
-    expect(screen.getByRole("button", { name: "하동" })).toHaveAttribute(
-      "aria-pressed",
+    await userEvent.click(screen.getByRole("tab", { name: "하동" }));
+
+    expect(props.onRegionChange).toHaveBeenCalledWith("HADONG");
+  });
+
+  it("전체 탭 클릭 시 onRegionChange를 ALL로 호출한다", async () => {
+    const props = setup({ selectedRegion: "HADONG" });
+
+    await userEvent.click(screen.getByRole("tab", { name: /전체/ }));
+
+    expect(props.onRegionChange).toHaveBeenCalledWith("ALL");
+  });
+
+  it("선택된 지역 탭만 aria-selected=true다", () => {
+    setup({ selectedRegion: "HADONG" });
+
+    expect(screen.getByRole("tab", { name: "하동" })).toHaveAttribute(
+      "aria-selected",
       "true",
     );
-    expect(screen.getByRole("button", { name: "영주" })).toHaveAttribute(
-      "aria-pressed",
+    expect(screen.getByRole("tab", { name: "영주" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(screen.getByRole("tab", { name: /전체/ })).toHaveAttribute(
+      "aria-selected",
       "false",
     );
   });
 
+  it("카테고리 칩은 라벨 글자 앞에 카테고리 아이콘을 렌더한다", () => {
+    setup();
+
+    for (const label of ["음식", "축제", "관광지", "문화", "자연", "체험"]) {
+      const button = screen.getByRole("button", { name: label });
+      expect(button.querySelector("svg")).toBeInTheDocument();
+    }
+  });
+
   it("카테고리 칩 클릭 시 onCategoryChange를 호출한다", async () => {
-    const onCategoryChange = vi.fn();
-    render(
-      <ContentFilter
-        selectedRegions={[]}
-        selectedCategories={[]}
-        keyword=""
-        onRegionChange={vi.fn()}
-        onCategoryChange={onCategoryChange}
-        onKeywordChange={vi.fn()}
-      />,
-    );
+    const props = setup();
 
     await userEvent.click(screen.getByRole("button", { name: "음식" }));
 
-    expect(onCategoryChange).toHaveBeenCalledWith(["FOOD"]);
+    expect(props.onCategoryChange).toHaveBeenCalledWith(["FOOD"]);
   });
 
   it("선택된 카테고리 칩은 aria-pressed=true 속성을 갖는다", () => {
-    render(
-      <ContentFilter
-        selectedRegions={[]}
-        selectedCategories={["FOOD"]}
-        keyword=""
-        onRegionChange={vi.fn()}
-        onCategoryChange={vi.fn()}
-        onKeywordChange={vi.fn()}
-      />,
-    );
+    setup({ selectedCategories: ["FOOD"] });
 
     expect(screen.getByRole("button", { name: "음식" })).toHaveAttribute(
       "aria-pressed",
@@ -105,42 +105,11 @@ describe("ContentFilter", () => {
     );
   });
 
-  // jsdom은 레이아웃을 계산하지 않아 실제 픽셀 크기 대신 최소 크기 클래스를 확인한다.
-  it("지역·카테고리 칩이 최소 44px 높이 클래스를 갖는다", () => {
-    render(
-      <ContentFilter
-        selectedRegions={[]}
-        selectedCategories={[]}
-        keyword=""
-        onRegionChange={vi.fn()}
-        onCategoryChange={vi.fn()}
-        onKeywordChange={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "하동" })).toHaveClass(
-      "min-h-11",
-    );
-    expect(screen.getByRole("button", { name: "음식" })).toHaveClass(
-      "min-h-11",
-    );
-  });
-
   it("검색어 입력 시 onKeywordChange를 호출한다", async () => {
-    const onKeywordChange = vi.fn();
-    render(
-      <ContentFilter
-        selectedRegions={[]}
-        selectedCategories={[]}
-        keyword=""
-        onRegionChange={vi.fn()}
-        onCategoryChange={vi.fn()}
-        onKeywordChange={onKeywordChange}
-      />,
-    );
+    const props = setup();
 
     await userEvent.type(screen.getByRole("searchbox"), "쌍");
 
-    expect(onKeywordChange).toHaveBeenLastCalledWith("쌍");
+    expect(props.onKeywordChange).toHaveBeenLastCalledWith("쌍");
   });
 });

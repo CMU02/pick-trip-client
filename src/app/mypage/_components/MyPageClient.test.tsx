@@ -143,7 +143,7 @@ describe("MyPageClient", () => {
     );
     expect(screen.getByRole("link", { name: /여행 바구니/ })).toHaveAttribute(
       "href",
-      "/explore",
+      "/basket",
     );
   });
 
@@ -182,5 +182,68 @@ describe("MyPageClient", () => {
     render(<MyPageClient />);
 
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
+  });
+
+  it("최근 찜한 순 4개만 미리보기로 보여주고, 4개 초과면 더보기 링크가 나온다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-15T00:00:00Z",
+      },
+    });
+    // add 순서대로 뒤에 쌓이므로 place-5가 가장 최근 찜이다.
+    useFavoriteStore.setState({
+      items: [1, 2, 3, 4, 5].map((n) => ({
+        ...stubContent,
+        id: `${n}`,
+        name: `place-${n}`,
+      })),
+      hydrated: true,
+    });
+
+    render(<MyPageClient />);
+
+    // 최근 4개(place-5..place-2)만 노출, 가장 오래된 place-1은 빠진다.
+    expect(screen.getByText("place-5")).toBeInTheDocument();
+    expect(screen.getByText("place-2")).toBeInTheDocument();
+    expect(screen.queryByText("place-1")).not.toBeInTheDocument();
+
+    expect(screen.getByRole("link", { name: "더보기 →" })).toHaveAttribute(
+      "href",
+      "/favorites",
+    );
+  });
+
+  it("찜한 콘텐츠가 4개 이하면 더보기 링크를 보여주지 않는다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: {
+        uid: "uid-1",
+        email: "user@example.com",
+        nickname: "김여행",
+        profileImageUrl: "",
+        provider: "KAKAO",
+        createdAt: "2026-01-15T00:00:00Z",
+      },
+    });
+    useFavoriteStore.setState({
+      items: [1, 2, 3, 4].map((n) => ({
+        ...stubContent,
+        id: `${n}`,
+        name: `place-${n}`,
+      })),
+      hydrated: true,
+    });
+
+    render(<MyPageClient />);
+
+    expect(
+      screen.queryByRole("link", { name: "더보기 →" }),
+    ).not.toBeInTheDocument();
   });
 });

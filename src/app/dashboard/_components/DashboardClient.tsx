@@ -33,12 +33,10 @@ export function DashboardClient({ recommendedPool }: DashboardClientProps) {
   return (
     <div className="flex flex-col gap-12">
       <DashboardHero />
-      <QuickCategoryRow
-        contents={recommendedPool}
-        selected={category}
-        onSelect={setCategory}
-      />
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_330px]">
+      <QuickCategoryRow selected={category} onSelect={setCategory} />
+      {/* items-stretch(기본값)로 둬서, 콘텐츠가 적은 쪽(주로 최근에 본)이
+          더 긴 쪽(주로 내 여행)과 같은 높이로 늘어난다. */}
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[1fr_330px]">
         <MyTripsSection />
         <RecentSection />
       </div>

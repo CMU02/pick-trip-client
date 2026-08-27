@@ -54,4 +54,14 @@ describe("DashStats", () => {
 
     expect(mockPush).toHaveBeenCalledWith("/favorites");
   });
+
+  it("'담은 콘텐츠'를 클릭하면 담기 가능한 목록으로 이어지는 조건 선택 화면으로 이동한다", async () => {
+    render(<DashStats />);
+
+    await userEvent.click(screen.getByText("담은 콘텐츠"));
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+    );
+  });
 });

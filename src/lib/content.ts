@@ -3,7 +3,24 @@ import {
   CATEGORY_LABELS,
   CONTENT_CATEGORIES,
   type Content,
+  type ContentCategory,
 } from "@/types/content";
+
+// 콘텐츠 목록을 한 번에 얼마씩 불러올지. 서버 컴포넌트의 초기 fetch와
+// useLoadMoreContents(클라이언트 "더보기")가 같은 값을 쓴다.
+export const CONTENT_PAGE_SIZE = 20;
+
+// /api/v1/contents는 지역마다 같은 size로 fan-out 해서 응답을 합친다
+// (contentService.getContents 참고). 지역을 여러 개 한꺼번에 조회할 때
+// size를 그대로 두면 한 번에 pageSize × 지역 수개가 온다 — "전체" 탭에서
+// 더보기 한 번에 60개(20개 × 3지역)가 늘어나는 원인이 이거다. 지역 수만큼
+// size를 나눠 요청하면 합계가 대략 pageSize에 맞게 유지된다.
+export function distributePageSize(
+  regionCount: number,
+  pageSize: number = CONTENT_PAGE_SIZE,
+): number {
+  return Math.max(1, Math.ceil(pageSize / Math.max(1, regionCount)));
+}
 
 export interface ContentGroup {
   key: string;
@@ -31,6 +48,21 @@ export function groupContentsByCategory(contents: Content[]): ContentGroup[] {
   }
 
   return groups;
+}
+
+// 여러 카테고리를 동시에 선택했을 때 화면에서 뒤섞이지 않도록,
+// CONTENT_CATEGORIES 선언 순서로 정렬한다(같은 카테고리 안에서는 원래 순서를
+// 유지하는 안정 정렬). category가 없는 항목은 맨 뒤로 보낸다.
+export function sortContentsByCategory(contents: Content[]): Content[] {
+  return [...contents].sort(
+    (a, b) => categoryOrderIndex(a.category) - categoryOrderIndex(b.category),
+  );
+}
+
+function categoryOrderIndex(category: ContentCategory | undefined): number {
+  if (category === undefined) return CONTENT_CATEGORIES.length;
+  const index = CONTENT_CATEGORIES.indexOf(category);
+  return index === -1 ? CONTENT_CATEGORIES.length : index;
 }
 
 // 백엔드가 TourAPI(공공데이터포털) 호출에 실패하면 502 CONTENT_PROVIDER_FAILED로

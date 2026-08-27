@@ -50,4 +50,10 @@ describe("ExploreCard", () => {
     const detailLink = screen.getByRole("link", { name: "상세 설명" });
     expect(detailLink).toHaveAttribute("href", "/contents/1?from=explore");
   });
+
+  it("지역 라벨을 썸네일 우상단 배지로 렌더한다", () => {
+    render(<ExploreCard content={stub} />);
+    const badge = screen.getByText("하동");
+    expect(badge).toHaveClass("bg-white/90");
+  });
 });

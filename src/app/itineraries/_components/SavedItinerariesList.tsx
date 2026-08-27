@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
+import { ShareButton } from "@/app/itinerary/_components/ShareButton";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
@@ -133,7 +134,12 @@ export function SavedItinerariesList() {
                   </div>
                 )}
                 {detail?.status === "loaded" && (
-                  <ItineraryResult data={detail.data} />
+                  <ItineraryResult
+                    data={detail.data}
+                    headerAction={
+                      <ShareButton itineraryId={detail.data.itineraryId} />
+                    }
+                  />
                 )}
               </div>
             )}

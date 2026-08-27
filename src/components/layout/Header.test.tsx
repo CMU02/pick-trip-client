@@ -115,6 +115,44 @@ describe("Header", () => {
     );
   });
 
+  it.each([
+    "/explore",
+    "/select/conditions",
+    "/itinerary",
+  ])("%s 경로에서는 로그인 후 콘텐츠 탐색/AI일정 흐름 대신 대시보드로 보내도록 next를 고정한다", (pathname) => {
+    mockUsePathname.mockReturnValue(pathname);
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    const loginLink = screen.getByRole("link", { name: "로그인" });
+    expect(loginLink).toHaveAttribute(
+      "href",
+      `/login?next=${encodeURIComponent("/dashboard")}`,
+    );
+  });
+
+  it("/exploredetail처럼 콘텐츠 탐색과 무관한 경로는 대시보드로 고정하지 않는다", () => {
+    mockUsePathname.mockReturnValue("/exploredetail");
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      user: null,
+      logout: vi.fn(),
+    });
+
+    render(<Header />);
+
+    const loginLink = screen.getByRole("link", { name: "로그인" });
+    expect(loginLink).toHaveAttribute(
+      "href",
+      `/login?next=${encodeURIComponent("/exploredetail")}`,
+    );
+  });
+
   it("로그인 상태에서는 닉네임 드롭다운을 보여주고, 로그아웃 클릭 시 logout을 호출하고 홈으로 이동한다", async () => {
     const logout = vi.fn();
     mockUseAuth.mockReturnValue({
@@ -310,7 +348,7 @@ describe("Header", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("로그인 상태에서는 /contents로 이동하는 바구니 아이콘을 보여준다", () => {
+  it("로그인 상태에서는 /basket으로 이동하는 바구니 아이콘을 보여준다", () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -328,7 +366,7 @@ describe("Header", () => {
 
     expect(screen.getByRole("link", { name: /바구니/ })).toHaveAttribute(
       "href",
-      "/contents",
+      "/basket",
     );
   });
 

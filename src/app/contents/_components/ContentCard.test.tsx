@@ -1,6 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/contents",
+}));
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({ status: "authenticated" }),
+}));
 
 import { useBasketStore } from "@/stores/basketStore";
 import { useFavoriteStore } from "@/stores/favoriteStore";
@@ -36,6 +44,13 @@ describe("ContentCard", () => {
       screen.getByText("천년 고찰, 봄이면 벚꽃이 만발한다"),
     ).toBeInTheDocument();
     expect(screen.getByText("하동")).toBeInTheDocument();
+  });
+
+  it("지역 배지를 썸네일 우상단에 반투명 배지로 렌더한다", () => {
+    render(<ContentCard content={stub} />);
+
+    const regionBadge = screen.getByText("하동");
+    expect(regionBadge).toHaveClass("bg-white/90");
   });
 
   it("담기지 않은 상태면 '담기' 버튼을 렌더한다", () => {

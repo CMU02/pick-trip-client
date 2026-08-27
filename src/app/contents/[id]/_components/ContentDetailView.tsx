@@ -1,13 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { ContentImage } from "@/components/ContentImage";
 import { Icon } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
-import { useFavorites } from "@/hooks/useFavorites";
+import { useFavoriteHeart } from "@/hooks/useFavoriteHeart";
 import { useRecentViews } from "@/hooks/useRecentViews";
 import { CATEGORY_LABELS, type ContentDetail } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
@@ -45,14 +45,10 @@ export function ContentDetailView({
 }: ContentDetailViewProps) {
   const router = useRouter();
   const { items, add, remove } = useBasket();
-  const {
-    items: favoriteItems,
-    add: addFavorite,
-    remove: removeFavorite,
-  } = useFavorites();
+  const { active: favorited, toggle: toggleFavorite } =
+    useFavoriteHeart(content);
   const { addView } = useRecentViews();
   const inBasket = items.some((i) => i.content.id === content.id);
-  const favorited = favoriteItems.some((c) => c.id === content.id);
 
   // 콘텐츠 상세 진입 시(/contents, /explore 어느 경로든) 최근 본 콘텐츠로 기록한다.
   useEffect(() => {
@@ -81,8 +77,10 @@ export function ContentDetailView({
     { label: "주차", value: parkingText },
     { label: "예상 체류 시간", value: content.stayDuration },
     { label: "예약", value: reservationText },
+    // 백엔드가 내려주는 원본 값(TourAPI 등)과 무관하게, 실제 데이터 제공처인
+    // 한국관광공사로 표시를 통일한다.
     ...(content.dataSource
-      ? [{ label: "데이터 출처", value: content.dataSource }]
+      ? [{ label: "데이터 출처", value: "한국관광공사" }]
       : []),
   ];
 
@@ -106,19 +104,13 @@ export function ContentDetailView({
       )}
 
       <div className="relative mb-6 h-[230px] overflow-hidden rounded-[24px] bg-muted">
-        {allImages.length > 0 ? (
-          <Image
-            src={allImages[0]}
-            alt={content.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 672px"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            이미지 없음
-          </div>
-        )}
+        <ContentImage
+          src={allImages[0]}
+          alt={content.name}
+          category={content.category}
+          size="xl"
+          sizes="(max-width: 768px) 100vw, 672px"
+        />
         {content.category && (
           <span className="absolute top-3.5 left-3.5 rounded-full bg-primary px-3.5 py-1.5 text-[11.5px] font-extrabold text-primary-foreground">
             {CATEGORY_LABELS[content.category]}
@@ -141,9 +133,7 @@ export function ContentDetailView({
               type="button"
               aria-label={favorited ? "찜 해제" : "찜하기"}
               aria-pressed={favorited}
-              onClick={() =>
-                favorited ? removeFavorite(content.id) : addFavorite(content)
-              }
+              onClick={toggleFavorite}
               className={`flex h-11 w-11 items-center justify-center rounded-xl border border-border ${favorited ? "text-destructive" : "text-muted-foreground"}`}
             >
               <Icon name="heart" size={19} />

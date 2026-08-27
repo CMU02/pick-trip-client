@@ -46,6 +46,17 @@ function isNavActive(pathname: string, matchPath: string) {
   return pathname === matchPath || pathname.startsWith(`${matchPath}/`);
 }
 
+// 콘텐츠 탐색(/explore)이나 AI일정 생성 흐름(/select, /itinerary)에서 로그인하면
+// 원래 있던 페이지로 되돌리지 않고 대시보드로 보낸다.
+const DASHBOARD_REDIRECT_PATH_PREFIXES = ["/explore", "/select", "/itinerary"];
+
+function loginNextPath(pathname: string) {
+  const shouldGoToDashboard = DASHBOARD_REDIRECT_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  return shouldGoToDashboard ? "/dashboard" : pathname;
+}
+
 export function Header() {
   const { status, user, logout } = useAuth();
   const pathname = usePathname();
@@ -102,7 +113,7 @@ export function Header() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link
-                  href="/contents"
+                  href="/basket"
                   aria-label={`바구니 ${basketItems.length}개`}
                   className="flex h-11 w-11 items-center justify-center text-primary transition-colors hover:text-primary/80"
                 >
@@ -171,7 +182,9 @@ export function Header() {
 
           {status === "unauthenticated" && (
             <Button asChild size="sm">
-              <Link href={`/login?next=${encodeURIComponent(pathname)}`}>
+              <Link
+                href={`/login?next=${encodeURIComponent(loginNextPath(pathname))}`}
+              >
                 로그인
               </Link>
             </Button>

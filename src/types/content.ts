@@ -1,3 +1,4 @@
+import type { IconName } from "@/components/ui/icon";
 import type { Region } from "@/types/region";
 
 export type ContentCategory =
@@ -15,6 +16,17 @@ export const CATEGORY_LABELS: Record<ContentCategory, string> = {
   CULTURE: "문화",
   NATURE: "자연",
   EXPERIENCE: "체험",
+};
+
+// 카테고리 필터 칩에서 라벨 앞에 붙는 아이콘.
+// pick-trip-app(Ionicons)이 쓰는 이름과 모양을 그대로 맞춘다.
+export const CATEGORY_ICONS: Record<ContentCategory, IconName> = {
+  FOOD: "restaurant-outline",
+  FESTIVAL: "sparkles-outline",
+  ATTRACTION: "compass-outline",
+  CULTURE: "library-outline",
+  NATURE: "leaf-outline",
+  EXPERIENCE: "color-palette-outline",
 };
 
 export const CONTENT_CATEGORIES = Object.keys(

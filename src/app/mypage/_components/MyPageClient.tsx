@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { ContentImage } from "@/components/ContentImage";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -60,11 +61,15 @@ export function MyPageClient() {
       label: "여행 바구니",
       value: `${basketItems.length}개`,
       hint: "담은 콘텐츠 확인",
-      href: "/explore",
+      href: "/basket",
     },
   ];
 
-  const favoritesPreview = favoriteItems.slice(0, FAVORITES_PREVIEW_COUNT);
+  // favoriteStore.add가 배열 뒤에 append하므로 최신 찜이 마지막에 온다.
+  // /favorites 페이지와 동일하게 최근 찜한 순으로 보여준다.
+  const favoritesPreview = [...favoriteItems]
+    .reverse()
+    .slice(0, FAVORITES_PREVIEW_COUNT);
 
   return (
     <div className="flex flex-col gap-4">
@@ -132,7 +137,7 @@ export function MyPageClient() {
               찜한 콘텐츠
             </h2>
           </div>
-          {favoriteItems.length > 0 && (
+          {favoriteItems.length > FAVORITES_PREVIEW_COUNT && (
             <Link
               href="/favorites"
               className="text-[13px] font-bold text-primary hover:underline"
@@ -144,7 +149,11 @@ export function MyPageClient() {
 
         {favoriteItems.length === 0 ? (
           <div className="mt-4 flex flex-col items-center gap-2.5 rounded-[20px] border-[1.5px] border-dashed border-[oklch(0.9_0.03_30)] py-11 text-center">
-            <span className="text-[26px] text-[oklch(0.75_0.06_30)]">♡</span>
+            <Icon
+              name="heart"
+              size={26}
+              className="text-[oklch(0.75_0.06_30)]"
+            />
             <p className="text-[13.5px] text-muted-foreground">
               아직 찜한 콘텐츠가 없습니다
             </p>
@@ -158,19 +167,13 @@ export function MyPageClient() {
                 className="overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/40"
               >
                 <div className="relative h-[110px] bg-muted">
-                  {content.imageUrl ? (
-                    <Image
-                      src={content.imageUrl}
-                      alt={content.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 50vw, 25vw"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                      이미지 없음
-                    </div>
-                  )}
+                  <ContentImage
+                    src={content.imageUrl}
+                    alt={content.name}
+                    category={content.category}
+                    size="md"
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                  />
                 </div>
                 <div className="p-3.5">
                   <p className="truncate text-[13.5px] font-bold">

@@ -3,8 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockBack = vi.fn();
+const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({ back: mockBack, push: mockPush }),
+  usePathname: () => "/contents/1",
+}));
+
+const mockUseAuth = vi.fn();
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
 import { useBasketStore } from "@/stores/basketStore";
@@ -35,6 +42,9 @@ const stub: ContentDetail = {
 describe("ContentDetailView", () => {
   beforeEach(() => {
     localStorage.clear();
+    mockBack.mockClear();
+    mockPush.mockClear();
+    mockUseAuth.mockReturnValue({ status: "authenticated" });
     // 전역 스토어는 테스트 간 상태가 누수되므로 초기 상태로 리셋한다.
     useBasketStore.setState({ items: [], hydrated: false });
     useFavoriteStore.setState({ items: [], hydrated: false });
@@ -69,6 +79,17 @@ describe("ContentDetailView", () => {
   it("데이터 출처를 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
     expect(screen.getByText("한국관광공사")).toBeInTheDocument();
+  });
+
+  it("백엔드가 내려주는 원본 dataSource 값과 무관하게 데이터 출처를 한국관광공사로 표시한다", () => {
+    render(<ContentDetailView content={{ ...stub, dataSource: "TourAPI" }} />);
+    expect(screen.getByText("한국관광공사")).toBeInTheDocument();
+    expect(screen.queryByText("TourAPI")).not.toBeInTheDocument();
+  });
+
+  it("dataSource가 없으면 데이터 출처 행을 렌더하지 않는다", () => {
+    render(<ContentDetailView content={{ ...stub, dataSource: null }} />);
+    expect(screen.queryByText("데이터 출처")).not.toBeInTheDocument();
   });
 
   it("담기 버튼을 렌더한다", () => {
@@ -114,6 +135,21 @@ describe("ContentDetailView", () => {
     await userEvent.click(screen.getByRole("button", { name: "찜하기" }));
 
     expect(screen.getByRole("button", { name: "찜 해제" })).toBeInTheDocument();
+  });
+
+  it("비로그인 상태에서는 하트가 비활성이고 클릭 시 로그인으로 유도한다", async () => {
+    mockUseAuth.mockReturnValue({ status: "unauthenticated" });
+    useFavoriteStore.setState({ items: [stub], hydrated: true });
+
+    render(<ContentDetailView content={stub} />);
+
+    const heart = screen.getByRole("button", { name: "찜하기" });
+    expect(heart).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(heart);
+
+    expect(mockPush).toHaveBeenCalledWith("/login?next=%2Fcontents%2F1");
+    expect(useFavoriteStore.getState().items).toHaveLength(1);
   });
 
   it("showBasketAction이 false이면 찜 버튼도 렌더하지 않는다", () => {

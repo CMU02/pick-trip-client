@@ -1,6 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/dashboard/for-you",
+}));
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({ status: "authenticated" }),
+}));
 
 import { useBasketStore } from "@/stores/basketStore";
 import { useFavoriteStore } from "@/stores/favoriteStore";
@@ -35,6 +43,13 @@ describe("ForYouCard", () => {
     expect(
       screen.getByText("천년 고찰, 봄이면 벚꽃이 만발한다"),
     ).toBeInTheDocument();
+  });
+
+  it("지역 라벨을 썸네일 우상단 반투명 배지로 렌더한다", () => {
+    render(<ForYouCard content={stub} />);
+
+    const regionBadge = screen.getByText("하동");
+    expect(regionBadge).toHaveClass("bg-white/90");
   });
 
   it("카드 본문이 from=for-you가 붙은 상세 페이지 링크를 포함한다", () => {

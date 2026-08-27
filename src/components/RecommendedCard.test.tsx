@@ -1,6 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/dashboard",
+}));
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({ status: "authenticated" }),
+}));
 
 import { useBasketStore } from "@/stores/basketStore";
 import { useFavoriteStore } from "@/stores/favoriteStore";
@@ -32,6 +40,19 @@ describe("RecommendedCard", () => {
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByText("경남 하동군")).toBeInTheDocument();
     expect(screen.getByText("문화")).toBeInTheDocument();
+  });
+
+  it("지역 라벨을 썸네일 우상단 반투명 배지로 렌더한다", () => {
+    render(<RecommendedCard content={stub} />);
+
+    const regionBadge = screen.getByText("하동");
+    expect(regionBadge).toHaveClass("bg-white/90");
+  });
+
+  it("요약을 렌더한다", () => {
+    render(<RecommendedCard content={stub} />);
+
+    expect(screen.getByText("천년 고찰")).toBeInTheDocument();
   });
 
   it("담기 버튼 클릭 시 바구니에 담기고 담김으로 바뀐다", async () => {

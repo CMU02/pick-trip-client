@@ -1,6 +1,16 @@
 import Link from "next/link";
 
-import { REGION_DESCRIPTIONS, REGION_LABELS, REGIONS } from "@/types/region";
+import {
+  ALL_REGIONS_QUERY,
+  REGION_DESCRIPTIONS,
+  REGION_LABELS,
+  REGIONS,
+} from "@/types/region";
+
+// 지역 카드는 지역별 소개를 보여주지만, 클릭 시 목적지는 앱의 다른 진입점과
+// 동일하게 "전체 지역" 여행 조건 페이지다(여행 조건 페이지에는 지역 선택
+// UI가 없어 한 지역으로 고정하면 다른 지역을 더할 수 없기 때문).
+const CONDITIONS_HREF = `/select/conditions?regions=${ALL_REGIONS_QUERY}`;
 
 export function RegionShowcase() {
   return (
@@ -17,7 +27,7 @@ export function RegionShowcase() {
         {REGIONS.map((region) => (
           <Link
             key={region}
-            href={`/select/conditions?regions=${region}`}
+            href={CONDITIONS_HREF}
             className="group block overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
           >
             <div

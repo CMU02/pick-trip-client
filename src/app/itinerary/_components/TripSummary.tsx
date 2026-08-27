@@ -14,6 +14,9 @@ interface TripSummaryProps {
   // 일정 생성 결과 화면에서는 담은 콘텐츠가 이미 일차 카드에 전부 나와 있어
   // 중복 표시를 피하려고 개수만 보여준다(기본값 true = 목록까지 표시).
   showItemList?: boolean;
+  // 생성 완료 후에는 로컬 바구니가 비워지므로(ItineraryClient), 결과 화면에서는
+  // items.length 대신 실제 일정에 담긴 장소 수를 이 값으로 넘겨 표시한다.
+  itemCount?: number;
 }
 
 const PRIORITY_ORDER: (BasketPriority | null)[] = [
@@ -30,7 +33,9 @@ export function TripSummary({
   companions,
   items,
   showItemList = true,
+  itemCount,
 }: TripSummaryProps) {
+  const displayCount = itemCount ?? items.length;
   // 조건 없이 /itinerary로 직접 들어오면 startDate가 빈 문자열이라 "NaN월 NaN일"이
   // 되던 자리다. 조건 요약을 보여주는 /contents와 같은 문구로 맞춘다.
   const [, month, day] = startDate.split("-");
@@ -118,7 +123,7 @@ export function TripSummary({
           <div className="flex items-start justify-between gap-3">
             <dt className="text-muted-foreground">담은 콘텐츠</dt>
             <dd className="text-right font-bold text-foreground">
-              {items.length}개
+              {displayCount}개
             </dd>
           </div>
         )}

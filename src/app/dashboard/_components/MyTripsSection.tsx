@@ -14,7 +14,7 @@ export function MyTripsSection() {
   const { items, remove } = useSavedItineraries();
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex h-full flex-col gap-4">
       <div className="flex items-end justify-between gap-5">
         <div className="flex items-center gap-2.5">
           <span className="h-[19px] w-1 rounded-full bg-primary" />
@@ -36,7 +36,7 @@ export function MyTripsSection() {
       </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2.5 rounded-[20px] border-[1.5px] border-dashed border-[oklch(0.88_0.055_30)] bg-[oklch(0.99_0.012_30)] py-12 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2.5 rounded-[20px] border-[1.5px] border-dashed border-[oklch(0.88_0.055_30)] bg-[oklch(0.99_0.012_30)] py-12 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent">
             <Icon
               name="bookmark"

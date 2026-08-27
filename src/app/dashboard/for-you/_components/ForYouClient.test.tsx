@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,11 +7,16 @@ const mockReplace = vi.fn();
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
+  usePathname: () => "/dashboard/for-you",
 }));
 
 const mockUseAuth = vi.fn();
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
+}));
+
+vi.mock("@/services/contentService", () => ({
+  getContents: vi.fn(),
 }));
 
 import { useBasketStore } from "@/stores/basketStore";
@@ -31,6 +37,27 @@ const makeContent = (overrides: Partial<Content> = {}): Content => ({
   ...overrides,
 });
 
+const queryParams = {
+  regions: ["HADONG", "YEONGJU", "YECHEON"],
+  startDate: "2026-06-20",
+  nights: 0,
+};
+
+function renderForYouClient(initialContents: Content[]) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <ForYouClient
+        initialContents={initialContents}
+        initialTotal={initialContents.length}
+        queryParams={queryParams}
+      />
+    </QueryClientProvider>,
+  );
+}
+
 describe("ForYouClient", () => {
   beforeEach(() => {
     mockReplace.mockClear();
@@ -43,7 +70,7 @@ describe("ForYouClient", () => {
   it("unauthenticated면 아무것도 렌더하지 않고 '/'로 리다이렉트한다", () => {
     mockUseAuth.mockReturnValue({ status: "unauthenticated", user: null });
 
-    render(<ForYouClient recommendedPool={[makeContent()]} />);
+    renderForYouClient([makeContent()]);
 
     expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
     expect(mockReplace).toHaveBeenCalledWith("/");
@@ -52,7 +79,7 @@ describe("ForYouClient", () => {
   it("loading이면 아무것도 렌더하지 않고 리다이렉트하지 않는다", () => {
     mockUseAuth.mockReturnValue({ status: "loading", user: null });
 
-    render(<ForYouClient recommendedPool={[makeContent()]} />);
+    renderForYouClient([makeContent()]);
 
     expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
@@ -64,7 +91,7 @@ describe("ForYouClient", () => {
       user: { nickname: "김여행" },
     });
 
-    render(<ForYouClient recommendedPool={[makeContent()]} />);
+    renderForYouClient([makeContent()]);
 
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
@@ -83,7 +110,7 @@ describe("ForYouClient", () => {
       hydrated: true,
     });
 
-    render(<ForYouClient recommendedPool={[makeContent()]} />);
+    renderForYouClient([makeContent()]);
 
     await userEvent.click(
       screen.getAllByRole("button", { name: "AI 일정 생성" })[0],

@@ -1,47 +1,45 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { ContentCardActions } from "@/components/ContentCardActions";
+import { ContentImage } from "@/components/ContentImage";
 import { CATEGORY_LABELS, type Content } from "@/types/content";
+import { REGION_LABELS } from "@/types/region";
 
 interface ForYouCardProps {
   content: Content;
 }
 
-// ExploreCard와 동일한 본문(이미지/뱃지/제목/주소/요약)에 "상세 설명" 버튼 대신
-// 찜/담기 액션(ContentCardActions)을 붙인 카드. FOR YOU 더보기 페이지 전용.
+// ContentCard와 동일한 본문(썸네일 위 코랄 카테고리 배지 + 우상단 반투명 지역
+// 배지 / 제목 / 주소 / 요약)에 찜·담기 액션(ContentCardActions)을 붙인 카드.
+// 상세 페이지 링크에 ?from=for-you를 붙이는 점만 ContentCard와 다르다.
 export function ForYouCard({ content }: ForYouCardProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
+    <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}?from=for-you`} className="block">
-        <div className="relative aspect-video bg-muted">
-          {content.imageUrl ? (
-            <Image
-              src={content.imageUrl}
-              alt={content.name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              이미지 없음
-            </div>
+        <div className="relative h-[140px] bg-muted">
+          <ContentImage
+            src={content.imageUrl}
+            alt={content.name}
+            category={content.category}
+            size="lg"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+          {content.category && (
+            <span className="absolute top-2.5 left-2.5 rounded-full bg-primary px-2.5 py-1 text-[10.5px] font-extrabold text-primary-foreground">
+              {CATEGORY_LABELS[content.category]}
+            </span>
           )}
+          <span className="absolute top-2.5 right-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[10.5px] font-extrabold text-foreground shadow-sm backdrop-blur-sm">
+            {REGION_LABELS[content.region]}
+          </span>
         </div>
 
-        <div className="flex flex-col gap-2 p-4 pb-2">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium leading-tight">{content.name}</h3>
-            {content.category && (
-              <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                {CATEGORY_LABELS[content.category]}
-              </span>
-            )}
-          </div>
-
+        <div className="flex flex-col gap-1.5 p-4 pb-2">
+          <h3 className="text-[14.5px] font-bold tracking-tight text-foreground">
+            {content.name}
+          </h3>
           <p className="text-xs text-muted-foreground">{content.address}</p>
           <p className="line-clamp-2 text-sm text-foreground/80">
             {content.summary}
