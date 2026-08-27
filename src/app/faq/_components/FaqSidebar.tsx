@@ -7,7 +7,7 @@ const MAILTO = `mailto:${CONTACT_EMAIL}`;
 export function FaqSidebar() {
   return (
     <aside className="flex flex-col gap-[14px] lg:sticky lg:top-[86px]">
-      <section className="rounded-[22px] bg-[linear-gradient(140deg,oklch(0.63_0.2_30),oklch(0.51_0.19_14))] p-6 text-white">
+      <section className="rounded-[22px] bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] p-6 text-white">
         <h2 className="font-heading text-[18px] font-bold tracking-[-0.03em]">
           찾는 답이 없나요?
         </h2>

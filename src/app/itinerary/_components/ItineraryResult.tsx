@@ -50,7 +50,9 @@ export function ItineraryResult({
   return (
     <section>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-foreground">생성된 일정</h2>
+        <h2 className="font-heading text-lg font-bold tracking-[-0.03em] text-foreground">
+          생성된 일정
+        </h2>
         {headerAction}
       </div>
       {days.length === 0 ? (

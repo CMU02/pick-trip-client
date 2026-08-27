@@ -394,6 +394,12 @@ export function ItineraryClient({
   }
 
   if (phase.status === "loginPreview") {
+    // 로그인 전/후 결과 화면을 통일한다: 사이드바는 preview와 동일한
+    // TripSummary, "예시" 안내는 일차 카드 위 작은 배너로 둔다.
+    const previewItemCount = phase.data.days.reduce(
+      (sum, day) => sum + day.items.length,
+      0,
+    );
     return (
       <ItineraryResultLayout
         region={phase.data.region}
@@ -414,12 +420,21 @@ export function ItineraryClient({
           </>
         }
         sidebar={
-          <p className="rounded-[20px] border border-primary/30 bg-primary/5 p-5 text-sm text-primary">
-            지금 보시는 일정은 담아주신 콘텐츠를 기반으로 만든 예시입니다.
-            로그인하면 실제 AI 일정 생성/저장 기능을 이용할 수 있어요.
-          </p>
+          <TripSummary
+            regions={parsedRegions}
+            startDate={startDate}
+            nights={parsedNights}
+            companions={parsedCompanions}
+            items={items}
+            showItemList={false}
+            itemCount={previewItemCount}
+          />
         }
       >
+        <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
+          이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로 저장할 수
+          있어요.
+        </p>
         <ItineraryResult data={phase.data} />
       </ItineraryResultLayout>
     );

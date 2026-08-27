@@ -583,8 +583,10 @@ describe("ItineraryClient", () => {
     );
 
     expect(
-      await screen.findByText(/로그인하면 실제 AI 일정 생성/),
+      await screen.findByText(/로그인하면 실제로 저장할 수 있어요/),
     ).toBeInTheDocument();
+    // 로그인 전 결과 화면도 preview와 동일한 여행 요약 카드를 보여준다.
+    expect(screen.getByText("여행 요약")).toBeInTheDocument();
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByText("화개장터")).toBeInTheDocument();
     expect(screen.queryByText("로그인이 필요합니다.")).not.toBeInTheDocument();

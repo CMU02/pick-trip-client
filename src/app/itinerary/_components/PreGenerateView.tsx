@@ -189,7 +189,7 @@ export function PreGenerateView({
       )}
 
       {/* 1. 히어로 */}
-      <section className="mt-5 flex flex-col gap-6 rounded-[26px] bg-[linear-gradient(122deg,oklch(0.64_0.2_32)_0%,oklch(0.56_0.2_20)_54%,oklch(0.49_0.17_12)_100%)] px-[38px] py-[34px] text-white lg:flex-row lg:items-center lg:justify-between">
+      <section className="mt-5 flex flex-col gap-6 rounded-[26px] bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] px-[38px] py-[34px] text-white lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <span className="inline-block rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-extrabold tracking-[0.12em] uppercase">
             STEP 3 · 일정 생성
@@ -409,7 +409,7 @@ export function PreGenerateView({
           </section>
 
           {/* 6. 생성 CTA */}
-          <section className="rounded-[22px] bg-[linear-gradient(140deg,oklch(0.63_0.2_30),oklch(0.51_0.19_14))] p-5.5 text-white">
+          <section className="rounded-[22px] bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] p-5.5 text-white">
             <p className="text-[17px] font-bold tracking-[-0.02em]">
               {canGenerate ? "생성 준비 완료" : "조건을 조금만 더"}
             </p>
