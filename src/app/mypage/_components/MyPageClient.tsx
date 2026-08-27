@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { ContentImage } from "@/components/ContentImage";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -60,7 +60,7 @@ export function MyPageClient() {
       label: "여행 바구니",
       value: `${basketItems.length}개`,
       hint: "담은 콘텐츠 확인",
-      href: "/explore",
+      href: "/basket",
     },
   ];
 
@@ -158,19 +158,13 @@ export function MyPageClient() {
                 className="overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/40"
               >
                 <div className="relative h-[110px] bg-muted">
-                  {content.imageUrl ? (
-                    <Image
-                      src={content.imageUrl}
-                      alt={content.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 50vw, 25vw"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                      이미지 없음
-                    </div>
-                  )}
+                  <ContentImage
+                    src={content.imageUrl}
+                    alt={content.name}
+                    category={content.category}
+                    size="md"
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                  />
                 </div>
                 <div className="p-3.5">
                   <p className="truncate text-[13.5px] font-bold">

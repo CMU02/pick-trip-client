@@ -16,7 +16,7 @@ describe("QuickCategoryRow", () => {
     expect(screen.getByText("27곳")).toBeInTheDocument();
     // 자연·체험이 둘 다 33곳이라 같은 라벨이 두 번 나온다.
     expect(screen.getAllByText("33곳")).toHaveLength(2);
-    expect(screen.getByText("226곳")).toBeInTheDocument();
+    expect(screen.getByText("222곳")).toBeInTheDocument();
   });
 
   it("타일을 클릭하면 onSelect를 호출한다", async () => {

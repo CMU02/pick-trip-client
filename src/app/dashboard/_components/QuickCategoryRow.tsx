@@ -21,9 +21,13 @@ interface QuickCategoryRowProps {
 // 개수는 대시보드가 받아오는 작은 추천 풀(지역당 20개)이 아니라, 홈
 // 히어로(CONTENT_COUNT)와 같은 기준인 전체 카탈로그 실제 개수다. 매
 // 요청마다 전체를 세면 API 호출량이 커서 정적 값으로 굳혀 둔다.
-// 2026-08-25 기준 총합(음식 53 + 관광지 27 + 문화 77 + 자연 33 + 체험
-// 33 = 223, 카테고리 없는 축제 3개를 더하면 전체 226). 콘텐츠가 크게
-// 늘어나면 이 숫자만 수동으로 갱신한다.
+//
+// 전체(ALL) = 백엔드 areaBasedList totalCount 합. TourAPI 카탈로그 변동으로
+// 흔들린다: 2026-08-25 226 → 08-27 222(하동 103 + 영주 68 + 예천 51).
+// 카테고리별 값은 2026-08-25 수동 분류 스냅샷(문화 77 + 음식 53 + 관광지 27
+// + 자연 33 + 체험 33 = 223, + 무분류 축제 3)이라 지금은 전체와 정확히
+// 합이 맞지 않는다. 재분류가 필요하면 카테고리별로 다시 센다. 축제(FESTIVAL)
+// 타일은 핸드오프 스펙의 6칸(문화/음식/관광지/자연/체험/전체)에 없어 뺐다.
 // 아이콘은 CATEGORY_ICONS와 마찬가지로 pick-trip-app(Ionicons)에 맞춘다.
 const QUICK_DEFS: { key: QuickCategory; icon: IconName; count: number }[] = [
   { key: "CULTURE", icon: CATEGORY_ICONS.CULTURE, count: 77 },
@@ -31,7 +35,7 @@ const QUICK_DEFS: { key: QuickCategory; icon: IconName; count: number }[] = [
   { key: "ATTRACTION", icon: CATEGORY_ICONS.ATTRACTION, count: 27 },
   { key: "NATURE", icon: CATEGORY_ICONS.NATURE, count: 33 },
   { key: "EXPERIENCE", icon: CATEGORY_ICONS.EXPERIENCE, count: 33 },
-  { key: "ALL", icon: "map-outline", count: 226 },
+  { key: "ALL", icon: "map-outline", count: 222 },
 ];
 
 export function QuickCategoryRow({

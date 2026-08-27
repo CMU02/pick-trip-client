@@ -348,7 +348,7 @@ describe("Header", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("로그인 상태에서는 /contents로 이동하는 바구니 아이콘을 보여준다", () => {
+  it("로그인 상태에서는 /basket으로 이동하는 바구니 아이콘을 보여준다", () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -366,7 +366,7 @@ describe("Header", () => {
 
     expect(screen.getByRole("link", { name: /바구니/ })).toHaveAttribute(
       "href",
-      "/contents",
+      "/basket",
     );
   });
 

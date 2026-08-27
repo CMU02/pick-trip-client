@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useItineraryEditor } from "@/hooks/useItineraryEditor";
@@ -31,9 +30,9 @@ import {
   COMPANION_CONDITION_TO_SERVER,
   type CompanionCondition,
 } from "@/types/travel-condition";
-import { ErrorState } from "./ErrorState";
 import { GeneratingState } from "./GeneratingState";
 import { ItineraryResult } from "./ItineraryResult";
+import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
 import { TripSummary } from "./TripSummary";
 
@@ -41,8 +40,9 @@ function formatDuration(nights: number) {
   return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
 }
 
-// 핸드오프 스펙(9번 "일정 결과")의 "STEP 3 · 일정 완성" 헤더 +
+// 핸드오프 스펙(9번 "일정 결과")의 "STEP 4 · 일정 완성" 헤더 +
 // 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
+// (Step 1 조건 → Step 2 콘텐츠 담기 → Step 3 일정 생성(PreGenerateView) → Step 4 완성)
 // "이동 거리 합계" 카드는 서버가 이동 거리 데이터를 내려주지 않아 뺐다
 // (핸드오프 README도 데이터 없으면 빼도 된다고 명시).
 function ItineraryResultLayout({
@@ -63,7 +63,7 @@ function ItineraryResultLayout({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-extrabold tracking-widest text-primary/70 uppercase">
-            Step 3 · 일정 완성
+            Step 4 · 일정 완성
           </p>
           <h1 className="mt-2.5 text-[32px] font-extrabold tracking-tight">
             {REGION_LABELS[region]} {formatDuration(duration)} 일정
@@ -80,17 +80,13 @@ function ItineraryResultLayout({
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-4">{children}</div>
         <div>
-          {/* ItineraryResult의 "생성된 일정" 제목(text-lg font-bold) + mt-4를
-              보이지 않게 그대로 재현해, 여행 요약 카드가 그 제목이 아니라
-              바로 아래 일차 카드 박스와 같은 높이에서 시작하게 한다. sticky
-              박스 밖에 둬서, 스크롤로 실제 고정될 때는 이 여백 없이
-              top-[86px]에 바로 붙는다. */}
-          <div
-            aria-hidden="true"
-            className="invisible hidden text-lg font-bold text-foreground lg:block"
-          >
-            생성된 일정
-          </div>
+          {/* 왼쪽 컬럼은 ItineraryResult의 "생성된 일정" 제목(text-lg =
+              line-height 1.75rem = h-7) + mt-4 뒤에 일차 카드가 온다. 오른쪽
+              여행 요약 카드가 그 일차 카드와 같은 y에서 시작하도록 동일한
+              높이(h-7 + mt-4)를 비워둔다. 폰트 렌더링에 의존하지 않도록
+              텍스트 대신 고정 높이 스페이서를 쓴다. sticky 박스 밖에 둬서,
+              스크롤로 고정될 때는 이 여백 없이 top-[86px]에 바로 붙는다. */}
+          <div aria-hidden="true" className="hidden h-7 lg:block" />
           <div className="flex flex-col gap-3.5 lg:mt-4 lg:sticky lg:top-[86px]">
             {sidebar}
           </div>
@@ -164,7 +160,12 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
     <ItineraryResultLayout
       region={data.region}
       duration={data.duration}
-      actions={<ShareButton itineraryId={data.itineraryId} />}
+      actions={
+        <ShareButton
+          itineraryId={data.itineraryId}
+          linkBoxClassName="w-full sm:w-[28rem]"
+        />
+      }
       sidebar={
         <section className="rounded-[20px] border border-border bg-card p-5.5">
           <h2 className="text-[17px] font-bold tracking-tight text-foreground">
@@ -434,17 +435,17 @@ export function ItineraryClient({
           titleDraft === null ? (
             <>
               <Button
+                disabled={isSaving}
+                onClick={() => setTitleDraft(phase.data.title)}
+              >
+                저장
+              </Button>
+              <Button
                 variant="outline"
                 disabled={isSaving}
                 onClick={() => setPhase({ status: "idle" })}
               >
                 다시 생성
-              </Button>
-              <Button
-                disabled={isSaving}
-                onClick={() => setTitleDraft(phase.data.title)}
-              >
-                저장
               </Button>
             </>
           ) : (
@@ -462,7 +463,7 @@ export function ItineraryClient({
               </label>
               <input
                 id="itinerary-title"
-                className="w-40 rounded-md border border-input px-3 py-2 text-sm sm:w-56"
+                className="w-80 rounded-md border border-input px-3 py-2 text-sm sm:w-[28rem]"
                 value={titleDraft}
                 disabled={isSaving}
                 onChange={(e) => setTitleDraft(e.target.value)}
@@ -492,6 +493,12 @@ export function ItineraryClient({
             companions={parsedCompanions}
             items={items}
             showItemList={false}
+            // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
+            // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
+            itemCount={phase.data.days.reduce(
+              (sum, day) => sum + day.items.length,
+              0,
+            )}
           />
         }
       >
@@ -506,42 +513,25 @@ export function ItineraryClient({
     );
   }
 
+  // 생성 중에는 핸드오프 스펙(§9 "생성 중")대로 화면 전체를 스피너로 채운다.
+  if (phase.status === "loading") {
+    return <GeneratingState />;
+  }
+
+  // 생성 전(idle) · 생성 실패(error) 화면. 오류는 재시도 버튼과 함께
+  // PreGenerateView 상단에 배너로 노출한다.
   return (
-    // 생성 결과(ItineraryResultLayout)는 1fr/320px 2단 레이아웃이라 헤더
-    // 너비(max-w-7xl)를 그대로 채우지만, 생성 전 요약 카드는 항목이 몇 줄뿐이라
-    // 그대로 펼치면 라벨-값 간격만 늘어져 보인다. 이 단계만 좁게 가운데 정렬한다.
-    <div className="mx-auto max-w-xl space-y-4">
-      <TripSummary
-        regions={parsedRegions}
-        startDate={startDate}
-        nights={parsedNights}
-        companions={parsedCompanions}
-        items={items}
-      />
-
-      {phase.status === "loading" && <GeneratingState />}
-      {phase.status === "error" && (
-        <ErrorState
-          message={phase.message}
-          traceId={phase.traceId}
-          onRetry={handleGenerate}
-        />
-      )}
-
-      <div className="space-y-2">
-        {items.length < 2 && phase.status === "idle" && (
-          <p className="text-sm text-muted-foreground">
-            2개 이상 담아야 일정을 생성할 수 있어요
-          </p>
-        )}
-        <Button
-          disabled={phase.status === "loading" || items.length < 2}
-          onClick={handleGenerate}
-        >
-          <Icon name="wand" size={16} />
-          일정 생성하기
-        </Button>
-      </div>
-    </div>
+    <PreGenerateView
+      regions={regions}
+      startDate={startDate}
+      nights={nights}
+      companions={companions}
+      onGenerate={handleGenerate}
+      error={
+        phase.status === "error"
+          ? { message: phase.message, traceId: phase.traceId }
+          : null
+      }
+    />
   );
 }
