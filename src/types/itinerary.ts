@@ -52,6 +52,28 @@ export interface Item {
 
 // ── 생성 응답 (POST /api/v1/itineraries/generate) ───────────────────
 // generate는 요청 바디를 받지 않는다 — 서버에 저장된 사용자의 바구니/조건을 읽어 생성한다.
+// 아직 저장 전이라 서버 응답에는 dayId/itemId/pinned가 없다. 화면은 저장된 일정과
+// 같은 Day[]로 다루므로 itineraryService가 서비스 경계에서 id를 합성해 채운다.
+export interface RawGeneratedDay {
+  dayIndex: number;
+  items: RawGeneratedItem[];
+}
+
+export interface RawGeneratedItem {
+  contentId: string;
+  title: string;
+  order: number;
+  reason: string;
+}
+
+export interface RawItineraryGenerateResponse {
+  title: string;
+  region: Region;
+  travelDate: string;
+  duration: number;
+  days: RawGeneratedDay[];
+}
+
 export interface ItineraryGenerateResponse {
   title: string;
   region: Region;
