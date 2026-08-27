@@ -63,30 +63,31 @@ export function PlaceItem({
               disabled={isFirst}
               onClick={onMoveUp}
               aria-label="위로 이동"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-xs text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
             >
-              ▲
+              <Icon name="chevron-up" size={16} />
             </button>
             <button
               type="button"
               disabled={isLast}
               onClick={onMoveDown}
               aria-label="아래로 이동"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-xs text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
             >
-              ▼
+              <Icon name="chevron-down" size={16} />
             </button>
             <button
               type="button"
               onClick={onTogglePinned}
               aria-label={item.pinned ? "고정됨" : "고정"}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border text-xs transition-colors ${
+              aria-pressed={item.pinned}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border transition-colors ${
                 item.pinned
                   ? "border-primary/40 bg-accent text-accent-foreground"
                   : "border-border text-muted-foreground hover:bg-muted"
               }`}
             >
-              📌
+              <Icon name="pin" size={14} />
             </button>
             <button
               type="button"
@@ -97,6 +98,7 @@ export function PlaceItem({
             </button>
             <button
               type="button"
+              aria-label={confirmingRemove ? "정말 삭제?" : "삭제"}
               onClick={() => {
                 if (confirmingRemove) {
                   onRemove?.();
@@ -105,13 +107,14 @@ export function PlaceItem({
                   setConfirmingRemove(true);
                 }
               }}
-              className={`flex h-[30px] items-center justify-center rounded-[9px] border px-2.5 text-xs font-semibold transition-colors ${
+              className={`flex h-[30px] items-center justify-center gap-1 rounded-[9px] border text-xs font-semibold transition-colors ${
                 confirmingRemove
-                  ? "border-destructive/40 bg-destructive/10 text-destructive"
-                  : "border-border text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                  ? "border-destructive/40 bg-destructive/10 px-2.5 text-destructive"
+                  : "w-[30px] border-border text-muted-foreground hover:border-destructive/40 hover:text-destructive"
               }`}
             >
-              {confirmingRemove ? "정말 삭제?" : "삭제"}
+              <Icon name="close" size={16} />
+              {confirmingRemove && <span>삭제</span>}
             </button>
           </div>
         )}
