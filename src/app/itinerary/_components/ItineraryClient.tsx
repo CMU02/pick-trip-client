@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -223,6 +223,9 @@ interface ItineraryClientProps {
   startDate: string;
   nights: string;
   companions: string;
+  // 로그인 후 이 화면으로 되돌아온 경우 true — 바구니가 채워져 있으면 곧바로
+  // 진짜 생성을 다시 시도한다.
+  autoResume?: boolean;
 }
 
 export function ItineraryClient({
@@ -230,19 +233,26 @@ export function ItineraryClient({
   startDate,
   nights,
   companions,
+  autoResume = false,
 }: ItineraryClientProps) {
   const [phase, setPhase] = useState<ItineraryPhase>({ status: "idle" });
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
-  const { items, clear: clearBasket } = useBasket();
+  const { items, clear: clearBasket, save: saveBasket } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const { runAuthed } = useAuth();
+
+  // 로그인 전 미리보기로 전환하며 비운 바구니의 스냅샷. "로그인하고 계속하기"나
+  // "다시 생성"으로 흐름을 이어갈 때만 복원하고, 그냥 페이지를 벗어나면
+  // 복원하지 않아 다른 화면에 담아둔 상태가 남지 않는다.
+  const preLoginBasketRef = useRef<BasketItem[]>([]);
+  const autoResumeTriggered = useRef(false);
 
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
   const parsedNights = Number(nights) || 0;
   const parsedCompanions = companions
     .split(",")
     .filter(Boolean) as CompanionCondition[];
-  const loginNext = `/itinerary?${new URLSearchParams({ regions, startDate, nights, companions }).toString()}`;
+  const loginNext = `/itinerary?${new URLSearchParams({ regions, startDate, nights, companions, resume: "1" }).toString()}`;
 
   // 생성 시퀀스(조건 동기화 → 바구니 반영 → generate)를 runAuthed로 감싸,
   // AUTH_REQUIRED가 나면 내부에서 토큰 재발급 후 1회 재시도한다.
@@ -336,6 +346,10 @@ export function ItineraryClient({
             startDate,
             parsedNights,
           );
+          // 로그인 이후 흐름과 동일하게 로컬 바구니를 비운다. 스냅샷은 ref에
+          // 남겨 로그인/다시 생성으로 흐름을 이어갈 때만 복원한다.
+          preLoginBasketRef.current = items;
+          clearBasket();
           setPhase({ status: "loginPreview", data });
           return;
         }
@@ -343,6 +357,17 @@ export function ItineraryClient({
       },
     });
   }
+
+  // 로그인 후 이 화면으로 되돌아온 경우(autoResume) 바구니에 항목이 복원돼
+  // 있으면 곧바로 진짜 생성을 다시 시도한다. 마운트 후 한 번만.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: handleGenerate는 매 렌더 재생성되지만 실행 시점 최신 상태를 클로저로 캡처한다
+  useEffect(() => {
+    if (!autoResume || autoResumeTriggered.current) return;
+    if (phase.status !== "idle") return;
+    if (items.length < 2) return;
+    autoResumeTriggered.current = true;
+    handleGenerate();
+  }, [autoResume, phase.status, items.length]);
 
   function handleSave(title: string) {
     if (phase.status !== "preview") return;
@@ -407,10 +432,15 @@ export function ItineraryClient({
         actions={
           <>
             <Button asChild>
-              <Link href={`/login?next=${encodeURIComponent(loginNext)}`}>
+              <Link
+                href={`/login?next=${encodeURIComponent(loginNext)}`}
+                onClick={() => saveBasket(preLoginBasketRef.current)}
+              >
                 로그인하고 계속하기
               </Link>
             </Button>
+            {/* "다시 생성"은 바구니를 복원하지 않는다(로그인 버튼을 누를
+                때만 복원). 로그인 후 성공 시와 동일하게 비운 상태로 둔다. */}
             <Button
               variant="outline"
               onClick={() => setPhase({ status: "idle" })}
@@ -425,7 +455,7 @@ export function ItineraryClient({
             startDate={startDate}
             nights={parsedNights}
             companions={parsedCompanions}
-            items={items}
+            items={preLoginBasketRef.current}
             showItemList={false}
             itemCount={previewItemCount}
           />

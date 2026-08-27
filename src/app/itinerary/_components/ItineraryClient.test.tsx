@@ -15,10 +15,13 @@ import { ItineraryClient } from "./ItineraryClient";
 
 // useSavedItineraries.add/useBasket.clear를 테스트에서 참조하기 위해
 // hoisted mock으로 선언한다.
-const { mockAddSavedItinerary, mockClearBasket } = vi.hoisted(() => ({
-  mockAddSavedItinerary: vi.fn(),
-  mockClearBasket: vi.fn(),
-}));
+const { mockAddSavedItinerary, mockClearBasket, mockSaveBasket } = vi.hoisted(
+  () => ({
+    mockAddSavedItinerary: vi.fn(),
+    mockClearBasket: vi.fn(),
+    mockSaveBasket: vi.fn(),
+  }),
+);
 
 vi.mock("@/services/basketService");
 vi.mock("@/services/itineraryService");
@@ -58,6 +61,7 @@ vi.mock("@/hooks/useBasket", () => ({
       },
     ],
     clear: mockClearBasket,
+    save: mockSaveBasket,
   }),
 }));
 vi.mock("@/hooks/useSavedItineraries", () => ({
@@ -604,9 +608,107 @@ describe("ItineraryClient", () => {
     expect(
       screen.getByRole("button", { name: "다시 생성" }),
     ).toBeInTheDocument();
-    // 실제 generate가 성공한 게 아니라 바구니 기반 클라이언트 미리보기이므로
-    // 바구니를 비우지 않는다.
-    expect(mockClearBasket).not.toHaveBeenCalled();
+    // 로그인 이후 흐름과 동일하게 로컬 바구니를 비운다(로그인 버튼을 누를 때만 복원).
+    expect(mockClearBasket).toHaveBeenCalled();
+  });
+
+  it("로그인 미리보기에서 '로그인하고 계속하기'를 누르면 바구니를 복원한다", async () => {
+    mockUpdateBasketConditions.mockRejectedValue(
+      new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
+    );
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    const loginLink = await screen.findByRole("link", {
+      name: "로그인하고 계속하기",
+    });
+    expect(mockSaveBasket).not.toHaveBeenCalled();
+
+    await userEvent.click(loginLink);
+
+    expect(mockSaveBasket).toHaveBeenCalledTimes(1);
+    // 비우기 전 스냅샷(2개)을 그대로 복원한다.
+    expect(mockSaveBasket.mock.calls[0][0]).toHaveLength(2);
+    // 로그인 복귀용 링크에 resume 표시가 붙는다.
+    expect(decodeURIComponent(loginLink.getAttribute("href") ?? "")).toContain(
+      "resume=1",
+    );
+  });
+
+  it("autoResume이면 마운트 직후 자동으로 진짜 생성을 시도한다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGetBasket.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockGenerateItinerary.mockResolvedValue({
+      title: "하동 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      days: [
+        {
+          dayId: "day-1",
+          dayIndex: 1,
+          items: [
+            {
+              itemId: "i1",
+              contentId: "content-1",
+              title: "쌍계사",
+              order: 0,
+              reason: "대표 명소",
+              pinned: false,
+            },
+          ],
+        },
+      ],
+    });
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+        autoResume
+      />,
+    );
+
+    // "일정 생성하기" 버튼을 누르지 않아도 생성 결과가 나온다.
+    expect(await screen.findByText("생성된 일정")).toBeInTheDocument();
+    expect(mockGenerateItinerary).toHaveBeenCalled();
   });
 
   it("generate가 AUTH_REQUIRED가 아닌 오류로 실패하면 기존처럼 오류 메시지를 표시한다", async () => {

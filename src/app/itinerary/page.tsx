@@ -12,6 +12,8 @@ interface ItineraryPageProps {
     startDate?: string;
     nights?: string;
     companions?: string;
+    // 로그인 후 이 화면으로 되돌아왔음을 표시(로그인 전 미리보기에서 넘긴다).
+    resume?: string;
   }>;
 }
 
@@ -23,6 +25,7 @@ export default async function ItineraryPage({
     startDate = "",
     nights = "0",
     companions = "",
+    resume = "",
   } = await searchParams;
 
   return (
@@ -32,6 +35,7 @@ export default async function ItineraryPage({
         startDate={startDate}
         nights={nights}
         companions={companions}
+        autoResume={resume === "1"}
       />
     </main>
   );
