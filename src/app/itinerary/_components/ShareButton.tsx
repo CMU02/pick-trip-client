@@ -32,10 +32,16 @@ export function ShareButton({ itineraryId }: ShareButtonProps) {
   async function handleShare() {
     setState({ status: "loading" });
     try {
-      const { shareUrl } = await runAuthed((token) =>
-        createShare(itineraryId, token),
+      const { token } = await runAuthed((accessToken) =>
+        createShare(itineraryId, accessToken),
       );
-      setState({ status: "created", shareUrl });
+      // 응답의 shareUrl은 백엔드 설정(app.share.link-base-url)이 만들어 API
+      // 도메인을 가리키기도 한다. 공유 화면은 프론트 라우트라 토큰으로 직접
+      // 조립해야 어느 환경에서든 열리는 링크가 나온다.
+      setState({
+        status: "created",
+        shareUrl: `${window.location.origin}/share/${token}`,
+      });
     } catch (err) {
       setState({ status: "error", message: parseApiError(err).message });
     }
