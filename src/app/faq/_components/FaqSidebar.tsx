@@ -12,8 +12,9 @@ export function FaqSidebar() {
           찾는 답이 없나요?
         </h2>
         <p className="mt-2 text-[12.5px] leading-[1.6] text-white/85">
-          궁금한 점을 이메일로 보내주시면 평일 09:00 – 18:00 사이에
-          답변드립니다.
+          궁금한 점을 이메일로 보내주시면
+          <br />
+          평일 09:00 – 18:00 사이에 답변드립니다.
         </p>
         <a
           href={MAILTO}

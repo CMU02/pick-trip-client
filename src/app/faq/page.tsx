@@ -39,7 +39,7 @@ export default function FaqPage() {
           </h1>
           <p className="mt-3 text-[14.5px] leading-[1.7] text-[oklch(0.48_0.015_30)]">
             PickTrip 이용 중 자주 나오는 질문을 모았습니다. 찾는 답이 없으면
-            아래 문의 카드를 이용해주세요.
+            서비스 문의하기를 이용해주세요.
           </p>
 
           <div className="mt-7">
