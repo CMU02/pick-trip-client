@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { Footer } from "./Footer";
 
 describe("Footer", () => {
-  it("사이트 메뉴 링크를 올바른 href로 보여준다", () => {
+  it("서비스 메뉴 링크를 올바른 href로 보여준다", () => {
     render(<Footer />);
 
     expect(screen.getByRole("link", { name: "홈" })).toHaveAttribute(
@@ -15,9 +15,16 @@ describe("Footer", () => {
       "href",
       "/explore",
     );
-    expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "AI 일정 만들기" }),
+    ).toHaveAttribute("href", "/select/conditions");
+    expect(screen.getByRole("link", { name: "내 일정" })).toHaveAttribute(
       "href",
-      "/select/conditions",
+      "/itineraries",
+    );
+    expect(screen.getByRole("link", { name: "찜한 콘텐츠" })).toHaveAttribute(
+      "href",
+      "/favorites",
     );
   });
 
@@ -38,16 +45,35 @@ describe("Footer", () => {
     );
   });
 
-  it("약관과 개인정보처리방침 링크를 보여준다", () => {
+  it("문의·지원 링크와 연락처 정보를 보여준다", () => {
     render(<Footer />);
 
-    expect(screen.getByRole("link", { name: "이용약관" })).toHaveAttribute(
-      "href",
-      "/terms",
-    );
     expect(
-      screen.getByRole("link", { name: "개인정보처리방침" }),
-    ).toHaveAttribute("href", "/privacy");
+      screen.getByRole("link", { name: "자주 묻는 질문" }),
+    ).toHaveAttribute("href", "/faq");
+
+    const contact = screen.getByRole("link", { name: "서비스 문의" });
+    expect(contact).toHaveAttribute("href", "mailto:hyeonjun1968@naver.com");
+    expect(contact).toHaveAttribute("target", "_blank");
+    expect(contact).toHaveAttribute("rel", "noopener noreferrer");
+
+    expect(
+      screen.getByRole("link", { name: "hyeonjun1968@naver.com" }),
+    ).toHaveAttribute("href", "mailto:hyeonjun1968@naver.com");
+    expect(screen.getByText(/평일 09:00 – 18:00 응답/)).toBeInTheDocument();
+  });
+
+  it("하단 바에는 법적 링크가 이용약관, 개인정보처리방침 2개뿐이다", () => {
+    render(<Footer />);
+
+    const legalNav = screen.getByRole("navigation", { name: "약관 및 정책" });
+    const links = within(legalNav).getAllByRole("link");
+
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveTextContent("이용약관");
+    expect(links[0]).toHaveAttribute("href", "/terms");
+    expect(links[1]).toHaveTextContent("개인정보처리방침");
+    expect(links[1]).toHaveAttribute("href", "/privacy");
   });
 
   it("저작권 문구를 보여준다", () => {
