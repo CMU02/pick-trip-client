@@ -9,6 +9,10 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({ status: "authenticated" }),
+}));
+
 vi.mock("@/services/contentService", () => ({
   getContents: vi.fn(),
 }));

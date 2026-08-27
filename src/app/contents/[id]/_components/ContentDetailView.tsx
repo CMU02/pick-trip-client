@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { ContentImage } from "@/components/ContentImage";
 import { Icon } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
-import { useFavorites } from "@/hooks/useFavorites";
+import { useFavoriteHeart } from "@/hooks/useFavoriteHeart";
 import { useRecentViews } from "@/hooks/useRecentViews";
 import { CATEGORY_LABELS, type ContentDetail } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
@@ -45,14 +45,10 @@ export function ContentDetailView({
 }: ContentDetailViewProps) {
   const router = useRouter();
   const { items, add, remove } = useBasket();
-  const {
-    items: favoriteItems,
-    add: addFavorite,
-    remove: removeFavorite,
-  } = useFavorites();
+  const { active: favorited, toggle: toggleFavorite } =
+    useFavoriteHeart(content);
   const { addView } = useRecentViews();
   const inBasket = items.some((i) => i.content.id === content.id);
-  const favorited = favoriteItems.some((c) => c.id === content.id);
 
   // 콘텐츠 상세 진입 시(/contents, /explore 어느 경로든) 최근 본 콘텐츠로 기록한다.
   useEffect(() => {
@@ -137,9 +133,7 @@ export function ContentDetailView({
               type="button"
               aria-label={favorited ? "찜 해제" : "찜하기"}
               aria-pressed={favorited}
-              onClick={() =>
-                favorited ? removeFavorite(content.id) : addFavorite(content)
-              }
+              onClick={toggleFavorite}
               className={`flex h-11 w-11 items-center justify-center rounded-xl border border-border ${favorited ? "text-destructive" : "text-muted-foreground"}`}
             >
               <Icon name="heart" size={19} />
