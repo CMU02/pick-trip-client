@@ -1,6 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -22,6 +30,18 @@ const stub: Content = {
   summary: "천년 고찰",
   indoor: false,
 };
+
+// 아래 날짜 헬퍼들은 "오늘 + 최대 5일"이 같은 달 안에 있다고 가정하므로,
+// 월말에 실행하면 달력이 다음 달로 넘어가 실패한다. Date만 고정해 월초로 맞춘다.
+// (setTimeout까지 가짜로 바꾸면 userEvent의 입력 지연이 멈춰 버린다.)
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 0, 5));
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 // 캘린더가 기본으로 오늘이 속한 달을 보여주므로, 월 이동 없이 바로
 // 클릭할 수 있는 "오늘"을 출발일로 고른다(과거 날짜는 선택 불가라 today가
