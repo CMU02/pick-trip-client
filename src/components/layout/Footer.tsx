@@ -41,7 +41,7 @@ const NAV_LINK_CLASS =
 export function Footer() {
   return (
     <footer className="border-t border-border bg-[oklch(0.985_0.008_30)]">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-[34px] px-10 pt-12 pb-[34px] sm:grid-cols-[1.55fr_0.9fr_0.9fr_1.05fr]">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-[34px] px-4 pt-12 pb-[34px] sm:grid-cols-[1.55fr_0.9fr_0.9fr_1.05fr]">
         <div className="flex items-start gap-2">
           <Image src="/pick-trip-icon.svg" alt="" width={24} height={24} />
           <div>
@@ -132,8 +132,8 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-border px-10 py-4">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-t border-border py-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             © 2026 PickTrip. All rights reserved.
           </p>
