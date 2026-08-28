@@ -2,14 +2,16 @@
 
 import { useBasket } from "@/hooks/useBasket";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
+import { JOURNEY_STEPS } from "@/lib/journey";
 import { cn } from "@/lib/utils";
 
 export type StepStatus = "done" | "current" | "upcoming";
 
+// 라벨은 여정 공용 상수를 따르고, key는 진행 상태 매핑(바구니/저장 일정)에만 쓴다.
 const STEPS = [
-  { key: "region", label: "지역 선택" },
-  { key: "contents", label: "콘텐츠 담기" },
-  { key: "itinerary", label: "일정 완성" },
+  { key: "region", label: JOURNEY_STEPS[0].label },
+  { key: "contents", label: JOURNEY_STEPS[1].label },
+  { key: "itinerary", label: JOURNEY_STEPS[2].label },
 ] as const;
 
 const STATUS_LABELS: Record<StepStatus, string> = {

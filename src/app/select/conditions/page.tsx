@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { JOURNEY_STEPS } from "@/lib/journey";
+
 import { TravelDateForm } from "./_components/TravelDateForm";
 
 export const metadata: Metadata = {
@@ -19,7 +21,7 @@ export default async function ConditionsPage({
     <main className="mx-auto w-full max-w-7xl px-4 py-10">
       <div className="mb-8">
         <p className="text-xs font-extrabold tracking-widest text-primary/70 uppercase">
-          Step 1 · 여행 조건
+          Step {JOURNEY_STEPS[0].n} · {JOURNEY_STEPS[0].label}
         </p>
         <h1 className="mt-3 text-[36px] font-extrabold tracking-tight">
           언제 떠나볼까요?

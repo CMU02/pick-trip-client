@@ -9,7 +9,7 @@ describe("StepsSection", () => {
 
     expect(screen.getByText("세 단계로 끝나요")).toBeInTheDocument();
 
-    expect(screen.getByText("지역과 날짜 선택")).toBeInTheDocument();
+    expect(screen.getByText("여행 조건")).toBeInTheDocument();
     expect(
       screen.getByText("가고 싶은 지역과 출발일, 기간을 고릅니다."),
     ).toBeInTheDocument();

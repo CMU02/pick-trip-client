@@ -6,11 +6,13 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useItineraryEditor } from "@/hooks/useItineraryEditor";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
+import { JOURNEY_STEPS } from "@/lib/journey";
 import {
   addBasketItem,
   getBasket,
@@ -40,9 +42,10 @@ function formatDuration(nights: number) {
   return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
 }
 
-// 핸드오프 스펙(9번 "일정 결과")의 "STEP 4 · 일정 완성" 헤더 +
+// 핸드오프 스펙(9번 "일정 결과")의 결과 헤더 +
 // 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
-// (Step 1 조건 → Step 2 콘텐츠 담기 → Step 3 일정 생성(PreGenerateView) → Step 4 완성)
+// 여정은 3단계(Step 1 여행 조건 → Step 2 콘텐츠 담기 → Step 3 AI 일정 생성)이고,
+// 이 화면은 Step 3의 "완료" 상태라 별도 단계 번호 없이 "AI 일정 생성 완료"로 표기한다.
 // "이동 거리 합계" 카드는 서버가 이동 거리 데이터를 내려주지 않아 뺐다
 // (핸드오프 README도 데이터 없으면 빼도 된다고 명시).
 function ItineraryResultLayout({
@@ -62,8 +65,9 @@ function ItineraryResultLayout({
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-extrabold tracking-widest text-primary/70 uppercase">
-            Step 4 · 일정 완성
+          <p className="inline-flex items-center gap-1 text-xs font-extrabold tracking-widest text-primary uppercase">
+            <Icon name="check" size={13} />
+            {JOURNEY_STEPS[2].label} 완료
           </p>
           <h1 className="mt-2.5 text-[32px] font-extrabold tracking-tight">
             {REGION_LABELS[region]} {formatDuration(duration)} 일정
