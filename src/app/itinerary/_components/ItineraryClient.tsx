@@ -12,6 +12,14 @@ import { useItineraryEditor } from "@/hooks/useItineraryEditor";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
 import {
+  formatDistanceKm,
+  formatDuration,
+  formatTravelMinutes,
+  hasEmptyDay,
+  sumDayTravel,
+  toSaveDays,
+} from "@/lib/itinerary";
+import {
   addBasketItem,
   getBasket,
   removeBasketItem,
@@ -36,15 +44,10 @@ import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
 import { TripSummary } from "./TripSummary";
 
-function formatDuration(nights: number) {
-  return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
-}
-
 // 핸드오프 스펙(9번 "일정 결과")의 "STEP 4 · 일정 완성" 헤더 +
 // 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
 // (Step 1 조건 → Step 2 콘텐츠 담기 → Step 3 일정 생성(PreGenerateView) → Step 4 완성)
-// "이동 거리 합계" 카드는 서버가 이동 거리 데이터를 내려주지 않아 뺐다
-// (핸드오프 README도 데이터 없으면 빼도 된다고 명시).
+// 총 이동 시간·거리는 사이드바 TripSummary(travelSummary prop)에서 보여준다.
 function ItineraryResultLayout({
   region,
   duration,
@@ -158,6 +161,10 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
     initialDays: data.days,
   });
 
+  const travel = sumDayTravel(editor.days);
+  const travelDuration = formatTravelMinutes(travel.totalMinutes);
+  const travelDistance = formatDistanceKm(travel.totalKm);
+
   return (
     <ItineraryResultLayout
       region={data.region}
@@ -192,6 +199,33 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
                 {editor.days.reduce((sum, day) => sum + day.items.length, 0)}개
               </dd>
             </div>
+            {/* 편집 중이면 서버가 계산한 시각·거리가 어긋나므로 숫자 대신 안내를 둔다. */}
+            {editor.isDirty ? (
+              <p className="text-[12.5px] text-muted-foreground">
+                일정을 바꿔 이동 시간을 다시 계산해야 해요
+              </p>
+            ) : (
+              (travelDuration || travelDistance) && (
+                <>
+                  {travelDuration && (
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="text-muted-foreground">총 이동 시간</dt>
+                      <dd className="text-right font-bold text-foreground">
+                        {travelDuration}
+                      </dd>
+                    </div>
+                  )}
+                  {travelDistance && (
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="text-muted-foreground">총 이동 거리</dt>
+                      <dd className="text-right font-bold text-foreground">
+                        {travelDistance}
+                      </dd>
+                    </div>
+                  )}
+                </>
+              )
+            )}
           </dl>
         </section>
       }
@@ -374,6 +408,8 @@ export function ItineraryClient({
   function handleSave(title: string) {
     if (phase.status !== "preview") return;
     const previewData = phase.data;
+    // 장소가 없는 날이 있으면 백엔드가 저장을 거부한다(저장 버튼도 이미 막혀 있음).
+    if (hasEmptyDay(previewData.days)) return;
 
     setPhase({ status: "saving", data: previewData });
 
@@ -382,16 +418,7 @@ export function ItineraryClient({
       region: previewData.region,
       travelDate: previewData.travelDate,
       duration: previewData.duration,
-      days: previewData.days.map((day) => ({
-        dayIndex: day.dayIndex,
-        items: day.items.map((item) => ({
-          contentId: item.contentId,
-          title: item.title,
-          order: item.order,
-          reason: item.reason,
-          pinned: item.pinned ?? false,
-        })),
-      })),
+      days: toSaveDays(previewData.days),
     };
 
     saveMutation.mutate(request, {
@@ -460,6 +487,7 @@ export function ItineraryClient({
             items={preLoginBasketRef.current}
             showItemList={false}
             itemCount={previewItemCount}
+            travelSummary={null}
           />
         }
       >
@@ -474,6 +502,7 @@ export function ItineraryClient({
 
   if (phase.status === "preview" || phase.status === "saving") {
     const isSaving = phase.status === "saving";
+    const blockedByEmptyDay = hasEmptyDay(phase.data.days);
     return (
       <ItineraryResultLayout
         region={phase.data.region}
@@ -482,7 +511,7 @@ export function ItineraryClient({
           titleDraft === null ? (
             <>
               <Button
-                disabled={isSaving}
+                disabled={isSaving || blockedByEmptyDay}
                 onClick={() => setTitleDraft(phase.data.title)}
               >
                 저장
@@ -546,6 +575,7 @@ export function ItineraryClient({
               (sum, day) => sum + day.items.length,
               0,
             )}
+            travelSummary={sumDayTravel(phase.data.days)}
           />
         }
       >
@@ -553,6 +583,12 @@ export function ItineraryClient({
           <p className="text-sm text-destructive">
             {phase.error.message}
             {phase.error.traceId && ` (참고: ${phase.error.traceId})`}
+          </p>
+        )}
+        {blockedByEmptyDay && (
+          <p className="text-sm text-muted-foreground">
+            장소가 없는 날이 있어 저장할 수 없어요. 기간을 줄이거나 다시
+            생성해보세요.
           </p>
         )}
         <ItineraryResult data={phase.data} />

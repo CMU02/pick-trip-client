@@ -1,3 +1,4 @@
+import { formatDistanceKm, formatTravelMinutes } from "@/lib/itinerary";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { PRIORITY_LABELS } from "@/types/basket";
 import type { Region } from "@/types/region";
@@ -17,6 +18,12 @@ interface TripSummaryProps {
   // 생성 완료 후에는 로컬 바구니가 비워지므로(ItineraryClient), 결과 화면에서는
   // items.length 대신 실제 일정에 담긴 장소 수를 이 값으로 넘겨 표시한다.
   itemCount?: number;
+  // 백엔드 스케줄러가 내려준 일자별 이동값 합계. 호출부가 precompute해서 넘긴다
+  // (편집기 경로는 라이브 재계산이 필요해 TripSummary가 직접 안 계산한다).
+  travelSummary?: {
+    totalMinutes: number | null;
+    totalKm: number | null;
+  } | null;
 }
 
 const PRIORITY_ORDER: (BasketPriority | null)[] = [
@@ -34,8 +41,11 @@ export function TripSummary({
   items,
   showItemList = true,
   itemCount,
+  travelSummary,
 }: TripSummaryProps) {
   const displayCount = itemCount ?? items.length;
+  const travelDuration = formatTravelMinutes(travelSummary?.totalMinutes);
+  const travelDistance = formatDistanceKm(travelSummary?.totalKm);
   // 조건 없이 /itinerary로 직접 들어오면 startDate가 빈 문자열이라 "NaN월 NaN일"이
   // 되던 자리다. 조건 요약을 보여주는 /contents와 같은 문구로 맞춘다.
   const [, month, day] = startDate.split("-");
@@ -81,6 +91,22 @@ export function TripSummary({
                   {COMPANION_CONDITION_LABELS[c]}
                 </span>
               ))}
+            </dd>
+          </div>
+        )}
+        {travelDuration && (
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-muted-foreground">총 이동 시간</dt>
+            <dd className="text-right font-bold text-foreground">
+              {travelDuration}
+            </dd>
+          </div>
+        )}
+        {travelDistance && (
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-muted-foreground">총 이동 거리</dt>
+            <dd className="text-right font-bold text-foreground">
+              {travelDistance}
             </dd>
           </div>
         )}
