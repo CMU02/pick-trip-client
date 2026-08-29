@@ -4,12 +4,12 @@ import { ApiError } from "@/lib/errors";
 import type { Content } from "@/types/content";
 
 import {
-  distributePageSize,
   getContentFetchErrorMessage,
   groupContentsByCategory,
   mergeUniqueContents,
   sortContentsByCategory,
   splitBrLines,
+  splitPageSizeAcrossRegions,
 } from "./content";
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
@@ -82,22 +82,23 @@ describe("mergeUniqueContents", () => {
   });
 });
 
-describe("distributePageSize", () => {
+describe("splitPageSizeAcrossRegions", () => {
   it("지역이 1개면 페이지 크기를 그대로 준다", () => {
-    expect(distributePageSize(1, 20)).toBe(20);
+    expect(splitPageSizeAcrossRegions(20, 1)).toEqual([20]);
   });
 
-  it("지역이 여러 개면 나눠서 준다(합쳐서 대략 페이지 크기가 되도록)", () => {
-    expect(distributePageSize(3, 20)).toBe(7);
-    expect(distributePageSize(2, 20)).toBe(10);
+  it("나눠떨어지지 않으면 나머지를 앞 지역부터 1씩 더해 합계를 정확히 맞춘다", () => {
+    expect(splitPageSizeAcrossRegions(20, 3)).toEqual([7, 7, 6]);
+    expect(splitPageSizeAcrossRegions(20, 2)).toEqual([10, 10]);
+    expect(splitPageSizeAcrossRegions(10, 3)).toEqual([4, 3, 3]);
   });
 
-  it("결과가 0 이하로 내려가지 않는다", () => {
-    expect(distributePageSize(100, 20)).toBe(1);
+  it("각 지역 몫이 0으로 내려가지 않는다", () => {
+    expect(splitPageSizeAcrossRegions(2, 3)).toEqual([1, 1, 1]);
   });
 
-  it("지역 수가 0이어도 나누기 오류 없이 안전하게 처리한다", () => {
-    expect(distributePageSize(0, 20)).toBe(20);
+  it("지역 수가 0이면 빈 배열을 반환한다", () => {
+    expect(splitPageSizeAcrossRegions(20, 0)).toEqual([]);
   });
 });
 

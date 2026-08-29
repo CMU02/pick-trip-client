@@ -127,6 +127,34 @@ describe("getContents (apiClient 이관)", () => {
     );
   });
 
+  it("여러 지역이면 size를 지역별로 쪼개 요청해 한 페이지 합계를 size로 맞춘다", async () => {
+    mockGet
+      .mockResolvedValueOnce({ data: { totalCount: 0, items: [] } })
+      .mockResolvedValueOnce({ data: { totalCount: 0, items: [] } })
+      .mockResolvedValueOnce({ data: { totalCount: 0, items: [] } });
+
+    await getContents({
+      regions: ["HADONG", "YEONGJU", "YECHEON"],
+      startDate: "2026-08-01",
+      nights: 0,
+      page: 0,
+      size: 20,
+    });
+
+    expect(mockGet).toHaveBeenNthCalledWith(
+      1,
+      "/api/v1/contents?region=HADONG&startDate=2026-08-01&nights=0&page=0&size=7",
+    );
+    expect(mockGet).toHaveBeenNthCalledWith(
+      2,
+      "/api/v1/contents?region=YEONGJU&startDate=2026-08-01&nights=0&page=0&size=7",
+    );
+    expect(mockGet).toHaveBeenNthCalledWith(
+      3,
+      "/api/v1/contents?region=YECHEON&startDate=2026-08-01&nights=0&page=0&size=6",
+    );
+  });
+
   it("page/size가 없으면 쿼리에 포함하지 않는다(기존 동작 유지)", async () => {
     mockGet.mockResolvedValueOnce({ data: { totalCount: 0, items: [] } });
 

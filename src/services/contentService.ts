@@ -1,3 +1,4 @@
+import { splitPageSizeAcrossRegions } from "@/lib/content";
 import type {
   Content,
   ContentCategory,
@@ -48,11 +49,18 @@ function toContent(item: RawContentItem, region: Region): Content {
 }
 
 // 백엔드가 region을 한 번에 하나만 받으므로, 선택된 지역마다 따로 호출해 합친다.
+// size가 주어지면 지역별로 쪼개(splitPageSizeAcrossRegions) 한 페이지 합계가
+// 정확히 size가 되게 한다 — 모든 지역에 같은 size를 주면 size × 지역 수개가 온다.
 export async function getContents(
   params: GetContentsParams,
 ): Promise<ContentsResponse> {
+  const regionSizes =
+    params.size !== undefined
+      ? splitPageSizeAcrossRegions(params.size, params.regions.length)
+      : undefined;
+
   const responses = await Promise.all(
-    params.regions.map((region) => {
+    params.regions.map((region, i) => {
       const query = new URLSearchParams({
         region,
         startDate: params.startDate,
@@ -63,7 +71,7 @@ export async function getContents(
         query.set("companions", params.companions.join(","));
       }
       if (params.page !== undefined) query.set("page", String(params.page));
-      if (params.size !== undefined) query.set("size", String(params.size));
+      if (regionSizes) query.set("size", String(regionSizes[i]));
 
       return apiClient
         .get<RawContentsResponse>(`/api/v1/contents?${query.toString()}`)

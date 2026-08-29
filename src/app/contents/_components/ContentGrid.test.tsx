@@ -247,12 +247,12 @@ describe("ContentGrid", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
 
-    // 이 스위트의 기본 조건은 지역 2개(HADONG, YEONGJU)라, size는 20이
-    // 아니라 지역 수만큼 나눈 값(ceil(20/2)=10)이다.
+    // size는 항상 CONTENT_PAGE_SIZE(20)로 넘긴다 — getContents가 지역별로
+    // 쪼개므로 한 페이지 합계는 20으로 유지된다.
     expect(mockGetContents).toHaveBeenCalledWith({
       ...defaultQueryParams,
       page: 1,
-      size: 10,
+      size: 20,
     });
     await waitFor(() =>
       expect(screen.getByText("화개장터")).toBeInTheDocument(),
