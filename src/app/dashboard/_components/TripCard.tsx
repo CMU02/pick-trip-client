@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
-import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
 import { ShareButton } from "@/app/itinerary/_components/ShareButton";
 import {
   DropdownMenu,
@@ -11,22 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
-import { useAuth } from "@/hooks/useAuth";
-import { parseApiError } from "@/lib/errors";
 import { formatDuration } from "@/lib/itinerary";
-import { getItinerary } from "@/services/itineraryService";
-import type {
-  ItineraryResponse,
-  SavedItinerarySummary,
-} from "@/types/itinerary";
+import type { SavedItinerarySummary } from "@/types/itinerary";
 import { REGION_LABELS } from "@/types/region";
-
-type Panel = "none" | "detail" | "share";
-
-type DetailState =
-  | { status: "loading" }
-  | { status: "loaded"; data: ItineraryResponse }
-  | { status: "error"; message: string };
 
 interface TripCardProps {
   item: SavedItinerarySummary;
@@ -34,36 +21,7 @@ interface TripCardProps {
 }
 
 export function TripCard({ item, onRemove }: TripCardProps) {
-  const { runAuthed } = useAuth();
-  const [panel, setPanel] = useState<Panel>("none");
-  const [detail, setDetail] = useState<DetailState | null>(null);
-
-  async function fetchDetail() {
-    setDetail({ status: "loading" });
-    try {
-      const data = await runAuthed((token) =>
-        getItinerary(item.itineraryId, token),
-      );
-      setDetail({ status: "loaded", data });
-    } catch (err) {
-      setDetail({ status: "error", message: parseApiError(err).message });
-    }
-  }
-
-  function handleToggleDetail() {
-    if (panel === "detail") {
-      setPanel("none");
-      return;
-    }
-    setPanel("detail");
-    if (!detail || detail.status === "error") {
-      fetchDetail();
-    }
-  }
-
-  function handleToggleShare() {
-    setPanel((prev) => (prev === "share" ? "none" : "share"));
-  }
+  const [shareOpen, setShareOpen] = useState(false);
 
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:shadow-md">
@@ -90,10 +48,11 @@ export function TripCard({ item, onRemove }: TripCardProps) {
             <Icon name="more" size={18} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={handleToggleDetail}>
-              상세보기
+            {/* 상세는 그 자리에서 펼치지 않고 "내 여행" 페이지로 이동한다. */}
+            <DropdownMenuItem asChild>
+              <Link href="/itineraries">상세보기</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleToggleShare}>
+            <DropdownMenuItem onSelect={() => setShareOpen((v) => !v)}>
               공유하기
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -120,32 +79,9 @@ export function TripCard({ item, onRemove }: TripCardProps) {
         <span aria-hidden="true">→</span>
       </div>
 
-      {panel === "share" && (
+      {shareOpen && (
         <div className="mt-4 border-t border-border pt-4">
           <ShareButton itineraryId={item.itineraryId} />
-        </div>
-      )}
-
-      {panel === "detail" && (
-        <div className="mt-4 border-t border-border pt-4">
-          {detail?.status === "loading" && (
-            <p className="text-sm text-muted-foreground">불러오는 중...</p>
-          )}
-          {detail?.status === "error" && (
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-destructive">{detail.message}</p>
-              <button
-                type="button"
-                className="text-sm underline"
-                onClick={fetchDetail}
-              >
-                다시 시도
-              </button>
-            </div>
-          )}
-          {detail?.status === "loaded" && (
-            <ItineraryResult data={detail.data} />
-          )}
         </div>
       )}
     </div>

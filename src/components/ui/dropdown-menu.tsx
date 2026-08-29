@@ -8,7 +8,17 @@ import { cn } from "@/lib/utils";
 function DropdownMenu(
   props: React.ComponentProps<typeof DropdownMenuPrimitive.Root>,
 ) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
+  // modal={false}: 메뉴가 열려도 body 스크롤을 잠그지 않는다. 기본값(modal)은
+  // react-remove-scroll이 body에 padding-right을 더해 스크롤바 폭만큼 콘텐츠를
+  // 밀었다가 닫힐 때 되돌려 화면이 좌우로 흔들린다(scrollbar-gutter와 겹침).
+  // 케밥/사용자 메뉴는 포커스 트랩·스크롤 잠금이 필요 없다. 필요하면 개별 사용처에서 modal 재지정.
+  return (
+    <DropdownMenuPrimitive.Root
+      data-slot="dropdown-menu"
+      modal={false}
+      {...props}
+    />
+  );
 }
 
 function DropdownMenuTrigger(
