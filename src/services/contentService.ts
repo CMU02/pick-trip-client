@@ -1,4 +1,9 @@
 import { splitPageSizeAcrossRegions } from "@/lib/content";
+import {
+  CONTENT_IMAGE_OVERRIDES,
+  overrideContentImage,
+  overrideContentName,
+} from "@/lib/contentOverrides";
 import type {
   Content,
   ContentCategory,
@@ -38,10 +43,10 @@ interface RawContentsResponse {
 function toContent(item: RawContentItem, region: Region): Content {
   return {
     id: item.contentId,
-    name: item.title,
+    name: overrideContentName(item.contentId, item.title),
     region,
     category: item.category,
-    imageUrl: item.firstImage || null,
+    imageUrl: overrideContentImage(item.contentId, item.firstImage || null),
     address: item.address,
     summary: item.summary ?? undefined,
     indoor: item.indoor,
@@ -112,12 +117,16 @@ function toParkingAvailable(parking: string | null): boolean | null {
 
 function toContentDetail(raw: RawContentDetail): ContentDetail {
   const images = raw.images.map((i) => i.imageUrl);
+  // 이미지 오버라이드가 있으면 대표 이미지로 쓰고(카드와 통일), 원본 갤러리는
+  // 중복만 빼고 뒤에 붙인다. 없으면 기존대로 images[0]를 대표로 쓴다.
+  const override = CONTENT_IMAGE_OVERRIDES[raw.contentId];
+  const imageUrl = override ?? images[0] ?? null;
   return {
     id: raw.contentId,
-    name: raw.title,
+    name: overrideContentName(raw.contentId, raw.title),
     region: raw.region,
     category: raw.category,
-    imageUrl: images[0] ?? null,
+    imageUrl,
     address: raw.address,
     summary: raw.summary,
     indoor: raw.indoor,
@@ -128,7 +137,9 @@ function toContentDetail(raw: RawContentDetail): ContentDetail {
     reservationRequired: raw.reservationRequired,
     dataSource: raw.dataSource,
     // ContentDetailView가 [imageUrl, ...imageUrls]로 갤러리를 합치므로 중복을 피해 나머지만 담는다.
-    imageUrls: images.slice(1),
+    imageUrls: override
+      ? images.filter((url) => url !== imageUrl)
+      : images.slice(1),
   };
 }
 
