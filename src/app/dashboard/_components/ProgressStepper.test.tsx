@@ -54,13 +54,13 @@ describe("ProgressStepper", () => {
     render(<ProgressStepper />);
 
     expect(
-      screen.getByRole("listitem", { name: "지역 선택: 진행중" }),
+      screen.getByRole("listitem", { name: "여행 조건: 진행중" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("listitem", { name: "콘텐츠 담기: 예정" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("listitem", { name: "일정 완성: 예정" }),
+      screen.getByRole("listitem", { name: "AI 일정 생성: 예정" }),
     ).toBeInTheDocument();
   });
 
@@ -69,13 +69,13 @@ describe("ProgressStepper", () => {
     render(<ProgressStepper />);
 
     expect(
-      screen.getByRole("listitem", { name: "지역 선택: 완료" }),
+      screen.getByRole("listitem", { name: "여행 조건: 완료" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("listitem", { name: "콘텐츠 담기: 진행중" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("listitem", { name: "일정 완성: 예정" }),
+      screen.getByRole("listitem", { name: "AI 일정 생성: 예정" }),
     ).toBeInTheDocument();
   });
 
@@ -84,13 +84,13 @@ describe("ProgressStepper", () => {
     render(<ProgressStepper />);
 
     expect(
-      screen.getByRole("listitem", { name: "지역 선택: 완료" }),
+      screen.getByRole("listitem", { name: "여행 조건: 완료" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("listitem", { name: "콘텐츠 담기: 완료" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("listitem", { name: "일정 완성: 진행중" }),
+      screen.getByRole("listitem", { name: "AI 일정 생성: 진행중" }),
     ).toBeInTheDocument();
   });
 
@@ -100,13 +100,13 @@ describe("ProgressStepper", () => {
     render(<ProgressStepper />);
 
     expect(
-      screen.getByRole("listitem", { name: "지역 선택: 완료" }),
+      screen.getByRole("listitem", { name: "여행 조건: 완료" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("listitem", { name: "콘텐츠 담기: 완료" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("listitem", { name: "일정 완성: 완료" }),
+      screen.getByRole("listitem", { name: "AI 일정 생성: 완료" }),
     ).toBeInTheDocument();
   });
 });
