@@ -11,7 +11,9 @@ describe("RegionShowcase", () => {
     expect(screen.getByText("영주")).toBeInTheDocument();
     expect(screen.getByText("예천")).toBeInTheDocument();
     expect(
-      screen.getByText("차와 강이 있는 조용한 가족 여행"),
+      screen.getByText(
+        "천년 야생차의 향기와 맑은 강물이 어우러진 휴식과 힐링의 공간.",
+      ),
     ).toBeInTheDocument();
   });
 
