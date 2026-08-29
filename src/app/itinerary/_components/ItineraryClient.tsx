@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useItineraryEditor } from "@/hooks/useItineraryEditor";
+import { useItineraryMapData } from "@/hooks/useItineraryMapData";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
 import {
@@ -19,6 +20,7 @@ import {
   sumDayTravel,
   toSaveDays,
 } from "@/lib/itinerary";
+import { toSnapshot } from "@/lib/itineraryMapSnapshot";
 import {
   addBasketItem,
   getBasket,
@@ -26,9 +28,11 @@ import {
   updateBasketConditions,
 } from "@/services/basketService";
 import { generateItinerary, saveItinerary } from "@/services/itineraryService";
+import { useItineraryMapSnapshotStore } from "@/stores/itineraryMapSnapshotStore";
 import type { BasketItem } from "@/types/basket";
 import { BASKET_PRIORITY_TO_SERVER } from "@/types/basket";
 import type {
+  Day,
   ItineraryGenerateResponse,
   ItineraryResponse,
   SaveItineraryRequest,
@@ -43,6 +47,10 @@ import { ItineraryResult } from "./ItineraryResult";
 import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
 import { TripSummary } from "./TripSummary";
+
+// useItineraryMapData 를 조건부로 부를 수 없어(hooks 규칙), 지도 대상이 아닌
+// 단계에서 넘길 안정된 빈 배열.
+const EMPTY_DAYS: Day[] = [];
 
 // 핸드오프 스펙(9번 "일정 결과")의 "STEP 4 · 일정 완성" 헤더 +
 // 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
@@ -275,7 +283,18 @@ export function ItineraryClient({
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
   const { items, clear: clearBasket, save: saveBasket } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
+  const setMapSnapshot = useItineraryMapSnapshotStore((s) => s.set);
   const { runAuthed } = useAuth();
+
+  // 미리보기 단계의 일정으로 지도 데이터(좌표·경로)를 해석한다. 결과 화면에
+  // 넘겨 지도를 그리고, 저장 시 그 시점 상태를 스냅샷으로 남긴다.
+  const previewDays: Day[] =
+    phase.status === "preview" ||
+    phase.status === "saving" ||
+    phase.status === "loginPreview"
+      ? phase.data.days
+      : EMPTY_DAYS;
+  const mapData = useItineraryMapData(previewDays);
 
   // 로그인 전 미리보기로 전환하며 비운 바구니의 스냅샷. "로그인하고 계속하기"나
   // "다시 생성"으로 흐름을 이어갈 때만 복원하고, 그냥 페이지를 벗어나면
@@ -431,6 +450,10 @@ export function ItineraryClient({
           duration: saved.duration,
           savedAt: Date.now(),
         });
+        // 저장 시점 지도 상태(좌표·경로)를 스냅샷으로 남긴다 — 저장한 일정을
+        // 다시 볼 때 재조회 없이 지도를 그린다. 아직 해석 중이던 날은 스냅샷에서
+        // 빠지고 조회 시 라이브 폴백된다.
+        setMapSnapshot(saved.itineraryId, toSnapshot(mapData));
         setTitleDraft(null);
         setPhase({ status: "saved", data: saved });
       },
@@ -495,7 +518,7 @@ export function ItineraryClient({
           이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로 저장할 수
           있어요.
         </p>
-        <ItineraryResult data={phase.data} />
+        <ItineraryResult data={phase.data} mapData={mapData} />
       </ItineraryResultLayout>
     );
   }
@@ -591,7 +614,7 @@ export function ItineraryClient({
             생성해보세요.
           </p>
         )}
-        <ItineraryResult data={phase.data} />
+        <ItineraryResult data={phase.data} mapData={mapData} />
       </ItineraryResultLayout>
     );
   }
