@@ -9,9 +9,9 @@ export const REGION_LABELS: Record<Region, string> = {
 };
 
 export const REGION_DESCRIPTIONS: Record<Region, string> = {
-  HADONG: "차와 강이 있는 조용한 가족 여행",
-  YEONGJU: "아이와 함께 배우는 역사·문화 여행",
-  YECHEON: "체험과 자연을 함께 즐기는 조용한 가족 여행",
+  HADONG: "천년 야생차의 향기와 맑은 강물이 어우러진 휴식과 힐링의 공간.",
+  YEONGJU: "소백산 노을과 천년 고찰 부석사의 고즈넉함이 머무는 선비의 고장.",
+  YECHEON: "강과 산이 어우러져 첫눈에 반하게 되는 숨은 보석 같은 공간.",
 };
 
 export const ALL_REGIONS_QUERY = REGIONS.join(",");
