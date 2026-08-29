@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { ALL_REGIONS_QUERY } from "@/types/region";
 
 // 매 요청마다 TourAPI를 3지역씩 호출해 실제 총 개수를 세던 방식은 API
-// 호출량이 너무 커서 정적 값으로 바꿨다. 값은 백엔드 areaBasedList의
-// totalCount 합이라 TourAPI 카탈로그가 바뀌면 조금씩 흔들린다
-// (2026-08-16: 228 → 08-25: 226 → 08-27: 하동 103 + 영주 68 + 예천 51 = 222).
+// 호출량이 너무 커서 정적 값으로 바꿨다. 값은 백엔드 /api/v1/contents의
+// 지역별 totalCount 합이라 TourAPI 카탈로그가 바뀌면 조금씩 흔들린다
+// (2026-08-16: 228 → 08-25: 226 → 08-27: 222 → 08-29: 하동 102 + 영주 68 + 예천 51 = 221).
 // 크게 벌어지면 이 숫자만 수동으로 갱신한다.
-const CONTENT_COUNT = 222;
+const CONTENT_COUNT = 221;
 
 // 지역마다 다른 색으로 구분하지 않고 코랄 톤으로 통일한다.
 function stripeBackground() {
