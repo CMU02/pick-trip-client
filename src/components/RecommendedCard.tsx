@@ -19,7 +19,9 @@ interface RecommendedCardProps {
 export function RecommendedCard({ content, detailHref }: RecommendedCardProps) {
   const body = (
     <>
-      <div className="relative aspect-[4/3] bg-muted">
+      {/* 추천·바구니·찜 목록의 보조 카드라 목록이 너무 길어지지 않게 썸네일은
+          이전 고정 높이를 유지한다(브라우즈 그리드 카드는 aspect-[4/3]). */}
+      <div className="relative h-[140px] bg-muted">
         <ContentImage
           src={content.imageUrl}
           alt={content.name}
