@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { distributePageSize, getContentFetchErrorMessage } from "@/lib/content";
+import { CONTENT_PAGE_SIZE, getContentFetchErrorMessage } from "@/lib/content";
 import { SITE_URL } from "@/lib/site";
 import { getContents } from "@/services/contentService";
 import { REGIONS } from "@/types/region";
@@ -23,12 +23,11 @@ export default async function ExplorePage() {
   let error: string | null = null;
 
   try {
-    // getContents는 지역마다 같은 size로 fan-out 하므로, size를 그대로
-    // 두면 첫 화면부터 20개가 아니라 20개 × 지역 수(3지역이면 60개)가
-    // 온다. 지역 수만큼 나눠 요청해 첫 페이지도 대략 20개로 맞춘다.
+    // getContents가 size를 지역별로 쪼개 fan-out 하므로, 첫 화면은 정확히
+    // CONTENT_PAGE_SIZE(20)개가 온다(3지역이면 7+7+6).
     const res = await getContents({
       ...queryParams,
-      size: distributePageSize(queryParams.regions.length),
+      size: CONTENT_PAGE_SIZE,
     });
     contents = res.contents;
     total = res.total;

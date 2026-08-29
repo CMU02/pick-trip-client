@@ -12,14 +12,20 @@ export const CONTENT_PAGE_SIZE = 20;
 
 // /api/v1/contents는 지역마다 같은 size로 fan-out 해서 응답을 합친다
 // (contentService.getContents 참고). 지역을 여러 개 한꺼번에 조회할 때
-// size를 그대로 두면 한 번에 pageSize × 지역 수개가 온다 — "전체" 탭에서
-// 더보기 한 번에 60개(20개 × 3지역)가 늘어나는 원인이 이거다. 지역 수만큼
-// size를 나눠 요청하면 합계가 대략 pageSize에 맞게 유지된다.
-export function distributePageSize(
+// 모든 지역에 size를 그대로 주면 한 번에 size × 지역 수개가 온다 — "전체"
+// 탭에서 더보기 한 번에 60개(20개 × 3지역)가 늘어나던 원인이 이거다.
+// size를 지역별로 쪼개(나머지는 앞 지역부터 1씩) 합계가 정확히 size가 되게
+// 한다. 예: size 20, 3지역 → [7, 7, 6]. 지역이 1개면 [size] 그대로.
+export function splitPageSizeAcrossRegions(
+  size: number,
   regionCount: number,
-  pageSize: number = CONTENT_PAGE_SIZE,
-): number {
-  return Math.max(1, Math.ceil(pageSize / Math.max(1, regionCount)));
+): number[] {
+  if (regionCount <= 0) return [];
+  const base = Math.floor(size / regionCount);
+  const remainder = size % regionCount;
+  return Array.from({ length: regionCount }, (_, i) =>
+    Math.max(1, base + (i < remainder ? 1 : 0)),
+  );
 }
 
 export interface ContentGroup {
