@@ -2,7 +2,7 @@
 
 ## Context
 
-사용자가 `.env.local`에 `NEXT_PUBLIC_KAKAO_MAP_API_KEY`(Kakao JS 키)를 추가했다. 이 키로 **일정 결과 화면에 지도**를 붙여, 생성된 일정의 각 콘텐츠 위치와 콘텐츠 간 이동 거리·경로를 눈으로 파악하게 하려는 것이 목표다. 저장한 일정을 다시 볼 때도 지도가 함께 보여야 하고, 공개 공유 페이지(`/share/[id]`)에도 지도가 나와야 한다.
+사용자가 `.env.local`에 `NEXT_PUBLIC_KAKAO_JS_KEY`(Kakao JS 키)를 추가했다. 이 키로 **일정 결과 화면에 지도**를 붙여, 생성된 일정의 각 콘텐츠 위치와 콘텐츠 간 이동 거리·경로를 눈으로 파악하게 하려는 것이 목표다. 저장한 일정을 다시 볼 때도 지도가 함께 보여야 하고, 공개 공유 페이지(`/share/[id]`)에도 지도가 나와야 한다.
 
 현재 상태에서 확인된 제약:
 
@@ -61,7 +61,7 @@ ItineraryMapData ──► <ItineraryResult mapData?> ──► <ItineraryMap va
 |---|---|
 | `src/types/map.ts` | `LatLng`, `RoutePoint`, `RouteResult`, `ItineraryMapDay`, `ItineraryMapData`, `ItineraryMapSnapshot`, 요청/응답 body 타입 |
 | `src/types/kakao.d.ts` | 우리가 쓰는 것만 담은 최소 `kakao.maps` 전역 선언 (~40줄) |
-| `src/lib/kakaoMap.ts` | `KAKAO_MAP_JS_KEY` 상수 (`src/lib/site.ts` 패턴) |
+| `src/lib/kakaoMap.ts` | `KAKAO_JS_KEY` 상수 (`src/lib/site.ts` 패턴) |
 | `src/lib/kakaoMapLoader.ts` | SDK 모듈 싱글턴 로더 — `loadKakaoMaps(): Promise<void>`, `autoload=false` + `kakao.maps.load` |
 | `src/lib/geo.ts` | `isValidKoreaCoord`(0/0·해외·NaN 거부), `toLatLng`, `haversineKm` — 순수, 단위테스트 |
 | `src/lib/kakaoDirections.ts` | `server-only`. `fetchKakaoDirections(points)` + 순수 `normalizeKakaoDirections(raw)`. 웨이포인트 ~30개 초과 시 chunk-and-stitch. Route Handler·공유 페이지 SSR 양쪽에서 사용 |
@@ -124,7 +124,7 @@ Kakao는 `x`=경도 `y`=위도. `POST /v1/waypoints/directions` (단건 GET은 �
 `handleSave.onSuccess` 클로저의 `mapData`가 저장 시점 해석 상태 → `toSnapshot`. 아직 로딩 중인 일차는 `route:null`/빈 points로 저장되고, 조회 시 그 일차만 라이브 폴백. `SavedItinerariesList`에서 "지우기" 시 스냅샷도 purge, hydrate 시 저장목록에 없는 orphan prune.
 
 ### 공유 페이지 SSR
-`getContentById`는 서버에서 `apiClient` 서버 브랜치로 백엔드 직접 호출(`@Cacheable`). `fetchKakaoDirections`는 `fetch` `next: { revalidate: 86400 }`. `mapData`는 순수 JSON이라 `"use client"` `ItineraryMap`에 그대로 전달. `NEXT_PUBLIC_KAKAO_MAP_API_KEY`는 모든 라우트 클라 번들에 인라인되므로 `/share/*`에서도 사용 가능.
+`getContentById`는 서버에서 `apiClient` 서버 브랜치로 백엔드 직접 호출(`@Cacheable`). `fetchKakaoDirections`는 `fetch` `next: { revalidate: 86400 }`. `mapData`는 순수 JSON이라 `"use client"` `ItineraryMap`에 그대로 전달. `NEXT_PUBLIC_KAKAO_JS_KEY`는 모든 라우트 클라 번들에 인라인되므로 `/share/*`에서도 사용 가능.
 
 ---
 

@@ -1,4 +1,4 @@
-import { KAKAO_MAP_JS_KEY } from "./kakaoMap";
+import { KAKAO_JS_KEY } from "./kakaoMap";
 
 // Kakao Maps SDK 를 한 번만 로드하는 모듈 싱글턴. 한 화면에 지도 인스턴스가
 // 여러 개(전체 지도 + 일차별 지도)라 로드를 공유해야 한다. next/script 대신
@@ -15,8 +15,8 @@ export function loadKakaoMaps(): Promise<void> {
       reject(new Error("loadKakaoMaps must run in the browser"));
       return;
     }
-    if (!KAKAO_MAP_JS_KEY) {
-      reject(new Error("NEXT_PUBLIC_KAKAO_MAP_API_KEY is not set"));
+    if (!KAKAO_JS_KEY) {
+      reject(new Error("NEXT_PUBLIC_KAKAO_JS_KEY is not set"));
       return;
     }
 
@@ -38,7 +38,7 @@ export function loadKakaoMaps(): Promise<void> {
       script = document.createElement("script");
       script.id = SCRIPT_ID;
       script.async = true;
-      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_JS_KEY}&autoload=false`;
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
       document.head.appendChild(script);
     }
 
