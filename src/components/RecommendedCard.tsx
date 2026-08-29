@@ -19,7 +19,7 @@ interface RecommendedCardProps {
 export function RecommendedCard({ content, detailHref }: RecommendedCardProps) {
   const body = (
     <>
-      <div className="relative h-[140px] bg-muted">
+      <div className="relative aspect-[4/3] bg-muted">
         <ContentImage
           src={content.imageUrl}
           alt={content.name}
