@@ -46,7 +46,7 @@ export interface ContentGroup {
 
 const UNCATEGORIZED_LABEL = "기타";
 
-// CONTENT_CATEGORIES 순서대로 묶고, category가 없는 콘텐츠는 마지막에 "기타"로 모은다.
+// CONTENT_CATEGORY_ORDER대로 묶고, category가 없는 콘텐츠는 마지막에 "기타"로 모은다.
 export function groupContentsByCategory(contents: Content[]): ContentGroup[] {
   const groups: ContentGroup[] = CONTENT_CATEGORIES.map((category) => ({
     key: category,
@@ -67,7 +67,7 @@ export function groupContentsByCategory(contents: Content[]): ContentGroup[] {
 }
 
 // 여러 카테고리를 동시에 선택했을 때 화면에서 뒤섞이지 않도록,
-// CONTENT_CATEGORIES 선언 순서로 정렬한다(같은 카테고리 안에서는 원래 순서를
+// CONTENT_CATEGORY_ORDER대로 정렬한다(같은 카테고리 안에서는 원래 순서를
 // 유지하는 안정 정렬). category가 없는 항목은 맨 뒤로 보낸다.
 export function sortContentsByCategory(contents: Content[]): Content[] {
   return [...contents].sort(

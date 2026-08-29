@@ -29,7 +29,7 @@ describe("groupContentsByCategory", () => {
     expect(groupContentsByCategory([])).toEqual([]);
   });
 
-  it("CONTENT_CATEGORIES 선언 순서대로 그룹을 반환한다", () => {
+  it("CONTENT_CATEGORY_ORDER대로 그룹을 반환한다", () => {
     const contents = [
       makeContent({ id: "1", category: "CULTURE" }),
       makeContent({ id: "2", category: "FOOD" }),
@@ -120,7 +120,7 @@ describe("splitBrLines", () => {
 });
 
 describe("sortContentsByCategory", () => {
-  it("CONTENT_CATEGORIES 선언 순서로 정렬한다", () => {
+  it("CONTENT_CATEGORY_ORDER대로 정렬한다", () => {
     const contents = [
       makeContent({ id: "1", category: "NATURE" }),
       makeContent({ id: "2", category: "FOOD" }),
