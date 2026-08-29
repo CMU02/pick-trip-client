@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { ContentFilter } from "@/components/ContentFilter";
@@ -11,8 +12,10 @@ import {
 import { CONTENT_PAGE_SIZE, sortContentsByCategory } from "@/lib/content";
 import {
   CATEGORY_LABELS,
+  CONTENT_CATEGORIES,
   type Content,
   type ContentCategory,
+  categoryCountFor,
 } from "@/types/content";
 import { REGION_LABELS, REGIONS, type Region } from "@/types/region";
 
@@ -36,11 +39,50 @@ export function ContentBrowser({
 }: ContentBrowserProps) {
   const allowedRegions = REGIONS.filter((r) => queryParams.regions.includes(r));
 
-  const [selectedRegion, setSelectedRegion] = useState<Region | "ALL">("ALL");
+  // 지역 탭·카테고리·검색어를 URL 쿼리(?region=&cat=&q=)에 실어, 상세 화면에
+  // 들어갔다 "목록으로"로 돌아와도(뒤로가기) 필터가 그대로 살아나게 한다.
+  // 페이지 자체 조건(?regions=&startDate= 등)과 겹치지 않게 region은 단수로 쓴다.
+  const searchParams = useSearchParams();
+
+  const [selectedRegion, setSelectedRegion] = useState<Region | "ALL">(() => {
+    const r = searchParams.get("region") as Region | null;
+    return r && allowedRegions.includes(r) ? r : "ALL";
+  });
   const [selectedCategories, setSelectedCategories] = useState<
     ContentCategory[]
-  >([]);
-  const [keyword, setKeyword] = useState("");
+  >(() => {
+    const raw = searchParams.get("cat");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .filter((c): c is ContentCategory =>
+        CONTENT_CATEGORIES.includes(c as ContentCategory),
+      );
+  });
+  const [keyword, setKeyword] = useState(() => searchParams.get("q") ?? "");
+
+  // 필터 state → URL. router.replace 대신 history.replaceState를 쓰면 Next가
+  // 서버 컴포넌트를 다시 부르지 않고(재fetch 없음) URL만 갱신하며, useSearchParams는
+  // 그대로 최신값을 반영한다. 히스토리 엔트리도 안 쌓인다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: searchParams는 다른 페이지 조건 파라미터를 보존하려 읽기만 하고, 재작성 트리거는 아래 3개 state뿐이다
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedRegion === "ALL") params.delete("region");
+    else params.set("region", selectedRegion);
+    if (selectedCategories.length === 0) params.delete("cat");
+    else params.set("cat", selectedCategories.join(","));
+    const kw = keyword.trim();
+    if (kw === "") params.delete("q");
+    else params.set("q", kw);
+
+    const next = params.toString();
+    if (next === searchParams.toString()) return;
+    window.history.replaceState(
+      null,
+      "",
+      next ? `?${next}` : window.location.pathname,
+    );
+  }, [selectedRegion, selectedCategories, keyword]);
 
   const isInitial = selectedRegion === "ALL";
   const effectiveRegions = isInitial ? allowedRegions : [selectedRegion];
@@ -115,6 +157,14 @@ export function ContentBrowser({
     ? filtered.slice(0, visibleCount)
     : filtered;
 
+  // 카테고리만 걸렸을 때(검색어 없음)는 백엔드에 category 파라미터가 없어
+  // "이 카테고리 전체 N개"를 실시간으로 셀 수 없다. 대신 지역×카테고리 정적
+  // 실측치(categoryCountFor)를 총계로 쓰고, 화면에 펼쳐 보여준 수를 함께 보여준다.
+  const categoryTotal =
+    selectedCategories.length > 0 && q === ""
+      ? categoryCountFor(selectedCategories, effectiveRegions)
+      : null;
+
   function resetFilters() {
     setSelectedRegion("ALL");
     setSelectedCategories([]);
@@ -137,6 +187,8 @@ export function ContentBrowser({
         total={total}
         loadedCount={loadedContents.length}
         filteredCount={filtered.length}
+        shownCount={visibleFiltered.length}
+        categoryTotal={categoryTotal}
         hasClientFilter={hasClientFilter}
         selectedRegion={selectedRegion}
         selectedCategories={selectedCategories}
@@ -201,6 +253,8 @@ function ResultHeader({
   total,
   loadedCount,
   filteredCount,
+  shownCount,
+  categoryTotal,
   hasClientFilter,
   selectedRegion,
   selectedCategories,
@@ -213,6 +267,8 @@ function ResultHeader({
   total: number;
   loadedCount: number;
   filteredCount: number;
+  shownCount: number;
+  categoryTotal: number | null;
   hasClientFilter: boolean;
   selectedRegion: Region | "ALL";
   selectedCategories: ContentCategory[];
@@ -227,13 +283,16 @@ function ResultHeader({
     selectedCategories.length > 0 ||
     keyword.trim() !== "";
 
+  const summary =
+    categoryTotal !== null
+      ? `${selectedCategories.map((c) => CATEGORY_LABELS[c]).join("·")} ${categoryTotal}개 중 ${shownCount}개 표시 중`
+      : hasClientFilter
+        ? `불러온 ${loadedCount}개 중 ${filteredCount}개`
+        : `${total}개 결과`;
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-bold">
-        {hasClientFilter
-          ? `불러온 ${loadedCount}개 중 ${filteredCount}개`
-          : `${total}개 결과`}
-      </span>
+      <span className="text-sm font-bold">{summary}</span>
 
       {selectedRegion !== "ALL" && (
         <FilterPill

@@ -33,6 +33,56 @@ export const CONTENT_CATEGORIES = Object.keys(
   CATEGORY_LABELS,
 ) as ContentCategory[];
 
+// 지역 × 카테고리 콘텐츠 수. 백엔드 /api/v1/contents를 지역별로 끝까지
+// 페이지네이션하며 아이템 category 필드를 직접 집계한 2026-08-29 실측치.
+// 카테고리는 백엔드가 클라이언트 필터가 없어 목록 헤더에서 "이 카테고리 전체
+// N개" 문구를 동적으로 못 만든다 — 홈 히어로 CONTENT_COUNT·QuickCategoryRow와
+// 같은 성격의 정적 값이다. TourAPI 카탈로그 변동으로 흔들리면 수동 갱신한다.
+// 합계 221 (하동 102 + 영주 68 + 예천 51).
+export const CATEGORY_COUNT_BY_REGION: Record<
+  Region,
+  Record<ContentCategory, number>
+> = {
+  HADONG: {
+    FOOD: 27,
+    FESTIVAL: 2,
+    ATTRACTION: 5,
+    CULTURE: 27,
+    NATURE: 19,
+    EXPERIENCE: 22,
+  },
+  YEONGJU: {
+    FOOD: 20,
+    FESTIVAL: 0,
+    ATTRACTION: 13,
+    CULTURE: 23,
+    NATURE: 6,
+    EXPERIENCE: 6,
+  },
+  YECHEON: {
+    FOOD: 6,
+    FESTIVAL: 0,
+    ATTRACTION: 6,
+    CULTURE: 26,
+    NATURE: 8,
+    EXPERIENCE: 5,
+  },
+};
+
+/** 선택한 지역들에서 선택한 카테고리들의 정적 콘텐츠 수 합. */
+export function categoryCountFor(
+  categories: ContentCategory[],
+  regions: Region[],
+): number {
+  let sum = 0;
+  for (const region of regions) {
+    for (const category of categories) {
+      sum += CATEGORY_COUNT_BY_REGION[region]?.[category] ?? 0;
+    }
+  }
+  return sum;
+}
+
 // 카테고리별 배지 색상 (참고 디자인의 카테고리 컬러 매핑을 6개 카테고리로 확장)
 export const CATEGORY_BADGE_CLASSES: Record<ContentCategory, string> = {
   FOOD: "bg-amber-50 text-amber-700",
