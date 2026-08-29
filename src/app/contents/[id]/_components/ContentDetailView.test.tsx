@@ -43,6 +43,7 @@ const stub: ContentDetail = {
 
 describe("ContentDetailView", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     localStorage.clear();
     mockBack.mockClear();
     mockPush.mockClear();
@@ -130,21 +131,33 @@ describe("ContentDetailView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("backHref가 없으면 '← 목록으로' 클릭 시 router.back을 호출한다", async () => {
-    render(<ContentDetailView content={stub} />);
+  it("앱 내 히스토리가 있으면 '목록으로'가 router.back으로 직전 화면에 복귀한다", async () => {
+    vi.spyOn(window.history, "length", "get").mockReturnValue(3);
+    render(<ContentDetailView content={stub} backHref="/explore" />);
 
     await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
 
     expect(mockBack).toHaveBeenCalledOnce();
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("backHref가 주어지면 '← 목록으로'가 해당 경로로 이동하는 링크다", () => {
+  it("직접 진입(히스토리 없음)이면 '목록으로'가 backHref 경로로 이동한다", async () => {
+    vi.spyOn(window.history, "length", "get").mockReturnValue(1);
     render(<ContentDetailView content={stub} backHref="/explore" />);
 
-    expect(screen.getByRole("link", { name: /목록으로/ })).toHaveAttribute(
-      "href",
-      "/explore",
-    );
+    await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
+
+    expect(mockPush).toHaveBeenCalledWith("/explore");
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("backHref가 없고 히스토리도 없으면 /contents로 이동한다", async () => {
+    vi.spyOn(window.history, "length", "get").mockReturnValue(1);
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
+
+    expect(mockPush).toHaveBeenCalledWith("/contents");
   });
 
   it("찜 버튼을 렌더하고 클릭하면 찜 상태가 토글된다", async () => {
