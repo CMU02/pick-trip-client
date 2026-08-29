@@ -132,3 +132,56 @@ window.open(url, "_blank", "noopener,noreferrer");
 - `showBasketAction={false}`면 담기/찜 버튼이 없다 (기존 테스트 유지)
 
 `ContentMap` 테스트는 `ItineraryMap.test.tsx`의 kakao 전역 목(mock)을 재사용한다.
+
+---
+
+## 진행 상황 (2026-08-30) — 이어서 작업할 사람용
+
+브랜치 `feat/5`, 이슈 #5, PR #6. `origin/feat/5`에 전부 push 완료. `main` 미머지.
+
+### 완료
+
+- **§1 2열 레이아웃** — `ContentDetailView.tsx` 개편 완료 (커밋 `02bd76e`). `max-w-[1120px]`,
+  `lg`+ `grid-cols-[minmax(0,1fr)_360px]` gap 34px, `<aside class="self-stretch">` + 안쪽
+  `lg:sticky lg:top-6`. 왼쪽(사진/제목 34px/개요 `[text-wrap:pretty]`/InfoRow), 오른쪽 패널
+  (`rounded-[20px] border`). 상단 우측 찜/담기 쌍 제거 → 패널 이관. `showBasketAction===false`면
+  담기/찜만 숨김.
+- **§2 ContentMap.tsx 신규** (커밋 `02bd76e`) — `useKakaoMap` + `ItineraryMap` 패턴, `CustomOverlay`
+  마커 1개, 우상단 커스텀 확대/축소(`getLevel ± 1`), 상태 문구 `ItineraryMap`과 동일,
+  `data-testid="content-map"`. `types/kakao.d.ts`에 `Map.getLevel()`, `src/test/kakaoMapMock.ts`에
+  `getLevel`/level 추적 추가.
+- **§2 좌표 폴백** — `isValidKoreaCoord` false면 안내 박스 + `카카오맵 길찾기` 숨김, `주소 복사` 유지.
+- **§3 두 버튼** — 주소 복사(2초 "복사됨"), 카카오맵 길찾기(`window.open`, 좌표 있을 때만).
+- **§4 거리 문구** — 넣지 않음(실데이터 없음).
+- **§7 테스트** — `ContentMap.test.tsx` 신규, `ContentDetailView.test.tsx` 케이스 추가. 담기 버튼
+  라벨 "담기/담김" → "일정에 담기/일정에 담김"으로 바뀌어 기존 exact-name 테스트 2개 수정.
+- **사진 갤러리** (커밋 `0b40525`, 스펙 외 추가 — 리뷰 중 사용자 요청) — `ContentGallery.tsx` 신규.
+  여러 장일 때 히어로 양옆 화살표(기본 `opacity-40` → group-hover/focus 시 `opacity-100`, 양끝
+  순환) + `n / N` 배지, 아래 썸네일 클릭 전환(활성 `ring-2 ring-primary`). 썸네일 4열 그리드 전체
+  노출(기존 "처음 4장 + N" 오버레이 제거). 콘텐츠 변경 시 `key={content.id}` remount로 인덱스 초기화.
+  `ContentGallery.test.tsx` 6케이스 + ContentDetailView 통합 2케이스.
+
+검증: `bun run test`(593) · `bunx tsc --noEmit` · `bun run lint` · `bun run build`(27/27) 전부 통과.
+
+### 남은 일 (다음 세션)
+
+1. **육안 확인 안 됨** — `bun run dev` + `.env`에 `NEXT_PUBLIC_KAKAO_JS_KEY` 필요. 확인 항목:
+   2열 전환(1024px), `<aside>` sticky 실제 동작, 지도 마커 위치, 확대/축소 버튼, 좌표 없음 폴백,
+   갤러리 화살표 hover 트랜지션·썸네일 ring, 모바일에서 패널이 본문 아래로 쌓이는지.
+2. **§6 "근처에 함께 담기"** — 이번엔 제외했으나, 그 사이 `contentService.getNearbyContents()`
+   (브랜치 `feat/content-nearby-api`, 백엔드 `GET /api/v1/contents/{id}/nearby`)가 생겨서 이제
+   좌표 기반으로 진짜 구현 가능. 왼쪽 열 맨 아래 3칸 카드. 사용자 승인 후 진행.
+3. **모바일 담기/찜 하단 고정 바** — §1에서 "별도 판단"으로 남긴 항목. 현재는 패널 안에 그대로 둠.
+4. 거리 문구(§4) — 지역 중심 좌표 상수 + `haversineKm`로 "직선거리 약 N km" 넣을지 재검토.
+5. 갤러리 추가 개선 여지 — 키보드 좌우 화살표 네비, 스와이프(터치), 라이트박스(전체 화면) 등은
+   현재 미구현.
+
+### 이어서 시작하는 법
+
+```
+git checkout feat/5
+bun install   # 필요 시
+```
+
+파일: `src/app/contents/[id]/_components/` 안 `ContentDetailView.tsx` · `ContentMap.tsx` ·
+`ContentGallery.tsx` (+ 각 `.test.tsx`). 지원 변경: `src/types/kakao.d.ts`, `src/test/kakaoMapMock.ts`.
