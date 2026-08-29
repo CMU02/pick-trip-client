@@ -41,11 +41,32 @@ export const CONTENT_IMAGE_OVERRIDES: Record<string, string> = {
     "http://tong.visitkorea.or.kr/cms/resource/46/3547946_image2_1.jpg", // 하동솔잎한우프라자
   "3442627":
     "http://tong.visitkorea.or.kr/cms/resource/23/3442623_image2_1.jpg", // 티카페하동
+
+  // 2026-08-29 영주 음식점 대표 이미지 일괄 교체 (사용자 지정 URL).
+  "2605878":
+    "http://tong.visitkorea.or.kr/cms/resource/66/2606366_image2_1.jpg", // 나드리
+  "2821071":
+    "http://tong.visitkorea.or.kr/cms/resource/58/2821058_image2_1.jpg", // 녹스고지
+  "2841439":
+    "http://tong.visitkorea.or.kr/cms/resource/21/2841421_image2_1.jpg", // 삼뜨락한정식
+  "2841463":
+    "http://tong.visitkorea.or.kr/cms/resource/61/2841461_image2_1.jpg", // 아테네레스토랑
+  "2841479":
+    "http://tong.visitkorea.or.kr/cms/resource/72/2841472_image2_1.jpg", // 영주축협한우프라자 본점
+  // 카페, 선비꽃 → 선비꽃이야기: 상세 대표 이미지(images[0])로 카드·상세를 통일한다.
+  "2832249":
+    "http://tong.visitkorea.or.kr/cms/resource/33/2832233_image2_1.jpg", // 선비꽃이야기
+  "2832268":
+    "http://tong.visitkorea.or.kr/cms/resource/61/2832261_image2_1.jpg", // 태극당
+  // 축산본점식육식당: 상세 대표 이미지(images[0])로 카드·상세를 통일한다.
+  "2629725":
+    "http://tong.visitkorea.or.kr/cms/resource/53/2630253_image2_1.jpg", // [백년가게]축산본점식육식당(축산회관)
 };
 
 // 백엔드 명칭이 길거나 옛 이름일 때 표시 이름을 교체한다.
 export const CONTENT_TITLE_OVERRIDES: Record<string, string> = {
   "3442627": "티카페하동", // 백엔드: "하동야생차치유관 티카페하동"
+  "2832249": "선비꽃이야기", // 백엔드: "카페, 선비꽃"
 };
 
 export function overrideContentName(id: string, name: string): string {

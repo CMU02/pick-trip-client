@@ -196,6 +196,34 @@ describe("getContents (apiClient 이관)", () => {
       "http://tong.visitkorea.or.kr/cms/resource/23/3442623_image2_1.jpg",
     );
   });
+
+  it("영주 선비꽃이야기(2832249)는 이름과 대표 이미지를 교체한다", async () => {
+    mockGet.mockResolvedValueOnce({
+      data: {
+        totalCount: 1,
+        items: [
+          {
+            contentId: "2832249",
+            title: "카페, 선비꽃",
+            address: "영주시",
+            firstImage: "http://tong.visitkorea.or.kr/old.jpg",
+            category: "FOOD",
+          },
+        ],
+      },
+    });
+
+    const { contents } = await getContents({
+      regions: ["YEONGJU"],
+      startDate: "2026-08-01",
+      nights: 0,
+    });
+
+    expect(contents[0].name).toBe("선비꽃이야기");
+    expect(contents[0].imageUrl).toBe(
+      "http://tong.visitkorea.or.kr/cms/resource/33/2832233_image2_1.jpg",
+    );
+  });
 });
 
 describe("getContentById (apiClient 이관)", () => {

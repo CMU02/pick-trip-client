@@ -12,7 +12,7 @@ describe("RegionShowcase", () => {
     expect(screen.getByText("예천")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "천년 야생차의 향기와 맑은 강물이 어우러진 휴식과 힐링의 공간.",
+        "천년 야생차의 향기와 맑은 강물이 어우러진 휴식과 힐링의 공간",
       ),
     ).toBeInTheDocument();
   });
