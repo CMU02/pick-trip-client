@@ -1,4 +1,4 @@
-import { formatDistanceKm, formatTravelMinutes } from "@/lib/itinerary";
+import { formatTravelMinutes } from "@/lib/itinerary";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { PRIORITY_LABELS } from "@/types/basket";
 import type { Region } from "@/types/region";
@@ -45,7 +45,6 @@ export function TripSummary({
 }: TripSummaryProps) {
   const displayCount = itemCount ?? items.length;
   const travelDuration = formatTravelMinutes(travelSummary?.totalMinutes);
-  const travelDistance = formatDistanceKm(travelSummary?.totalKm);
   // 조건 없이 /itinerary로 직접 들어오면 startDate가 빈 문자열이라 "NaN월 NaN일"이
   // 되던 자리다. 조건 요약을 보여주는 /contents와 같은 문구로 맞춘다.
   const [, month, day] = startDate.split("-");
@@ -99,14 +98,6 @@ export function TripSummary({
             <dt className="text-muted-foreground">총 이동 시간</dt>
             <dd className="text-right font-bold text-foreground">
               {travelDuration}
-            </dd>
-          </div>
-        )}
-        {travelDistance && (
-          <div className="flex items-start justify-between gap-3">
-            <dt className="text-muted-foreground">총 이동 거리</dt>
-            <dd className="text-right font-bold text-foreground">
-              {travelDistance}
             </dd>
           </div>
         )}
