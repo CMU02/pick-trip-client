@@ -3,6 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+let mockSearchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => mockSearchParams,
+}));
+
 vi.mock("@/services/contentService", () => ({
   getContents: vi.fn(),
 }));
@@ -62,6 +67,7 @@ function renderExploreGrid({
 describe("ExploreGrid", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockSearchParams = new URLSearchParams();
   });
 
   it("전달받은 콘텐츠 카드를 모두 렌더한다", () => {
@@ -241,6 +247,54 @@ describe("ExploreGrid", () => {
     expect(screen.getByText("재첩국3")).toBeInTheDocument();
     expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
     expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+
+    // 결과 헤더는 카테고리 정적 총계(음식 전 지역 53개)와 화면에 보여준 수를 함께 보여준다.
+    await waitFor(() =>
+      expect(screen.getByText("음식 53개 중 3개 표시 중")).toBeInTheDocument(),
+    );
+  });
+
+  it("URL의 ?cat= 로 진입하면 그 카테고리 필터가 적용된 채로 뜬다", () => {
+    mockSearchParams = new URLSearchParams("cat=FOOD");
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "재첩국", category: "FOOD" }),
+        makeContent({ id: "2", name: "쌍계사", category: "CULTURE" }),
+      ],
+      initialTotal: 2,
+    });
+
+    expect(screen.getByText("재첩국")).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "음식" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("카테고리를 고르면 URL 쿼리(?cat=)에 반영한다", async () => {
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1", category: "CULTURE" })],
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "문화" }));
+
+    expect(replaceState).toHaveBeenCalledWith(null, "", "?cat=CULTURE");
+  });
+
+  it("검색어가 있으면 정적 총계 대신 기존 '불러온 N개 중 M개' 문구를 쓴다", async () => {
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "재첩국", category: "FOOD" }),
+        makeContent({ id: "2", name: "쌍계사", category: "CULTURE" }),
+      ],
+      initialTotal: 2,
+    });
+
+    await userEvent.type(screen.getByRole("searchbox"), "재첩");
+
+    expect(screen.getByText("불러온 2개 중 1개")).toBeInTheDocument();
   });
 
   it("필터링된 개수가 한 페이지 분량을 넘으면 더보기가 그 개수만큼만 늘고 중복 없이 끝난다", async () => {

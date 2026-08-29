@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -64,6 +63,17 @@ export function ContentDetailView({
   const { addView } = useRecentViews();
   const inBasket = items.some((i) => i.content.id === content.id);
 
+  // "목록으로"는 항상 직전 화면으로 되돌린다(router.back). 목록에서 카테고리·
+  // 검색어로 걸러 보던 사용자가 그 상태 그대로 돌아오도록. 새 탭·공유 링크처럼
+  // 앱 내 히스토리가 없을 때만 목록 경로(backHref, 기본 /contents)로 이동한다.
+  function handleBack() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(backHref ?? "/contents");
+    }
+  }
+
   // 콘텐츠 상세 진입 시(/contents, /explore 어느 경로든) 최근 본 콘텐츠로 기록한다.
   useEffect(() => {
     addView(content);
@@ -100,22 +110,13 @@ export function ContentDetailView({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      {backHref ? (
-        <Link
-          href={backHref}
-          className="mb-4 inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← 목록으로
-        </Link>
-      ) : (
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="mb-4 inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← 목록으로
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={handleBack}
+        className="mb-4 inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← 목록으로
+      </button>
 
       <div className="relative mb-6 h-[230px] overflow-hidden rounded-[24px] bg-muted">
         <ContentImage

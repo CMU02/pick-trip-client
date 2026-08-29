@@ -8,6 +8,7 @@ const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
   usePathname: () => "/dashboard/for-you",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const mockUseAuth = vi.fn();
