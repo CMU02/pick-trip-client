@@ -218,6 +218,37 @@ describe("ContentDetailView", () => {
     expect(items[0].content.id).toBe("1");
   });
 
+  it("사진이 여러 장이면 갤러리 화살표와 썸네일 버튼을 렌더한다", () => {
+    render(
+      <ContentDetailView
+        content={{
+          ...stub,
+          imageUrl: "https://example.com/1.jpg",
+          imageUrls: ["https://example.com/2.jpg", "https://example.com/3.jpg"],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "다음 사진" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /번 사진 보기$/ }),
+    ).toHaveLength(3);
+  });
+
+  it("사진이 한 장뿐이면 갤러리 화살표를 렌더하지 않는다", () => {
+    render(
+      <ContentDetailView
+        content={{ ...stub, imageUrl: "https://example.com/1.jpg" }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "다음 사진" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("좌표가 유효하면 지도 패널과 '카카오맵 길찾기' 버튼을 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
 

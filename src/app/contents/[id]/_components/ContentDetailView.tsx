@@ -3,16 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { ContentImage } from "@/components/ContentImage";
 import { Icon } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavoriteHeart } from "@/hooks/useFavoriteHeart";
 import { useRecentViews } from "@/hooks/useRecentViews";
 import { splitBrLines } from "@/lib/content";
 import { isValidKoreaCoord } from "@/lib/geo";
-import { CATEGORY_LABELS, type ContentDetail } from "@/types/content";
+import type { ContentDetail } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
 
+import { ContentGallery } from "./ContentGallery";
 import { ContentMap } from "./ContentMap";
 
 interface ContentDetailViewProps {
@@ -105,7 +105,6 @@ export function ContentDetailView({
     ...(content.imageUrl ? [content.imageUrl] : []),
     ...content.imageUrls,
   ];
-  const extraThumbCount = allImages.length - 4;
 
   const hasCoord = isValidKoreaCoord(content.latitude, content.longitude);
 
@@ -146,47 +145,12 @@ export function ContentDetailView({
       <div className="mt-1.5 grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-[34px]">
         {/* 왼쪽 열 — 본문 */}
         <div className="min-w-0">
-          <div className="relative aspect-[16/10] overflow-hidden rounded-[24px] bg-muted">
-            <ContentImage
-              src={allImages[0]}
-              alt={content.name}
-              category={content.category}
-              size="xl"
-              sizes="(max-width: 1024px) 100vw, 720px"
-            />
-            {content.category && (
-              <span className="absolute top-3.5 left-3.5 rounded-full bg-primary px-3.5 py-1.5 text-[11.5px] font-extrabold text-primary-foreground">
-                {CATEGORY_LABELS[content.category]}
-              </span>
-            )}
-          </div>
-
-          {allImages.length > 1 && (
-            <div className="mt-2.5 grid grid-cols-4 gap-2.5">
-              {allImages.slice(0, 4).map((src, i) => {
-                const showOverlay = i === 3 && extraThumbCount > 0;
-                return (
-                  <div
-                    key={src}
-                    className="relative aspect-[4/3] overflow-hidden rounded-[13px] bg-muted"
-                  >
-                    <ContentImage
-                      src={src}
-                      alt={`${content.name} 사진 ${i + 1}`}
-                      category={content.category}
-                      size="sm"
-                      sizes="120px"
-                    />
-                    {showOverlay && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-bold text-white">
-                        +{extraThumbCount}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <ContentGallery
+            key={content.id}
+            images={allImages}
+            name={content.name}
+            category={content.category}
+          />
 
           <h1 className="mt-6 text-[34px] font-extrabold tracking-[-0.05em]">
             {content.name}
