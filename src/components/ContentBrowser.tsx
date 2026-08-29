@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { ContentFilter } from "@/components/ContentFilter";
@@ -30,6 +29,31 @@ interface ContentBrowserProps {
   gridClassName: string;
 }
 
+// 마운트 시 한 번만 호출한다. SSR에는 window가 없으므로 빈 필터를 돌려준다
+// (이 컴포넌트는 SSR에서도 렌더되지만, 초기 필터는 클라이언트에서 확정된다).
+function readInitialFilter(): {
+  region: string | null;
+  categories: ContentCategory[];
+  keyword: string;
+} {
+  if (typeof window === "undefined") {
+    return { region: null, categories: [], keyword: "" };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const rawCat = params.get("cat");
+  return {
+    region: params.get("region"),
+    categories: rawCat
+      ? rawCat
+          .split(",")
+          .filter((c): c is ContentCategory =>
+            CONTENT_CATEGORIES.includes(c as ContentCategory),
+          )
+      : [],
+    keyword: params.get("q") ?? "",
+  };
+}
+
 export function ContentBrowser({
   initialContents,
   initialTotal,
@@ -39,34 +63,34 @@ export function ContentBrowser({
 }: ContentBrowserProps) {
   const allowedRegions = REGIONS.filter((r) => queryParams.regions.includes(r));
 
-  // 지역 탭·카테고리·검색어를 URL 쿼리(?region=&cat=&q=)에 실어, 상세 화면에
-  // 들어갔다 "목록으로"로 돌아와도(뒤로가기) 필터가 그대로 살아나게 한다.
-  // 페이지 자체 조건(?regions=&startDate= 등)과 겹치지 않게 region은 단수로 쓴다.
-  const searchParams = useSearchParams();
+  // 지역 탭·카테고리·검색어를 URL 쿼리(?region=&cat=&q=)에 싣는다. 상세에
+  // 들어갔다 "목록으로"로 돌아오면(뒤로가기) 필터가 그대로 살아나고, 새로고침·
+  // 링크 공유도 된다.
+  //
+  // URL은 마운트 시 딱 한 번 읽어 초기 state를 만들고, 이후로는 state만
+  // 신뢰한다(단방향). next/navigation의 useSearchParams는 쓰지 않는다 — 이
+  // 훅을 쓰면 Suspense 경계가 없을 때 이 클라이언트 트리 전체가 프리렌더에서
+  // 빠지고(CSR 바일아웃), 로드 직후 첫 클릭이 유실되는 문제가 생긴다. 초기값만
+  // 필요하므로 window.location.search를 직접 읽으면 그 문제가 사라진다.
+  const [initialFilter] = useState(readInitialFilter);
 
-  const [selectedRegion, setSelectedRegion] = useState<Region | "ALL">(() => {
-    const r = searchParams.get("region") as Region | null;
-    return r && allowedRegions.includes(r) ? r : "ALL";
-  });
+  const [selectedRegion, setSelectedRegion] = useState<Region | "ALL">(() =>
+    initialFilter.region &&
+    allowedRegions.includes(initialFilter.region as Region)
+      ? (initialFilter.region as Region)
+      : "ALL",
+  );
   const [selectedCategories, setSelectedCategories] = useState<
     ContentCategory[]
-  >(() => {
-    const raw = searchParams.get("cat");
-    if (!raw) return [];
-    return raw
-      .split(",")
-      .filter((c): c is ContentCategory =>
-        CONTENT_CATEGORIES.includes(c as ContentCategory),
-      );
-  });
-  const [keyword, setKeyword] = useState(() => searchParams.get("q") ?? "");
+  >(initialFilter.categories);
+  const [keyword, setKeyword] = useState(initialFilter.keyword);
 
   // 필터 state → URL. router.replace 대신 history.replaceState를 쓰면 Next가
-  // 서버 컴포넌트를 다시 부르지 않고(재fetch 없음) URL만 갱신하며, useSearchParams는
-  // 그대로 최신값을 반영한다. 히스토리 엔트리도 안 쌓인다.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: searchParams는 다른 페이지 조건 파라미터를 보존하려 읽기만 하고, 재작성 트리거는 아래 3개 state뿐이다
+  // 서버 컴포넌트를 다시 부르지 않고(재fetch 없음) URL만 갱신한다. 히스토리
+  // 엔트리도 안 쌓인다. 다른 페이지 조건(?regions=&startDate= 등)은
+  // window.location.search를 베이스로 삼아 보존한다.
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     if (selectedRegion === "ALL") params.delete("region");
     else params.set("region", selectedRegion);
     if (selectedCategories.length === 0) params.delete("cat");
@@ -76,7 +100,7 @@ export function ContentBrowser({
     else params.set("q", kw);
 
     const next = params.toString();
-    if (next === searchParams.toString()) return;
+    if (next === new URLSearchParams(window.location.search).toString()) return;
     window.history.replaceState(
       null,
       "",

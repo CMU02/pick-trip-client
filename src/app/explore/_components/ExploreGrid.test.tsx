@@ -1,12 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-let mockSearchParams = new URLSearchParams();
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => mockSearchParams,
-}));
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/services/contentService", () => ({
   getContents: vi.fn(),
@@ -67,7 +62,15 @@ function renderExploreGrid({
 describe("ExploreGrid", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockSearchParams = new URLSearchParams();
+    // ContentBrowser는 마운트 시 window.location.search로 초기 필터를 읽고
+    // 필터 변경 시 history.replaceState로 되쓴다. jsdom은 이 값을 테스트
+    // 사이에 유지하므로 매 테스트 전에 초기화한다.
+    window.history.replaceState(null, "", "/");
+  });
+
+  afterEach(() => {
+    // history.replaceState를 spy한 테스트가 원본을 되돌리도록.
+    vi.restoreAllMocks();
   });
 
   it("전달받은 콘텐츠 카드를 모두 렌더한다", () => {
@@ -255,7 +258,7 @@ describe("ExploreGrid", () => {
   });
 
   it("URL의 ?cat= 로 진입하면 그 카테고리 필터가 적용된 채로 뜬다", () => {
-    mockSearchParams = new URLSearchParams("cat=FOOD");
+    window.history.replaceState(null, "", "?cat=FOOD");
     renderExploreGrid({
       initialContents: [
         makeContent({ id: "1", name: "재첩국", category: "FOOD" }),

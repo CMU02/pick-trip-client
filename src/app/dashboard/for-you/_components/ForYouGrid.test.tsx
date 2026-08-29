@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
@@ -78,6 +78,14 @@ describe("ForYouGrid", () => {
     useBasketStore.setState({ items: [], hydrated: true });
     useFavoriteStore.setState({ items: [], hydrated: true });
     vi.resetAllMocks();
+    // ContentBrowser는 마운트 시 window.location.search로 초기 필터를 읽고
+    // 필터 변경 시 history.replaceState로 되쓴다. jsdom은 이 값을 테스트
+    // 사이에 유지하므로 매 테스트 전에 초기화한다.
+    window.history.replaceState(null, "", "/");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("전달받은 콘텐츠 카드를 모두 렌더한다", () => {
