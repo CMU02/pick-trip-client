@@ -52,6 +52,71 @@ function makeDays(): Day[] {
   ];
 }
 
+// 서버 스케줄 데이터가 채워진 2일 일정.
+function makeScheduledDays(): Day[] {
+  return [
+    {
+      dayId: "day-1",
+      dayIndex: 1,
+      totalTravelMinutes: 30,
+      totalTravelKm: 5.5,
+      items: [
+        {
+          itemId: "item-1",
+          contentId: "content-1",
+          title: "쌍계사",
+          order: 0,
+          reason: "지역 대표 명소",
+          pinned: false,
+          startTime: "09:00",
+          endTime: "10:30",
+        },
+        {
+          itemId: "item-2",
+          contentId: "content-2",
+          title: "칠불사",
+          order: 1,
+          reason: "인근 명소",
+          pinned: false,
+          startTime: "11:00",
+          endTime: "12:00",
+        },
+      ],
+    },
+    {
+      dayId: "day-2",
+      dayIndex: 2,
+      totalTravelMinutes: 20,
+      totalTravelKm: 3.1,
+      items: [
+        {
+          itemId: "item-3",
+          contentId: "content-3",
+          title: "최참판댁",
+          order: 0,
+          reason: "문학 관련",
+          pinned: false,
+          startTime: "10:00",
+          endTime: "11:30",
+        },
+      ],
+    },
+  ];
+}
+
+function setupWith(initialDays: Day[]) {
+  return renderHook(() =>
+    useItineraryEditor({
+      itineraryId: "itinerary-1",
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      initialDays,
+    }),
+  );
+}
+
 function setup() {
   return renderHook(() =>
     useItineraryEditor({
@@ -287,6 +352,53 @@ describe("useItineraryEditor", () => {
       }),
       "access-token-1",
     );
+  });
+
+  it("편집한 날의 방문 시각·이동 요약은 지우고, 손대지 않은 날은 그대로 둔다", () => {
+    const { result } = setupWith(makeScheduledDays());
+
+    act(() => {
+      result.current.moveItem("day-1", "item-1", "down");
+    });
+
+    const [day1, day2] = result.current.days;
+    expect(day1.totalTravelMinutes).toBeNull();
+    expect(day1.totalTravelKm).toBeNull();
+    expect(
+      day1.items.every((i) => i.startTime === null && i.endTime === null),
+    ).toBe(true);
+    // day-2는 건드리지 않았으므로 시각·이동값 유지
+    expect(day2.totalTravelMinutes).toBe(20);
+    expect(day2.items[0].startTime).toBe("10:00");
+  });
+
+  it("replaceItem도 그 날의 방문 시각·이동 요약을 지운다", () => {
+    const { result } = setupWith(makeScheduledDays());
+
+    act(() => {
+      result.current.replaceItem("day-1", "item-1", replacementContent);
+    });
+
+    expect(result.current.days[0].items[0]).toMatchObject({
+      contentId: "content-3",
+      reason: "",
+      startTime: null,
+      endTime: null,
+    });
+    expect(result.current.days[0].totalTravelMinutes).toBeNull();
+  });
+
+  it("장소가 없는 날이 있으면 save가 요청을 보내지 않고 안내 메시지를 남긴다", async () => {
+    const days = makeScheduledDays();
+    days[1].items = [];
+    const { result } = setupWith(days);
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockModifyItinerary).not.toHaveBeenCalled();
+    expect(result.current.saveError?.message).toMatch(/장소가 없는 날/);
   });
 
   it("save 실패 시 에러를 노출하고 로컬 편집 내용을 유지한다", async () => {
