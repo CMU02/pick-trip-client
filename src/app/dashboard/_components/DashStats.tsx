@@ -11,8 +11,8 @@ import { ALL_REGIONS_QUERY } from "@/types/region";
 // 프로토타입의 클릭 대상(go('contents')/go('favorites')/go('itineraries'))을
 // 실제 라우트로 매핑한다 — "담은 콘텐츠"는 바구니 전용 화면이 없어, 앱
 // 전역에서 "담기 가능한 콘텐츠 목록"으로 보낼 때 쓰는 것과 동일한 경로
-// (/select/conditions → Step 1 날짜/동행 선택 → Step 2 /contents, 카드마다
-// 담기 버튼 있음)로 연결한다. /explore는 이슈 #57로 담기 버튼이 빠져 있어
+// (/select/conditions = Step 1 여행 조건 → Step 2 콘텐츠 담기(/contents),
+// 카드마다 담기 버튼 있음)로 연결한다. /explore는 이슈 #57로 담기 버튼이 빠져 있어
 // 이 목적엔 맞지 않는다.
 const STATS = [
   {
