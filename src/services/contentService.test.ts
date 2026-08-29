@@ -168,6 +168,34 @@ describe("getContents (apiClient 이관)", () => {
       "/api/v1/contents?region=HADONG&startDate=2026-08-01&nights=1",
     );
   });
+
+  it("이미지·이름 오버라이드가 있는 콘텐츠는 목록에서 교체값을 쓴다", async () => {
+    mockGet.mockResolvedValueOnce({
+      data: {
+        totalCount: 1,
+        items: [
+          {
+            contentId: "3442627", // 티카페하동 (오버라이드 대상)
+            title: "하동야생차치유관 티카페하동",
+            address: "하동군",
+            firstImage: "http://tong.visitkorea.or.kr/old.jpg",
+            category: "FOOD",
+          },
+        ],
+      },
+    });
+
+    const { contents } = await getContents({
+      regions: ["HADONG"],
+      startDate: "2026-08-01",
+      nights: 0,
+    });
+
+    expect(contents[0].name).toBe("티카페하동");
+    expect(contents[0].imageUrl).toBe(
+      "http://tong.visitkorea.or.kr/cms/resource/23/3442623_image2_1.jpg",
+    );
+  });
 });
 
 describe("getContentById (apiClient 이관)", () => {
@@ -302,5 +330,41 @@ describe("getContentById (apiClient 이관)", () => {
     mockGet.mockRejectedValueOnce(new ApiError(404, "Not Found"));
 
     await expect(getContentById("999")).rejects.toThrow("Not Found");
+  });
+
+  it("이미지 오버라이드가 있으면 대표 이미지로 쓰고 원본 갤러리는 중복만 빼고 남긴다", async () => {
+    mockGet.mockResolvedValueOnce({
+      data: {
+        contentId: "2870730", // 브릿지130
+        title: "브릿지130",
+        address: "하동군",
+        summary: "",
+        useTime: null,
+        restDate: null,
+        parking: null,
+        stayDuration: null,
+        reservationRequired: null,
+        dataSource: null,
+        images: [
+          {
+            imageUrl:
+              "http://tong.visitkorea.or.kr/cms/resource/12/2870712_image2_1.jpg",
+            title: "1",
+          },
+          { imageUrl: "http://tong.visitkorea.or.kr/other.jpg", title: "2" },
+        ],
+        category: "FOOD",
+        region: "HADONG",
+      },
+    });
+
+    const result = await getContentById("2870730");
+
+    expect(result.imageUrl).toBe(
+      "http://tong.visitkorea.or.kr/cms/resource/12/2870712_image2_1.jpg",
+    );
+    expect(result.imageUrls).toEqual([
+      "http://tong.visitkorea.or.kr/other.jpg",
+    ]);
   });
 });
