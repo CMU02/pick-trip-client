@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavoriteHeart } from "@/hooks/useFavoriteHeart";
 import { useRecentViews } from "@/hooks/useRecentViews";
+import { splitBrLines } from "@/lib/content";
 import { CATEGORY_LABELS, type ContentDetail } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
 
@@ -24,15 +25,28 @@ interface InfoRowProps {
 }
 
 // 핸드오프 스펙(12번 "콘텐츠 상세")의 2열 스펙 행. 값이 없는 필드는
-// 숨기지 않고 "정보 없음"으로 표시한다(기존 동작 유지).
+// 숨기지 않고 "정보 없음"으로 표시한다(기존 동작 유지). 운영시간·휴무일 원문에
+// <br> 태그가 섞여 오면 실제 줄바꿈으로 나눠 여러 줄로 보여준다.
 function InfoRow({ label, value }: InfoRowProps) {
+  const lines = value ? splitBrLines(value) : [];
+
   return (
-    <div className="flex items-center justify-between rounded-[13px] bg-[oklch(0.975_0.01_30)] px-4 py-3.5">
-      <span className="text-[12.5px] text-muted-foreground">{label}</span>
+    <div className="flex items-start justify-between gap-4 rounded-[13px] bg-[oklch(0.975_0.01_30)] px-4 py-3.5">
+      <span className="shrink-0 text-[12.5px] text-muted-foreground">
+        {label}
+      </span>
       <span
-        className={`text-[13px] font-bold ${value ? "text-foreground" : "text-muted-foreground"}`}
+        className={`min-w-0 text-right text-[13px] font-bold ${
+          lines.length > 0 ? "text-foreground" : "text-muted-foreground"
+        }`}
       >
-        {value ?? "정보 없음"}
+        {lines.length === 0
+          ? "정보 없음"
+          : lines.map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))}
       </span>
     </div>
   );

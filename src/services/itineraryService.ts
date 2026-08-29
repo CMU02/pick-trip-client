@@ -28,6 +28,12 @@ function withSyntheticIds(days: RawGeneratedDay[]): Day[] {
   return days.map((day) => ({
     dayId: `generated-day-${day.dayIndex}`,
     dayIndex: day.dayIndex,
+    // 저장/공유 응답과 달리 generate 응답에만 오는 필드까지 명시적으로 옮긴다.
+    // undefined가 아닌 null/[]로 정규화해 화면·테스트에서 다루기 쉽게 한다.
+    date: day.date ?? null,
+    totalTravelMinutes: day.totalTravelMinutes ?? null,
+    totalTravelKm: day.totalTravelKm ?? null,
+    dayNotes: day.dayNotes ?? [],
     items: day.items.map((item) => ({
       itemId: `generated-item-${day.dayIndex}-${item.order}-${item.contentId}`,
       contentId: item.contentId,
@@ -35,6 +41,9 @@ function withSyntheticIds(days: RawGeneratedDay[]): Day[] {
       order: item.order,
       reason: item.reason,
       pinned: false,
+      startTime: item.startTime ?? null,
+      endTime: item.endTime ?? null,
+      notes: item.notes ?? [],
     })),
   }));
 }
@@ -53,6 +62,7 @@ export async function generateItinerary(
     ...data,
     duration: serverDurationToNights(data.duration),
     days: withSyntheticIds(data.days),
+    adjustments: data.adjustments ?? [],
   };
 }
 

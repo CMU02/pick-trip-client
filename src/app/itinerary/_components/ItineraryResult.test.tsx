@@ -57,6 +57,48 @@ describe("ItineraryResult", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("adjustments가 있으면 조정 안내 배너를 렌더한다", () => {
+    render(
+      <ItineraryResult
+        data={{
+          days: [makeDay()],
+          adjustments: ["'쌍계사'는 1일차(수)에 휴무여서 2일차로 옮겼습니다."],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText("AI가 일정을 이렇게 조정했어요"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("'쌍계사'는 1일차(수)에 휴무여서 2일차로 옮겼습니다."),
+    ).toBeInTheDocument();
+  });
+
+  it("adjustments가 없거나 비면 배너를 렌더하지 않는다", () => {
+    render(<ItineraryResult data={{ days: [makeDay()], adjustments: [] }} />);
+
+    expect(
+      screen.queryByText("AI가 일정을 이렇게 조정했어요"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("장소가 없는 날이 있으면 편집기 저장 버튼이 비활성화되고 안내가 뜬다", () => {
+    render(
+      <ItineraryResult
+        data={{ days: [] }}
+        editor={makeEditor({ isDirty: true, days: [makeDay({ items: [] })] })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "변경사항 저장" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/장소가 없는 날이 있어 저장할 수 없어요/),
+    ).toBeInTheDocument();
+  });
+
   const makeEditor = (
     overrides: Partial<Parameters<typeof ItineraryResult>[0]["editor"]> = {},
   ) => ({

@@ -141,4 +141,50 @@ describe("DayCard", () => {
       screen.queryByRole("button", { name: "위로 이동" }),
     ).not.toBeInTheDocument();
   });
+
+  it("date가 있으면 헤더에 'M월 D일 (요일)'을 덧붙인다", () => {
+    render(<DayCard day={makeDay({ date: "2026-07-01" })} />);
+
+    expect(screen.getByText("7월 1일 (수)")).toBeInTheDocument();
+  });
+
+  it("하루 이동 요약이 있으면 이동 칩을 표시한다", () => {
+    render(
+      <DayCard
+        day={makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 })}
+      />,
+    );
+
+    expect(screen.getByText("이동 1시간 15분 · 12.4km")).toBeInTheDocument();
+  });
+
+  it("이동값이 없으면 이동 칩을 표시하지 않는다", () => {
+    render(
+      <DayCard
+        day={makeDay({ totalTravelMinutes: null, totalTravelKm: null })}
+      />,
+    );
+
+    expect(screen.queryByText(/이동 /)).not.toBeInTheDocument();
+  });
+
+  it("dayNotes가 있으면 경고 스트립을 렌더한다", () => {
+    render(
+      <DayCard
+        day={makeDay({ dayNotes: ["하루 일정이 21:00을 넘깁니다."] })}
+      />,
+    );
+
+    expect(
+      screen.getByText("하루 일정이 21:00을 넘깁니다."),
+    ).toBeInTheDocument();
+  });
+
+  it("장소가 0개면 빈 날 문구를 보여준다", () => {
+    render(<DayCard day={makeDay({ items: [] })} />);
+
+    expect(
+      screen.getByText("이 날에는 아직 일정이 없어요"),
+    ).toBeInTheDocument();
+  });
 });
