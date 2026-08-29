@@ -86,6 +86,7 @@ const mockGenerateResponse: ItineraryGenerateResponse = {
   region: "HADONG",
   travelDate: "2026-08-01",
   duration: 1,
+  adjustments: [],
   days: [
     {
       dayId: "day-1",
@@ -678,6 +679,7 @@ describe("ItineraryClient", () => {
       region: "HADONG",
       travelDate: "2026-08-01",
       duration: 1,
+      adjustments: [],
       days: [
         {
           dayId: "day-1",

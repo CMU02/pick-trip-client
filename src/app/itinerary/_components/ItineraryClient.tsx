@@ -143,6 +143,8 @@ function buildLoginPreviewItinerary(
     travelDate: startDate,
     duration: nights,
     days,
+    // 로컬에서 만든 가짜 데이터라 스케줄러 조정 내역이 없다.
+    adjustments: [],
   };
 }
 
