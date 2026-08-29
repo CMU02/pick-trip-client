@@ -76,6 +76,22 @@ describe("ContentDetailView", () => {
     expect(screen.getAllByText("정보 없음").length).toBeGreaterThan(0);
   });
 
+  it("운영시간 원문에 <br> 태그가 있으면 여러 줄로 나눠 렌더한다", () => {
+    render(
+      <ContentDetailView
+        content={{
+          ...stub,
+          operatingHours: "평일 09:00~18:00<br>주말 10:00~17:00",
+        }}
+      />,
+    );
+    expect(screen.getByText("평일 09:00~18:00")).toBeInTheDocument();
+    expect(screen.getByText("주말 10:00~17:00")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/평일 09:00~18:00<br>주말/),
+    ).not.toBeInTheDocument();
+  });
+
   it("데이터 출처를 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
     expect(screen.getByText("한국관광공사")).toBeInTheDocument();
