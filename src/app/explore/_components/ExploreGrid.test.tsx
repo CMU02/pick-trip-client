@@ -182,13 +182,12 @@ describe("ExploreGrid", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
 
-    // "전체" 탭은 3개 지역을 동시에 조회하므로, size는 20이 아니라
-    // 지역 수만큼 나눈 값(ceil(20/3)=7)이다 — 안 그러면 한 번에
-    // 20개가 아니라 60개(20×3)가 늘어난다.
+    // size는 항상 CONTENT_PAGE_SIZE(20)로 넘긴다 — getContents가 지역별로
+    // 쪼개므로("전체" 탭이어도) 한 페이지 합계는 20으로 유지된다.
     expect(mockGetContents).toHaveBeenCalledWith({
       ...defaultQueryParams,
       page: 1,
-      size: 7,
+      size: 20,
     });
     await waitFor(() =>
       expect(screen.getByText("화개장터")).toBeInTheDocument(),
@@ -229,7 +228,7 @@ describe("ExploreGrid", () => {
       expect(mockGetContents).toHaveBeenCalledWith({
         ...defaultQueryParams,
         page: 1,
-        size: 7,
+        size: 20,
       }),
     );
 

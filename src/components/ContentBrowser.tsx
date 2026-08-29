@@ -8,11 +8,7 @@ import {
   type ContentQueryParams,
   useLoadMoreContents,
 } from "@/hooks/useLoadMoreContents";
-import {
-  CONTENT_PAGE_SIZE,
-  distributePageSize,
-  sortContentsByCategory,
-} from "@/lib/content";
+import { CONTENT_PAGE_SIZE, sortContentsByCategory } from "@/lib/content";
 import {
   CATEGORY_LABELS,
   type Content,
@@ -52,12 +48,8 @@ export function ContentBrowser({
     ...queryParams,
     regions: effectiveRegions,
   };
-  // /api/v1/contents는 지역마다 같은 size로 fan-out 하므로, 여러 지역을
-  // 동시에("전체" 탭) 조회할 때 size를 그대로 두면 한 번에 20개가 아니라
-  // 20개 × 지역 수(예: 60개)가 온다. 지역 수만큼 나눠 요청해 합계가 대략
-  // CONTENT_PAGE_SIZE(20)에 맞게 한다.
-  const fetchPageSize = distributePageSize(effectiveRegions.length);
-
+  // getContents가 size를 지역별로 쪼개 fan-out 하므로, 여러 지역을 동시에
+  // ("전체" 탭) 조회해도 한 페이지 합계가 CONTENT_PAGE_SIZE(20)로 유지된다.
   const {
     contents: loadedContents,
     total,
@@ -67,11 +59,11 @@ export function ContentBrowser({
     errorMessage,
     loadMore,
   } = useLoadMoreContents({
-    queryKey: ["contents", effectiveParams, fetchPageSize],
+    queryKey: ["contents", effectiveParams, CONTENT_PAGE_SIZE],
     queryParams: effectiveParams,
     initialContents: isInitial ? initialContents : undefined,
     initialTotal: isInitial ? initialTotal : undefined,
-    pageSize: fetchPageSize,
+    pageSize: CONTENT_PAGE_SIZE,
   });
 
   const q = keyword.trim().toLowerCase();
