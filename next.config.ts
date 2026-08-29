@@ -13,10 +13,24 @@ const isDev = process.env.NODE_ENV === "development";
 const IMAGE_HOSTS =
   "https://tong.visitkorea.or.kr http://tong.visitkorea.or.kr";
 
-// 브라우저 리소스는 전부 same-origin이다.
-// - 스크립트/스타일: Next.js와 next/font가 셀프 호스팅한다. (외부 CDN 없음)
+// Kakao 지도 SDK 예외. SDK 진입점은 dapi.kakao.com 이고, 이후 지도 엔진
+// 스크립트·스타일·래스터 타일·마커 스프라이트를 Daum CDN(*.daumcdn.net)에서
+// 받아온다. 길찾기(apis-navi.kakaomobility.com)는 서버 Route Handler
+// (/api/directions)에서만 호출하므로 REST 키가 브라우저에 노출되지 않고
+// connect-src 도 dapi.kakao.com 만 열면 된다. JS 키는 Kakao 콘솔에서 도메인
+// 제한을 건다.
+const KAKAO_SCRIPT_HOSTS =
+  "https://dapi.kakao.com https://t1.daumcdn.net https://*.daumcdn.net";
+const KAKAO_STYLE_HOSTS = "https://t1.daumcdn.net https://*.daumcdn.net";
+const KAKAO_IMG_HOSTS = `https://*.daumcdn.net https://t1.daumcdn.net https://dapi.kakao.com${
+  isDev ? " http://*.daumcdn.net" : ""
+}`;
+const KAKAO_CONNECT_HOSTS = "https://dapi.kakao.com";
+
+// 브라우저 리소스는 Kakao 지도(위 KAKAO_* 예외)를 빼면 전부 same-origin이다.
+// - 스크립트/스타일: Next.js와 next/font가 셀프 호스팅한다. (Kakao 지도 SDK만 외부 CDN)
 // - API: apiClient가 브라우저에서 상대 경로로 요청하고 아래 rewrites가 백엔드로
-//   프록시하므로 connect-src는 'self'로 충분하다.
+//   프록시하므로 connect-src는 'self' + dapi.kakao.com 으로 충분하다.
 // - OAuth: /auth/{google,kakao}/start의 서버 리다이렉트로 백엔드 origin까지
 //   전체 페이지 이동한다. 최상위 내비게이션은 CSP 지시어 대상이 아니라
 //   form-action 'self'와 무관하게 로그인 플로우가 유지된다.
@@ -32,11 +46,11 @@ const IMAGE_HOSTS =
 // - ws:: HMR 웹소켓.
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' blob: data: ${IMAGE_HOSTS}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${KAKAO_SCRIPT_HOSTS}`,
+  `style-src 'self' 'unsafe-inline' ${KAKAO_STYLE_HOSTS}`,
+  `img-src 'self' blob: data: ${IMAGE_HOSTS} ${KAKAO_IMG_HOSTS}`,
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  `connect-src 'self'${isDev ? " ws:" : ""} ${KAKAO_CONNECT_HOSTS}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
