@@ -1,4 +1,4 @@
-// ForYouCard와 같은 썸네일 높이(h-[140px]) + 텍스트 3줄 + 액션 버튼으로 맞춰,
+// ForYouCard와 같은 썸네일 비율(aspect-[4/3]) + 텍스트 3줄 + 액션 버튼으로 맞춰,
 // 로딩 전후 레이아웃 시프트가 생기지 않게 한다.
 function ForYouCardSkeleton() {
   return (
@@ -6,7 +6,7 @@ function ForYouCardSkeleton() {
       className="flex h-full flex-col overflow-hidden rounded-[18px] border border-border"
       aria-hidden="true"
     >
-      <div className="h-[140px] animate-pulse bg-muted" />
+      <div className="aspect-[4/3] animate-pulse bg-muted" />
       <div className="flex flex-col gap-1.5 p-4 pb-2">
         <h3 className="w-2/3 animate-pulse rounded bg-muted text-[14.5px] font-bold tracking-tight text-transparent">
           콘텐츠 이름

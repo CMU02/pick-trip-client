@@ -118,7 +118,7 @@ export function ContentDetailView({
         ← 목록으로
       </button>
 
-      <div className="relative mb-6 h-[230px] overflow-hidden rounded-[24px] bg-muted">
+      <div className="relative mb-6 aspect-[4/3] overflow-hidden rounded-[24px] bg-muted">
         <ContentImage
           src={allImages[0]}
           alt={content.name}

@@ -16,7 +16,7 @@ export function ExploreCard({ content }: ExploreCardProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}?from=explore`} className="block">
-        <div className="relative h-[150px] bg-muted">
+        <div className="relative aspect-[4/3] bg-muted">
           <ContentImage
             src={content.imageUrl}
             alt={content.name}
