@@ -37,6 +37,8 @@ const stub: ContentDetail = {
   reservationRequired: false,
   dataSource: "한국관광공사",
   imageUrls: [],
+  latitude: 35.2345,
+  longitude: 127.6789,
 };
 
 describe("ContentDetailView", () => {

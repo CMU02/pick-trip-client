@@ -12,6 +12,11 @@ import { SavedItinerariesList } from "./SavedItinerariesList";
 
 vi.mock("@/services/itineraryService");
 
+// 저장된 일정 조회 시 ItineraryResult가 지도 데이터를 라이브 해석하지 않게 막는다.
+vi.mock("@/hooks/useItineraryMapData", () => ({
+  useItineraryMapData: () => ({ status: "ready", days: [] }),
+}));
+
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
     runAuthed: (fn: (token?: string) => Promise<unknown>) =>

@@ -5,7 +5,12 @@ import { cache } from "react";
 
 import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
 import { Button } from "@/components/ui/button";
+import { toLatLng } from "@/lib/geo";
+import { fetchKakaoDirections } from "@/lib/kakaoDirections";
+import { getContentById } from "@/services/contentService";
 import { getSharedItinerary } from "@/services/shareService";
+import type { Day } from "@/types/itinerary";
+import type { ItineraryMapData } from "@/types/map";
 import { REGION_LABELS } from "@/types/region";
 import { CopyLinkBox } from "./_components/CopyLinkBox";
 
@@ -13,6 +18,39 @@ import { CopyLinkBox } from "./_components/CopyLinkBox";
 // 아니라 axios라 Next.js의 fetch 자동 메모이제이션이 걸리지 않으므로, React
 // cache로 요청 단위 메모이제이션을 걸어 같은 요청 안에서 한 번만 호출한다.
 const getShared = cache(getSharedItinerary);
+
+// 공유 페이지는 서버 컴포넌트라 클라이언트 지도 훅을 못 쓴다. 좌표·길찾기를
+// 서버에서 미리 풀어 클라이언트 ItineraryMap island 에 props 로 넘긴다.
+const resolveShareMapData = cache(
+  async (days: Day[]): Promise<ItineraryMapData> => {
+    const ids = [
+      ...new Set(days.flatMap((d) => d.items.map((it) => it.contentId))),
+    ];
+    const details = await Promise.all(
+      ids.map((id) => getContentById(id).catch(() => null)),
+    );
+    const coordById = new Map(
+      details.map((d, i) => [
+        ids[i],
+        d ? toLatLng(d.latitude, d.longitude) : null,
+      ]),
+    );
+
+    const mapDays = await Promise.all(
+      days.map(async (d) => {
+        const points = d.items.flatMap((it) => {
+          const c = coordById.get(it.contentId);
+          return c ? [{ ...c, contentId: it.contentId, title: it.title }] : [];
+        });
+        const route =
+          points.length >= 2 ? await fetchKakaoDirections(points) : null;
+        return { dayIndex: d.dayIndex, points, route };
+      }),
+    );
+
+    return { status: "ready", days: mapDays };
+  },
+);
 
 function formatDurationText(duration: number): string {
   return duration === 0 ? "당일치기" : `${duration}박 ${duration + 1}일`;
@@ -53,6 +91,8 @@ export default async function SharePage({ params }: SharePageProps) {
       (sum, day) => sum + day.items.length,
       0,
     );
+    // 좌표/길찾기 조회가 실패해도 공유 페이지 자체는 뜨게 한다.
+    const mapData = await resolveShareMapData(data.days).catch(() => undefined);
 
     return (
       <main className="min-h-full bg-[oklch(0.985_0.008_30)]">
@@ -79,7 +119,7 @@ export default async function SharePage({ params }: SharePageProps) {
         </section>
 
         <div className="mx-auto max-w-[900px] px-4 py-8">
-          <ItineraryResult data={data} />
+          <ItineraryResult data={data} mapData={mapData} />
 
           <div className="mt-8 rounded-2xl border border-[oklch(0.91_0.05_30)] bg-white p-6 text-center">
             <p className="text-base font-bold text-foreground">

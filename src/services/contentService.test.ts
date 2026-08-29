@@ -251,6 +251,8 @@ describe("getContentById (apiClient 이관)", () => {
         category: "CULTURE",
         indoor: true,
         region: "HADONG",
+        latitude: 35.2345,
+        longitude: 127.6789,
       },
     });
 
@@ -273,7 +275,35 @@ describe("getContentById (apiClient 이관)", () => {
       reservationRequired: false,
       dataSource: "TourAPI",
       imageUrls: ["https://example.com/2.jpg"],
+      latitude: 35.2345,
+      longitude: 127.6789,
     });
+  });
+
+  it("좌표는 계약 그대로 통과시킨다 — 0(빈 값)도 보존한다", async () => {
+    mockGet.mockResolvedValueOnce({
+      data: {
+        contentId: "c-9",
+        title: "좌표 없는 콘텐츠",
+        address: "예천군",
+        summary: "요약",
+        useTime: null,
+        restDate: null,
+        parking: null,
+        stayDuration: null,
+        reservationRequired: null,
+        dataSource: null,
+        images: [],
+        region: "YECHEON",
+        latitude: 0,
+        longitude: 0,
+      },
+    });
+
+    const result = await getContentById("c-9");
+
+    expect(result.latitude).toBe(0);
+    expect(result.longitude).toBe(0);
   });
 
   it("parking에 '불가'가 없으면 true로 변환한다", async () => {

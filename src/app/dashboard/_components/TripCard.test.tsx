@@ -10,6 +10,11 @@ vi.mock("@/services/shareService", () => ({
   createShare: vi.fn(),
 }));
 
+// 상세보기가 여는 ItineraryResult 의 지도 라이브 해석을 비활성화한다.
+vi.mock("@/hooks/useItineraryMapData", () => ({
+  useItineraryMapData: () => ({ status: "ready", days: [] }),
+}));
+
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
     runAuthed: (fn: (token?: string) => Promise<unknown>) =>

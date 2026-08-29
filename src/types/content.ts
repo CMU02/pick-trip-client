@@ -113,6 +113,10 @@ export interface ContentDetail extends Content {
   reservationRequired: boolean | null;
   dataSource: string | null;
   imageUrls: string[];
+  // 위경도. 백엔드가 TourAPI mapy/mapx 에서 채우며, 원본이 비면 0 이 온다
+  // (유효성 판단은 src/lib/geo.ts isValidKoreaCoord 가 담당).
+  latitude: number;
+  longitude: number;
 }
 
 export interface ContentsResponse {

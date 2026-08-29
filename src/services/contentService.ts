@@ -108,6 +108,8 @@ interface RawContentDetail {
   category?: ContentCategory;
   indoor?: boolean;
   region: Region;
+  latitude: number;
+  longitude: number;
 }
 
 function toParkingAvailable(parking: string | null): boolean | null {
@@ -140,6 +142,9 @@ function toContentDetail(raw: RawContentDetail): ContentDetail {
     imageUrls: override
       ? images.filter((url) => url !== imageUrl)
       : images.slice(1),
+    // 좌표는 계약 그대로 통과시킨다. 0/무효 판정은 지도 레이어(geo.ts)에서 한다.
+    latitude: raw.latitude,
+    longitude: raw.longitude,
   };
 }
 

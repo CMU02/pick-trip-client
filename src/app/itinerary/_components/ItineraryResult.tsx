@@ -5,13 +5,16 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { useItineraryMapData } from "@/hooks/useItineraryMapData";
 import type { ParsedApiError } from "@/lib/errors";
 import { hasEmptyDay } from "@/lib/itinerary";
 import type { Content } from "@/types/content";
 import type { Day } from "@/types/itinerary";
+import type { ItineraryMapData } from "@/types/map";
 import type { Region } from "@/types/region";
 import { AlternativePlacePicker } from "./AlternativePlacePicker";
 import { DayCard } from "./DayCard";
+import { ItineraryMap } from "./ItineraryMap";
 
 interface ItineraryEditor {
   region: Region;
@@ -37,12 +40,16 @@ interface ItineraryResultProps {
   // 컴포넌트를 페이지 레이아웃(ItineraryResultLayout) 없이 단독으로 쓰는
   // 곳(저장한 일정 목록의 "보기" 펼침 영역)을 위한 슬롯이라 기본은 없다.
   headerAction?: ReactNode;
+  // 저장 스냅샷·공유 SSR 처럼 좌표/경로를 이미 해석해둔 경우 그대로 넘긴다.
+  // 없으면 내부에서 days 로 라이브 해석한다(미리보기·저장목록 라이브 경로).
+  mapData?: ItineraryMapData;
 }
 
 export function ItineraryResult({
   data,
   editor,
   headerAction,
+  mapData,
 }: ItineraryResultProps) {
   const [replaceTarget, setReplaceTarget] = useState<{
     dayId: string;
@@ -52,6 +59,14 @@ export function ItineraryResult({
   const days = editor ? editor.days : data.days;
   const adjustments = data.adjustments ?? [];
   const blockedByEmptyDay = editor ? hasEmptyDay(days) : false;
+
+  // mapData 가 오면 라이브 해석은 건너뛴다(빈 배열 → 쿼리 0개).
+  const liveMapData = useItineraryMapData(mapData ? [] : days);
+  const resolvedMapData = mapData ?? liveMapData;
+  const mapDaysByIndex = new Map(
+    resolvedMapData.days.map((d) => [d.dayIndex, d]),
+  );
+  const showOverviewMap = resolvedMapData.days.some((d) => d.points.length > 0);
 
   return (
     <section>
@@ -79,22 +94,32 @@ export function ItineraryResult({
           생성된 일정이 없습니다
         </p>
       ) : (
-        <div className="mt-4 flex flex-col gap-4">
-          {days.map((day) => (
-            <DayCard
-              key={day.dayId}
-              day={day}
-              onMoveItem={editor?.onMoveItem}
-              onRemoveItem={editor?.onRemoveItem}
-              onTogglePinned={editor?.onTogglePinned}
-              onOpenReplacePicker={
-                editor
-                  ? (dayId, itemId) => setReplaceTarget({ dayId, itemId })
-                  : undefined
-              }
+        <>
+          {showOverviewMap && (
+            <ItineraryMap
+              variant="overview"
+              days={resolvedMapData.days}
+              className="mt-4"
             />
-          ))}
-        </div>
+          )}
+          <div className="mt-4 flex flex-col gap-4">
+            {days.map((day) => (
+              <DayCard
+                key={day.dayId}
+                day={day}
+                mapDay={mapDaysByIndex.get(day.dayIndex)}
+                onMoveItem={editor?.onMoveItem}
+                onRemoveItem={editor?.onRemoveItem}
+                onTogglePinned={editor?.onTogglePinned}
+                onOpenReplacePicker={
+                  editor
+                    ? (dayId, itemId) => setReplaceTarget({ dayId, itemId })
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {editor && (

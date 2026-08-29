@@ -168,6 +168,34 @@ describe("DayCard", () => {
     expect(screen.queryByText(/이동 /)).not.toBeInTheDocument();
   });
 
+  it("Kakao 길찾기 결과가 있으면 백엔드 값 대신 그 거리·시간을 쓴다", () => {
+    render(
+      <DayCard
+        day={makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 })}
+        mapDay={{
+          dayIndex: 1,
+          points: [
+            { lat: 35.1, lng: 127.7, contentId: "a", title: "A" },
+            { lat: 35.2, lng: 127.8, contentId: "b", title: "B" },
+          ],
+          route: {
+            totalDistanceMeters: 8300,
+            totalDurationSeconds: 1200,
+            segments: [{ distanceMeters: 8300, durationSeconds: 1200 }],
+            path: [],
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        (_, el) => el?.textContent === "이동 20분 · 8.3km · 자동차",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/12\.4km/)).not.toBeInTheDocument();
+  });
+
   it("dayNotes가 있으면 경고 스트립을 렌더한다", () => {
     render(
       <DayCard

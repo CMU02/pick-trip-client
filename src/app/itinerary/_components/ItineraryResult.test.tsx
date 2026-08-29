@@ -7,6 +7,11 @@ import { ItineraryResult } from "./ItineraryResult";
 
 vi.mock("@/services/contentService");
 
+// 지도 데이터 해석은 별도 훅 테스트에서 검증한다. 여기서는 비활성으로 둔다.
+vi.mock("@/hooks/useItineraryMapData", () => ({
+  useItineraryMapData: () => ({ status: "ready", days: [] }),
+}));
+
 const makeDay = (overrides: Partial<Day> = {}): Day => ({
   dayId: "day-1",
   dayIndex: 1,

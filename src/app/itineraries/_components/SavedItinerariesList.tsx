@@ -6,9 +6,11 @@ import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
 import { ShareButton } from "@/app/itinerary/_components/ShareButton";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
+import { useItineraryMapSnapshots } from "@/hooks/useItineraryMapSnapshots";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { parseApiError } from "@/lib/errors";
 import { formatDuration } from "@/lib/itinerary";
+import { fromSnapshot } from "@/lib/itineraryMapSnapshot";
 import { getItinerary } from "@/services/itineraryService";
 import type { ItineraryResponse } from "@/types/itinerary";
 import { REGION_LABELS } from "@/types/region";
@@ -28,6 +30,7 @@ function formatSavedAgo(savedAt: number) {
 
 export function SavedItinerariesList() {
   const { items, remove } = useSavedItineraries();
+  const { snapshots, removeSnapshot } = useItineraryMapSnapshots();
   const { runAuthed } = useAuth();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, DetailState>>({});
@@ -99,7 +102,10 @@ export function SavedItinerariesList() {
               <div className="flex shrink-0 items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => remove(item.itineraryId)}
+                  onClick={() => {
+                    remove(item.itineraryId);
+                    removeSnapshot(item.itineraryId);
+                  }}
                   className="text-xs text-muted-foreground transition-colors hover:text-destructive"
                 >
                   목록에서 지우기
@@ -136,6 +142,10 @@ export function SavedItinerariesList() {
                 {detail?.status === "loaded" && (
                   <ItineraryResult
                     data={detail.data}
+                    mapData={
+                      fromSnapshot(snapshots[detail.data.itineraryId]) ??
+                      undefined
+                    }
                     headerAction={
                       <ShareButton itineraryId={detail.data.itineraryId} />
                     }
