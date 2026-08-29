@@ -48,6 +48,7 @@ import { GeneratingState } from "./GeneratingState";
 import { ItineraryResult } from "./ItineraryResult";
 import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
+import { TripDistanceCard } from "./TripDistanceCard";
 import { TripSummary } from "./TripSummary";
 
 // useItineraryMapData 를 조건부로 부를 수 없어(hooks 규칙), 지도 대상이 아닌
@@ -58,7 +59,8 @@ const EMPTY_DAYS: Day[] = [];
 // 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
 // 여정은 3단계(Step 1 여행 조건 → Step 2 콘텐츠 담기 → Step 3 AI 일정 생성)이고,
 // 이 화면은 Step 3의 "완료" 상태라 별도 단계 번호 없이 "AI 일정 생성 완료"로 표기한다.
-// 총 이동 시간·거리는 사이드바 TripSummary(travelSummary prop)에서 보여준다.
+// 총 이동 시간은 사이드바 TripSummary(travelSummary prop), 총 이동 거리는
+// 그 아래 TripDistanceCard(Kakao 길찾기 실도로 값)에서 보여준다.
 function ItineraryResultLayout({
   region,
   duration,
@@ -506,16 +508,19 @@ export function ItineraryClient({
           </>
         }
         sidebar={
-          <TripSummary
-            regions={parsedRegions}
-            startDate={startDate}
-            nights={parsedNights}
-            companions={parsedCompanions}
-            items={preLoginBasketRef.current}
-            showItemList={false}
-            itemCount={previewItemCount}
-            travelSummary={null}
-          />
+          <>
+            <TripSummary
+              regions={parsedRegions}
+              startDate={startDate}
+              nights={parsedNights}
+              companions={parsedCompanions}
+              items={preLoginBasketRef.current}
+              showItemList={false}
+              itemCount={previewItemCount}
+              travelSummary={null}
+            />
+            <TripDistanceCard mapDays={mapData.days} />
+          </>
         }
       >
         <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
@@ -589,21 +594,24 @@ export function ItineraryClient({
           )
         }
         sidebar={
-          <TripSummary
-            regions={parsedRegions}
-            startDate={startDate}
-            nights={parsedNights}
-            companions={parsedCompanions}
-            items={items}
-            showItemList={false}
-            // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
-            // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
-            itemCount={phase.data.days.reduce(
-              (sum, day) => sum + day.items.length,
-              0,
-            )}
-            travelSummary={sumDayTravel(phase.data.days)}
-          />
+          <>
+            <TripSummary
+              regions={parsedRegions}
+              startDate={startDate}
+              nights={parsedNights}
+              companions={parsedCompanions}
+              items={items}
+              showItemList={false}
+              // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
+              // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
+              itemCount={phase.data.days.reduce(
+                (sum, day) => sum + day.items.length,
+                0,
+              )}
+              travelSummary={sumDayTravel(phase.data.days)}
+            />
+            <TripDistanceCard mapDays={mapData.days} />
+          </>
         }
       >
         {phase.status === "preview" && phase.error && (
