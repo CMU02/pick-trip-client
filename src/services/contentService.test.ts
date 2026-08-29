@@ -376,7 +376,7 @@ describe("getContentById (apiClient 이관)", () => {
         images: [
           {
             imageUrl:
-              "http://tong.visitkorea.or.kr/cms/resource/12/2870712_image2_1.jpg",
+              "http://tong.visitkorea.or.kr/cms/resource/15/2870715_image2_1.jpg",
             title: "1",
           },
           { imageUrl: "http://tong.visitkorea.or.kr/other.jpg", title: "2" },
@@ -389,7 +389,7 @@ describe("getContentById (apiClient 이관)", () => {
     const result = await getContentById("2870730");
 
     expect(result.imageUrl).toBe(
-      "http://tong.visitkorea.or.kr/cms/resource/12/2870712_image2_1.jpg",
+      "http://tong.visitkorea.or.kr/cms/resource/15/2870715_image2_1.jpg",
     );
     expect(result.imageUrls).toEqual([
       "http://tong.visitkorea.or.kr/other.jpg",
