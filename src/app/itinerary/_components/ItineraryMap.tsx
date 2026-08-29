@@ -165,7 +165,9 @@ export function ItineraryMap({ variant, days, className }: ItineraryMapProps) {
   const hasAnyPoint = days.some((d) => d.points.length > 0);
   const boxHeight = variant === "overview" ? "h-[360px]" : "h-[220px]";
   const radius = variant === "overview" ? "rounded-2xl" : "rounded-xl";
-  const captionText = hasAnyPoint ? caption(days) : null;
+  // 일차 지도 캡션은 바로 위 DayCard 헤더의 "이동 …" 칩과 중복이라 전체 지도에만.
+  const captionText =
+    variant === "overview" && hasAnyPoint ? caption(days) : null;
 
   return (
     <div className={className}>

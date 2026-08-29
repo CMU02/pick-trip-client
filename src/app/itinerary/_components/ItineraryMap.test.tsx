@@ -71,11 +71,19 @@ describe("ItineraryMap", () => {
         [127.74, 35.13],
       ] as [number, number][],
     };
-    render(<ItineraryMap variant="day" days={[mapDay(1, 2, route)]} />);
+    render(<ItineraryMap variant="overview" days={[mapDay(1, 2, route)]} />);
 
     await waitFor(() => expect(instances.polylines).toHaveLength(1));
     expect(instances.polylines[0].options.strokeStyle).toBe("solid");
+    // overview 지도에는 이동 요약 캡션을 보여준다.
     expect(screen.getByText(/이동/)).toBeInTheDocument();
+  });
+
+  it("일차 지도에는 캡션을 넣지 않는다(DayCard 헤더 칩과 중복)", async () => {
+    render(<ItineraryMap variant="day" days={[mapDay(1, 3)]} />);
+
+    await waitFor(() => expect(instances.polylines).toHaveLength(1));
+    expect(screen.queryByText(/직선거리|이동/)).not.toBeInTheDocument();
   });
 
   it("좌표가 있는 장소가 없으면 안내 문구를 보이고 마커를 그리지 않는다", async () => {

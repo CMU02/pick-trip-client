@@ -36,8 +36,15 @@ export function DayCard({
   // ItineraryServiceTest 등 서버 픽스처 전부 1부터 시작). 그대로 표시한다.
   const dayNumber = day.dayIndex;
   const dateLabel = formatDayDate(day.date);
-  const travelDuration = formatTravelMinutes(day.totalTravelMinutes);
-  const travelDistance = formatDistanceKm(day.totalTravelKm);
+  // 이동 요약: Kakao 길찾기(실제 도로) 결과가 있으면 우선, 없으면 백엔드
+  // 스케줄러 값(직선 근사)으로 폴백한다.
+  const route = mapDay?.route ?? null;
+  const travelDuration = route
+    ? formatTravelMinutes(Math.round(route.totalDurationSeconds / 60))
+    : formatTravelMinutes(day.totalTravelMinutes);
+  const travelDistance = route
+    ? formatDistanceKm(route.totalDistanceMeters / 1000)
+    : formatDistanceKm(day.totalTravelKm);
   const travelLabel = [travelDuration, travelDistance]
     .filter(Boolean)
     .join(" · ");
@@ -68,6 +75,9 @@ export function DayCard({
           <p className="mt-1.5 flex items-center gap-1 pl-[46px] text-[12px] text-muted-foreground">
             <Icon name="compass-outline" size={13} className="shrink-0" />
             이동 {travelLabel}
+            {route && (
+              <span className="text-muted-foreground/70"> · 자동차</span>
+            )}
           </p>
         )}
       </div>
