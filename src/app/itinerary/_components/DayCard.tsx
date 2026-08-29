@@ -5,10 +5,15 @@ import {
   formatTravelMinutes,
 } from "@/lib/itinerary";
 import type { Day } from "@/types/itinerary";
+import type { ItineraryMapDay } from "@/types/map";
+import { ItineraryMap } from "./ItineraryMap";
 import { PlaceItem } from "./PlaceItem";
 
 interface DayCardProps {
   day: Day;
+  // 이 날의 지도 데이터(좌표·경로). 좌표가 있는 장소가 하나라도 있을 때만
+  // 카드 안에 지도를 그린다.
+  mapDay?: ItineraryMapDay;
   onMoveItem?: (
     dayId: string,
     itemId: string,
@@ -21,6 +26,7 @@ interface DayCardProps {
 
 export function DayCard({
   day,
+  mapDay,
   onMoveItem,
   onRemoveItem,
   onTogglePinned,
@@ -78,6 +84,11 @@ export function DayCard({
             </li>
           ))}
         </ul>
+      )}
+      {mapDay && mapDay.points.length > 0 && (
+        <div className="border-b border-border px-5.5 py-4">
+          <ItineraryMap variant="day" days={[mapDay]} />
+        </div>
       )}
       {day.items.length === 0 ? (
         <p className="px-5.5 py-6 text-sm text-muted-foreground">

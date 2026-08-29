@@ -26,6 +26,10 @@ const { mockAddSavedItinerary, mockClearBasket, mockSaveBasket } = vi.hoisted(
 vi.mock("@/services/basketService");
 vi.mock("@/services/itineraryService");
 vi.mock("@/services/shareService");
+// 지도 좌표/경로 해석은 별도 훅 테스트에서 검증한다. 여기서는 비활성으로 둔다.
+vi.mock("@/hooks/useItineraryMapData", () => ({
+  useItineraryMapData: () => ({ status: "ready", days: [] }),
+}));
 // runAuthed는 fn을 그대로 실행(토큰 없음)해 재시도 없이 최종 결과/에러를 그대로 노출한다.
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
