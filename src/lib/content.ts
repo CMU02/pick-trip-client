@@ -10,6 +10,16 @@ import {
 // useLoadMoreContents(클라이언트 "더보기")가 같은 값을 쓴다.
 export const CONTENT_PAGE_SIZE = 20;
 
+// 백엔드가 TourAPI 원문을 그대로 내려주는 운영시간·휴무일 등 자유 텍스트에는
+// 리터럴 <br> 태그가 섞여 온다. 실제 줄바꿈으로 나눠 각 줄을 렌더한다
+// (dangerouslySetInnerHTML을 쓰지 않기 위해 문자열 배열로 반환).
+export function splitBrLines(text: string): string[] {
+  return text
+    .split(/<br\s*\/?>/i)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
 // /api/v1/contents는 지역마다 같은 size로 fan-out 해서 응답을 합친다
 // (contentService.getContents 참고). 지역을 여러 개 한꺼번에 조회할 때
 // size를 그대로 두면 한 번에 pageSize × 지역 수개가 온다 — "전체" 탭에서

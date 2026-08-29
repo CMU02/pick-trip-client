@@ -36,15 +36,25 @@ describe("generateItinerary", () => {
     region: "HADONG",
     travelDate: "2025-01-15",
     duration: 2,
+    adjustments: [
+      "'예천군 문화유산'은 1일차(수)에 휴무여서 2일차로 옮겼습니다.",
+    ],
     days: [
       {
         dayIndex: 0,
+        date: "2025-01-15",
+        totalTravelMinutes: 20,
+        totalTravelKm: 3.5,
+        dayNotes: ["하루 총 이동시간이 약 20분입니다."],
         items: [
           {
             contentId: "content-1",
             title: "예천군 문화유산",
             order: 0,
             reason: "지역 대표 명소",
+            startTime: "09:00",
+            endTime: "10:30",
+            notes: ["개장 전 도착이라 09:00까지 대기가 필요합니다."],
           },
         ],
       },
@@ -59,6 +69,10 @@ describe("generateItinerary", () => {
       {
         dayId: "generated-day-0",
         dayIndex: 0,
+        date: "2025-01-15",
+        totalTravelMinutes: 20,
+        totalTravelKm: 3.5,
+        dayNotes: ["하루 총 이동시간이 약 20분입니다."],
         items: [
           {
             itemId: "generated-item-0-0-content-1",
@@ -67,6 +81,9 @@ describe("generateItinerary", () => {
             order: 0,
             reason: "지역 대표 명소",
             pinned: false,
+            startTime: "09:00",
+            endTime: "10:30",
+            notes: ["개장 전 도착이라 09:00까지 대기가 필요합니다."],
           },
         ],
       },
@@ -202,6 +219,8 @@ describe("getItinerary", () => {
       {
         dayId: "day-1",
         dayIndex: 0,
+        totalTravelMinutes: 25,
+        totalTravelKm: 4.2,
         items: [
           {
             itemId: "item-1",
@@ -210,12 +229,15 @@ describe("getItinerary", () => {
             order: 0,
             reason: "지역 대표 명소",
             pinned: false,
+            startTime: "09:00",
+            endTime: "10:30",
           },
         ],
       },
     ],
   };
 
+  // 저장 응답의 이동 요약·방문 시각은 { ...data }로 그대로 통과한다.
   const expectedResult: ItineraryResponse = {
     ...rawServerResponse,
     duration: 1,

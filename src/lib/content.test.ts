@@ -9,6 +9,7 @@ import {
   groupContentsByCategory,
   mergeUniqueContents,
   sortContentsByCategory,
+  splitBrLines,
 } from "./content";
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
@@ -97,6 +98,23 @@ describe("distributePageSize", () => {
 
   it("지역 수가 0이어도 나누기 오류 없이 안전하게 처리한다", () => {
     expect(distributePageSize(0, 20)).toBe(20);
+  });
+});
+
+describe("splitBrLines", () => {
+  it("<br> 태그로 나누고 공백/빈 줄을 정리한다", () => {
+    expect(splitBrLines("평일 09:00~18:00<br>주말 10:00~17:00")).toEqual([
+      "평일 09:00~18:00",
+      "주말 10:00~17:00",
+    ]);
+    expect(splitBrLines("가능 <br/> 요금 (무료)")).toEqual([
+      "가능",
+      "요금 (무료)",
+    ]);
+  });
+
+  it("<br>가 없으면 한 줄 그대로", () => {
+    expect(splitBrLines("연중무휴")).toEqual(["연중무휴"]);
   });
 });
 

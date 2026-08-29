@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import type { ParsedApiError } from "@/lib/errors";
+import { hasEmptyDay } from "@/lib/itinerary";
 import type { Content } from "@/types/content";
 import type { Day } from "@/types/itinerary";
 import type { Region } from "@/types/region";
@@ -27,7 +29,9 @@ interface ItineraryEditor {
 }
 
 interface ItineraryResultProps {
-  data: { days: Day[] };
+  // adjustments는 generate(미리보기) 응답에만 있다. 저장·공유 응답 타입에는
+  // 없으므로 그 화면에서는 자연히 배너가 안 뜬다.
+  data: { days: Day[]; adjustments?: string[] };
   editor?: ItineraryEditor;
   // "생성된 일정" 제목 옆 맨 오른쪽에 붙는 액션(예: 공유하기 버튼). 이
   // 컴포넌트를 페이지 레이아웃(ItineraryResultLayout) 없이 단독으로 쓰는
@@ -46,6 +50,8 @@ export function ItineraryResult({
   } | null>(null);
 
   const days = editor ? editor.days : data.days;
+  const adjustments = data.adjustments ?? [];
+  const blockedByEmptyDay = editor ? hasEmptyDay(days) : false;
 
   return (
     <section>
@@ -55,6 +61,19 @@ export function ItineraryResult({
         </h2>
         {headerAction}
       </div>
+      {adjustments.length > 0 && (
+        <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 p-4">
+          <p className="flex items-center gap-1.5 text-[13px] font-bold text-primary">
+            <Icon name="wand" size={14} className="shrink-0" />
+            AI가 일정을 이렇게 조정했어요
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-foreground/80">
+            {adjustments.map((adjustment) => (
+              <li key={adjustment}>{adjustment}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {days.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">
           생성된 일정이 없습니다
@@ -88,11 +107,17 @@ export function ItineraryResult({
             </p>
           )}
           <Button
-            disabled={!editor.isDirty || editor.isSaving}
+            disabled={!editor.isDirty || editor.isSaving || blockedByEmptyDay}
             onClick={editor.onSave}
           >
             {editor.isSaving ? "저장 중..." : "변경사항 저장"}
           </Button>
+          {blockedByEmptyDay && (
+            <p className="text-sm text-muted-foreground">
+              장소가 없는 날이 있어 저장할 수 없어요. 장소를 추가하거나 다시
+              생성해보세요.
+            </p>
+          )}
         </div>
       )}
 

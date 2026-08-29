@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
+import { formatTimeRange } from "@/lib/itinerary";
 import type { Item } from "@/types/itinerary";
 
 interface PlaceItemProps {
@@ -30,6 +31,8 @@ export function PlaceItem({
   const editable = Boolean(
     onMoveUp || onMoveDown || onRemove || onTogglePinned || onOpenReplacePicker,
   );
+  const timeRange = formatTimeRange(item.startTime, item.endTime);
+  const notes = item.notes ?? [];
 
   return (
     <div className="flex gap-3 py-3">
@@ -37,8 +40,13 @@ export function PlaceItem({
         {item.order + 1}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <p className="font-semibold text-foreground">{item.title}</p>
+          {timeRange && (
+            <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+              {timeRange}
+            </span>
+          )}
           {item.pinned && (
             <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
               고정
@@ -54,6 +62,23 @@ export function PlaceItem({
             />
             <span>{item.reason}</span>
           </p>
+        )}
+        {notes.length > 0 && (
+          <ul className="mt-1.5 flex flex-col gap-1.5">
+            {notes.map((note) => (
+              <li
+                key={note}
+                className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700"
+              >
+                <Icon
+                  name="alert"
+                  size={13}
+                  className="mt-0.5 shrink-0 text-amber-600"
+                />
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
         )}
 
         {editable && (

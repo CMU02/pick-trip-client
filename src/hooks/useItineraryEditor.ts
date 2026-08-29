@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
+import { hasEmptyDay, toSaveDays } from "@/lib/itinerary";
 import { modifyItinerary } from "@/services/itineraryService";
 import type { Content } from "@/types/content";
 import type { Day, SaveItineraryRequest } from "@/types/itinerary";
@@ -33,6 +34,22 @@ function moveWithinDay(
   return next.map((item, i) => ({ ...item, order: i }));
 }
 
+// 서버는 저장(PATCH) 시 스케줄러를 다시 돌리지 않는다. 사용자가 순서를 바꾸거나
+// 장소를 빼면 서버가 계산해준 방문 시각·이동 요약이 어긋나므로, 편집한 날의
+// 그 값들을 지워 화면에서 잘못된 시각이 보이지 않게 한다. 재계산은 "다시 생성" 몫.
+function clearDaySchedule(day: Day): Day {
+  return {
+    ...day,
+    totalTravelMinutes: null,
+    totalTravelKm: null,
+    items: day.items.map((item) => ({
+      ...item,
+      startTime: null,
+      endTime: null,
+    })),
+  };
+}
+
 export function useItineraryEditor({
   itineraryId,
   title,
@@ -51,7 +68,10 @@ export function useItineraryEditor({
     setDays((prev) =>
       prev.map((day) =>
         day.dayId === dayId
-          ? { ...day, items: moveWithinDay(day.items, itemId, direction) }
+          ? clearDaySchedule({
+              ...day,
+              items: moveWithinDay(day.items, itemId, direction),
+            })
           : day,
       ),
     );
@@ -62,12 +82,12 @@ export function useItineraryEditor({
     setDays((prev) =>
       prev.map((day) =>
         day.dayId === dayId
-          ? {
+          ? clearDaySchedule({
               ...day,
               items: day.items
                 .filter((item) => item.itemId !== itemId)
                 .map((item, i) => ({ ...item, order: i })),
-            }
+            })
           : day,
       ),
     );
@@ -96,7 +116,7 @@ export function useItineraryEditor({
     setDays((prev) =>
       prev.map((day) =>
         day.dayId === dayId
-          ? {
+          ? clearDaySchedule({
               ...day,
               items: day.items.map((item) =>
                 item.itemId === itemId
@@ -108,7 +128,7 @@ export function useItineraryEditor({
                     }
                   : item,
               ),
-            }
+            })
           : day,
       ),
     );
@@ -116,6 +136,14 @@ export function useItineraryEditor({
   }
 
   async function save() {
+    // 장소가 없는 날이 있으면 백엔드가 저장을 거부한다(저장 버튼도 이미 막혀 있음).
+    if (hasEmptyDay(days)) {
+      setSaveError({
+        message: "장소가 없는 날이 있어 저장할 수 없어요.",
+      });
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
 
@@ -125,16 +153,7 @@ export function useItineraryEditor({
         region,
         travelDate,
         duration,
-        days: days.map((day) => ({
-          dayIndex: day.dayIndex,
-          items: day.items.map((item) => ({
-            contentId: item.contentId,
-            title: item.title,
-            order: item.order,
-            reason: item.reason,
-            pinned: item.pinned ?? false,
-          })),
-        })),
+        days: toSaveDays(days),
       };
       const saved = await runAuthed((token) =>
         modifyItinerary(itineraryId, request, token),
