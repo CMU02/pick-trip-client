@@ -17,14 +17,15 @@ function roundKey(points: RoutePoint[]): [number, number][] {
   ]);
 }
 
-// 일차별로 Kakao 길찾기를 조회한다. 좌표(소수 5자리)가 같으면 같은 쿼리로
-// 캐시되고, 저장/편집으로 순서가 바뀌면 키가 달라져 새로 조회한다.
+// 일차별로 Kakao 길찾기를 조회한다. 키에 dayIndex를 넣어(좌표만으로는 장소가
+// 없는 여러 날이 같은 키 []가 되어 useQueries가 중복 경고를 낸다) 날마다 별도
+// 캐시하고, 저장/편집으로 순서가 바뀌면 roundKey가 달라져 새로 조회한다.
 export function useItineraryRoutes(
   daysPoints: DayPoints[],
 ): Map<number, RouteResult | null> {
   const results = useQueries({
     queries: daysPoints.map((d) => ({
-      queryKey: ["directions", roundKey(d.points)] as const,
+      queryKey: ["directions", d.dayIndex, roundKey(d.points)] as const,
       queryFn: () => getDirections(d.points),
       enabled: d.points.length >= 2,
       staleTime: Number.POSITIVE_INFINITY,
