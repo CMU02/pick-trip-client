@@ -37,12 +37,20 @@ class MockLatLngBounds {
 class MockMap {
   setBounds = vi.fn();
   setCenter = vi.fn();
-  setLevel = vi.fn();
+  // 실제 SDK처럼 레벨을 보관해 setLevel/getLevel 이 짝을 이루게 한다.
+  level: number;
+  setLevel = vi.fn((level: number) => {
+    this.level = level;
+  });
+  getLevel = vi.fn(() => this.level);
   relayout = vi.fn();
   constructor(
     public container: HTMLElement,
     public options: unknown,
-  ) {}
+  ) {
+    const opts = options as { level?: number } | null;
+    this.level = opts?.level ?? 3;
+  }
 }
 
 class MockPolyline {
