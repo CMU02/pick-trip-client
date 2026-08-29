@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { normalizeKakaoDirections } from "./kakaoDirections";
+import {
+  fetchKakaoDirections,
+  normalizeKakaoDirections,
+} from "./kakaoDirections";
 
 const okResponse = {
   routes: [
@@ -69,5 +72,54 @@ describe("normalizeKakaoDirections", () => {
   it("routes가 없으면 null", () => {
     expect(normalizeKakaoDirections({})).toBeNull();
     expect(normalizeKakaoDirections(null)).toBeNull();
+  });
+});
+
+describe("fetchKakaoDirections", () => {
+  const a = { lat: 35.1, lng: 127.7 };
+  const b = { lat: 35.2, lng: 127.8 };
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+    process.env.KAKAO_REST_API_KEY = "test-key";
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    process.env.KAKAO_REST_API_KEY = "";
+  });
+
+  it("키가 없으면 호출 없이 null", async () => {
+    process.env.KAKAO_REST_API_KEY = "";
+    expect(await fetchKakaoDirections([a, b])).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("좌표가 2개 미만이면 null", async () => {
+    expect(await fetchKakaoDirections([a])).toBeNull();
+  });
+
+  it("Kakao 응답을 정규화해 반환하고 KakaoAK 헤더를 붙인다", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => okResponse,
+    } as Response);
+
+    const result = await fetchKakaoDirections([a, b]);
+
+    expect(result?.totalDistanceMeters).toBe(12000);
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    expect((init?.headers as Record<string, string>).Authorization).toBe(
+      "KakaoAK test-key",
+    );
+  });
+
+  it("HTTP 오류면 null", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: false } as Response);
+    expect(await fetchKakaoDirections([a, b])).toBeNull();
+  });
+
+  it("예외가 나면 null", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("boom"));
+    expect(await fetchKakaoDirections([a, b])).toBeNull();
   });
 });
