@@ -87,7 +87,9 @@ export function PlaceItem({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
-                <p className="font-semibold text-foreground">{item.title}</p>
+                <p className="text-[15.5px] font-bold tracking-[-0.025em] text-foreground">
+                  {item.title}
+                </p>
                 {item.pinned && (
                   <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                     <Icon name="pin" size={11} />

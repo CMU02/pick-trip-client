@@ -75,6 +75,9 @@ export function ItineraryResult({
     resolvedMapData.days.map((d) => [d.dayIndex, d]),
   );
 
+  // 실도로 길찾기(route)가 잡힌 날이 하나라도 있으면 이동값 산출 기준을 안내한다.
+  const hasAnyRoute = resolvedMapData.days.some((d) => d.route);
+
   const rawIndex = selectedDayIndex ?? internalDayIndex;
   const selectIndex = onSelectDay ?? setInternalDayIndex;
   const dayIndex =
@@ -127,6 +130,12 @@ export function ItineraryResult({
               }
             />
           </div>
+          {hasAnyRoute && (
+            <p className="mt-3.5 px-0.5 text-[12px] leading-relaxed text-muted-foreground">
+              이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로
+              기준입니다. 순서를 바꾸면 다시 계산돼요.
+            </p>
+          )}
           {!hideMap && (
             <div className="mt-4">
               <DayMapPanel

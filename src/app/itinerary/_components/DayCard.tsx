@@ -2,6 +2,7 @@ import { Fragment } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import {
+  dayTravelLabel,
   formatDayDate,
   formatDistanceKm,
   formatTravelMinutes,
@@ -46,15 +47,7 @@ export function DayCard({
   const departure = day.items[0]?.startTime ?? null;
 
   // 이동 합계: Kakao 길찾기(실도로) 결과 우선, 없으면 백엔드 스케줄러 값.
-  const travelDuration = route
-    ? formatTravelMinutes(Math.round(route.totalDurationSeconds / 60))
-    : formatTravelMinutes(day.totalTravelMinutes);
-  const travelDistance = route
-    ? formatDistanceKm(route.totalDistanceMeters / 1000)
-    : formatDistanceKm(day.totalTravelKm);
-  const travelLabel = [travelDuration, travelDistance]
-    .filter(Boolean)
-    .join(" · ");
+  const travelLabel = dayTravelLabel(day, mapDay);
 
   const dayNotes = day.dayNotes ?? [];
 
@@ -66,20 +59,22 @@ export function DayCard({
             <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] bg-primary text-sm font-extrabold text-primary-foreground">
               {dayNumber}
             </span>
-            <h3 className="text-[18px] font-bold tracking-tight text-foreground">
-              {dayNumber}일차
+            <div>
+              <h3 className="text-[18px] font-bold tracking-tight text-foreground">
+                {dayNumber}일차
+              </h3>
               {dateLabel && (
-                <span className="ml-1.5 text-[13px] font-medium text-muted-foreground">
+                <p className="mt-0.5 text-[12.5px] text-muted-foreground">
                   {dateLabel}
-                </span>
+                </p>
               )}
-            </h3>
+            </div>
           </div>
-          <div className="flex shrink-0 items-start gap-5 text-right">
+          <div className="flex shrink-0 items-start gap-[22px] text-right">
             {departure && (
               <div>
                 <p className="text-[11px] text-muted-foreground">출발</p>
-                <p className="text-[13px] font-bold tabular-nums text-foreground">
+                <p className="text-[15px] font-extrabold tabular-nums tracking-[-0.02em] text-foreground">
                   {departure}
                 </p>
               </div>
@@ -87,35 +82,34 @@ export function DayCard({
             {travelLabel && (
               <div>
                 <p className="text-[11px] text-muted-foreground">차량 이동</p>
-                <p className="text-[13px] font-bold tabular-nums text-foreground">
+                <p className="text-[15px] font-extrabold tabular-nums tracking-[-0.02em] text-foreground">
                   {travelLabel}
                 </p>
               </div>
             )}
             <div>
               <p className="text-[11px] text-muted-foreground">장소</p>
-              <p className="text-[13px] font-bold text-foreground">
+              <p className="text-[15px] font-extrabold tracking-[-0.02em] text-foreground">
                 {day.items.length}곳
               </p>
             </div>
           </div>
         </div>
-      </div>
 
-      {dayNotes.length > 0 && (
-        <ul className="space-y-1 border-b border-border bg-amber-50/60 px-5.5 py-3 text-xs text-amber-700">
-          {dayNotes.map((note) => (
-            <li key={note} className="flex items-start gap-1.5">
-              <Icon
-                name="alert"
-                size={13}
-                className="mt-0.5 shrink-0 text-amber-600"
-              />
-              <span>{note}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+        {dayNotes.length > 0 && (
+          <ul className="mt-3.5 flex flex-col gap-1.5">
+            {dayNotes.map((note) => (
+              <li
+                key={note}
+                className="flex items-start gap-1.5 rounded-[11px] bg-[oklch(0.975_0.035_85)] px-3 py-2 text-[12.5px] leading-relaxed text-[oklch(0.45_0.09_70)]"
+              >
+                <Icon name="alert" size={13} className="mt-0.5 shrink-0" />
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {day.items.length === 0 ? (
         <p className="px-5.5 py-6 text-sm text-muted-foreground">
@@ -168,7 +162,7 @@ export function DayCard({
                       <span className="relative z-10 mt-1 h-2 w-2 rounded-full bg-border" />
                     </div>
                     <div className="min-w-0 pb-4">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[12px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-[oklch(0.985_0.008_30)] px-3 py-1.5 text-[12px] font-bold text-[oklch(0.4_0.015_30)]">
                         <Icon
                           name="compass-outline"
                           size={13}

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Day } from "@/types/itinerary";
 
 import {
+  dayTravelLabel,
   formatDayDate,
   formatDistanceKm,
   formatDuration,
@@ -28,6 +29,39 @@ const makeDay = (overrides: Partial<Day> = {}): Day => ({
   dayIndex: 1,
   items: [makeItem()],
   ...overrides,
+});
+
+describe("dayTravelLabel", () => {
+  it("route가 있으면 route 거리·시간을 쓴다", () => {
+    const label = dayTravelLabel(
+      makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+      {
+        dayIndex: 1,
+        points: [],
+        route: {
+          totalDistanceMeters: 8300,
+          totalDurationSeconds: 1200,
+          segments: [],
+          path: [],
+        },
+      },
+    );
+    expect(label).toBe("20분 · 8.3km");
+  });
+
+  it("route가 없으면 day.totalTravel* 로 폴백한다", () => {
+    expect(
+      dayTravelLabel(makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 })),
+    ).toBe("1시간 15분 · 12.4km");
+  });
+
+  it("둘 다 없으면 null", () => {
+    expect(
+      dayTravelLabel(
+        makeDay({ totalTravelMinutes: null, totalTravelKm: null }),
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("formatDuration", () => {

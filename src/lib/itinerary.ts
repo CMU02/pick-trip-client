@@ -1,4 +1,5 @@
 import type { Day, DayRequest } from "@/types/itinerary";
+import type { ItineraryMapDay } from "@/types/map";
 
 export function formatDuration(duration: number) {
   return duration === 0 ? "당일치기" : `${duration}박 ${duration + 1}일`;
@@ -68,6 +69,26 @@ export function sumDayTravel(days: Day[]): {
     totalMinutes,
     totalKm: totalKm === null ? null : Math.round(totalKm * 10) / 10,
   };
+}
+
+/**
+ * 한 날의 이동 합계 "34분 · 27.6km". Kakao 길찾기(실도로) route 결과가 있으면
+ * 우선, 없으면 백엔드 스케줄러 값(day.totalTravel*)으로 폴백한다. 둘 다 없으면 null.
+ * DayCard 헤더와 DayMapPanel 구간 헤더행이 같은 값을 쓰도록 공유한다.
+ */
+export function dayTravelLabel(
+  day: Day,
+  mapDay?: ItineraryMapDay | null,
+): string | null {
+  const route = mapDay?.route ?? null;
+  const duration = route
+    ? formatTravelMinutes(Math.round(route.totalDurationSeconds / 60))
+    : formatTravelMinutes(day.totalTravelMinutes);
+  const distance = route
+    ? formatDistanceKm(route.totalDistanceMeters / 1000)
+    : formatDistanceKm(day.totalTravelKm);
+  const label = [duration, distance].filter(Boolean).join(" · ");
+  return label || null;
 }
 
 /** 장소가 0개인 날이 하나라도 있는지. 저장은 이런 날을 400으로 거부한다. */

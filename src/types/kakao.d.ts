@@ -23,6 +23,14 @@ declare namespace kakao.maps {
 
   class Point {
     constructor(x: number, y: number);
+    x: number;
+    y: number;
+  }
+
+  // 지도 좌표 ↔ 컨테이너 픽셀 변환. 마커 라벨 겹침 계산에 쓴다.
+  class MapProjection {
+    containerPointFromCoords(latlng: LatLng): Point;
+    coordsFromContainerPoint(point: Point): LatLng;
   }
 
   interface MapOptions {
@@ -44,6 +52,7 @@ declare namespace kakao.maps {
       paddingLeft?: number,
     ): void;
     relayout(): void;
+    getProjection(): MapProjection;
   }
 
   interface CustomOverlayOptions {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { parseApiError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,7 @@ export function ShareButton({
       disabled={state.status === "loading"}
       onClick={handleShare}
     >
+      <Icon name="external-link" size={15} />
       {state.status === "loading" ? "생성 중..." : "공유하기"}
     </Button>
   );
