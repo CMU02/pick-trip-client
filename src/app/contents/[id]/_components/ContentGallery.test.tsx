@@ -75,4 +75,75 @@ describe("ContentGallery", () => {
 
     expect(screen.getByText("3 / 3")).toBeInTheDocument();
   });
+
+  const sixImgs = [
+    "https://example.com/1.jpg",
+    "https://example.com/2.jpg",
+    "https://example.com/3.jpg",
+    "https://example.com/4.jpg",
+    "https://example.com/5.jpg",
+    "https://example.com/6.jpg",
+  ];
+
+  it("사진이 4장을 넘으면 썸네일 3칸 + '+N' 버튼만 보여준다", () => {
+    render(<ContentGallery images={sixImgs} name="쌍계사" />);
+
+    expect(
+      screen.getAllByRole("button", { name: /번 사진 보기$/ }),
+    ).toHaveLength(3);
+    expect(
+      screen.getByRole("button", { name: "사진 6장 모두 보기" }),
+    ).toHaveTextContent("+3");
+  });
+
+  it("'+N'을 누르면 라이트박스가 열리고 모든 사진을 선택지로 펼친다", async () => {
+    render(<ContentGallery images={sixImgs} name="쌍계사" />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "사진 6장 모두 보기" }),
+    );
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /번 사진 선택$/ }),
+    ).toHaveLength(6);
+  });
+
+  it("라이트박스에서 사진을 고르면 그 사진으로 바뀌고 닫힌다", async () => {
+    render(<ContentGallery images={sixImgs} name="쌍계사" />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "사진 6장 모두 보기" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "5번 사진 선택" }),
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("5 / 6")).toBeInTheDocument();
+  });
+
+  it("라이트박스를 닫기 버튼으로 닫을 수 있다", async () => {
+    render(<ContentGallery images={sixImgs} name="쌍계사" />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "사진 6장 모두 보기" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "사진 목록 닫기" }),
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("사진이 정확히 4장이면 '+N' 없이 썸네일 4칸을 보여준다", () => {
+    render(<ContentGallery images={sixImgs.slice(0, 4)} name="쌍계사" />);
+
+    expect(
+      screen.getAllByRole("button", { name: /번 사진 보기$/ }),
+    ).toHaveLength(4);
+    expect(
+      screen.queryByRole("button", { name: /모두 보기$/ }),
+    ).not.toBeInTheDocument();
+  });
 });
