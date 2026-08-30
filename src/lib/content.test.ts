@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/errors";
 import type { Content } from "@/types/content";
 
 import {
+  filterContentsByIds,
   getContentFetchErrorMessage,
   groupContentsByCategory,
   mergeUniqueContents,
@@ -79,6 +80,46 @@ describe("mergeUniqueContents", () => {
     const result = mergeUniqueContents([first, duplicate, other]);
 
     expect(result).toEqual([first, other]);
+  });
+});
+
+describe("filterContentsByIds", () => {
+  it("ids가 비면 원본을 그대로 돌려준다", () => {
+    const contents = [makeContent({ id: "1" }), makeContent({ id: "2" })];
+
+    expect(filterContentsByIds(contents, [])).toEqual(contents);
+  });
+
+  it("id 목록에 속한 콘텐츠만 남긴다", () => {
+    const contents = [
+      makeContent({ id: "1" }),
+      makeContent({ id: "2" }),
+      makeContent({ id: "3" }),
+    ];
+
+    const result = filterContentsByIds(contents, ["1", "3"]);
+
+    expect(result.map((c) => c.id)).toEqual(["1", "3"]);
+  });
+
+  it("id 목록의 순서를 따른다", () => {
+    const contents = [
+      makeContent({ id: "1" }),
+      makeContent({ id: "2" }),
+      makeContent({ id: "3" }),
+    ];
+
+    const result = filterContentsByIds(contents, ["3", "1", "2"]);
+
+    expect(result.map((c) => c.id)).toEqual(["3", "1", "2"]);
+  });
+
+  it("목록에 없는 id는 조용히 건너뛴다", () => {
+    const contents = [makeContent({ id: "1" })];
+
+    expect(
+      filterContentsByIds(contents, ["1", "999"]).map((c) => c.id),
+    ).toEqual(["1"]);
   });
 });
 

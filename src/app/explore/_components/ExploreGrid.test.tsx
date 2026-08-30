@@ -344,6 +344,60 @@ describe("ExploreGrid", () => {
     expect(screen.getAllByText(/^재첩국\d+$/)).toHaveLength(22);
   });
 
+  it("URL의 ?ids= 로 진입하면 그 콘텐츠만 id 목록 순서대로 표시한다", () => {
+    window.history.replaceState(null, "", "?ids=3,1");
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "쌍계사" }),
+        makeContent({ id: "2", name: "화개장터" }),
+        makeContent({ id: "3", name: "최참판댁" }),
+      ],
+      initialTotal: 3,
+    });
+
+    const names = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(names).toEqual(["최참판댁", "쌍계사"]);
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    expect(screen.getByText("선택한 2곳 중 2개 표시 중")).toBeInTheDocument();
+  });
+
+  it("?ids= 진입 후 '테마 선택' 해제 pill을 누르면 전체가 다시 보인다", async () => {
+    window.history.replaceState(null, "", "?ids=1");
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "쌍계사" }),
+        makeContent({ id: "2", name: "화개장터" }),
+      ],
+      initialTotal: 2,
+    });
+
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "테마 선택 해제" }),
+    );
+
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
+    expect(screen.getByText("화개장터")).toBeInTheDocument();
+  });
+
+  it("?ids= 필터를 해제하면 URL 쿼리에서도 ids가 빠진다", async () => {
+    window.history.replaceState(null, "", "?ids=1");
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1", name: "쌍계사" })],
+      initialTotal: 1,
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "테마 선택 해제" }),
+    );
+
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/");
+  });
+
   it("카테고리를 여러 개 선택하면 로드 순서와 무관하게 카테고리 선언 순서로 묶여서 보인다", async () => {
     // 로드 순서는 문화-음식-문화-음식으로 일부러 뒤섞는다.
     const contents = [

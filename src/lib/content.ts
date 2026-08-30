@@ -93,6 +93,23 @@ export function getContentFetchErrorMessage(err: unknown): string {
   return message;
 }
 
+// 주어진 id 목록에 속한 콘텐츠만, id 목록의 순서 그대로 남긴다. 컬렉션
+// (테마 묶음)이 /explore?ids= 로 넘겨준 순서를 화면에서도 유지하기 위한 것.
+// ids가 비면 필터하지 않고 원본을 그대로 돌려준다. 목록에 없는 id는 무시한다.
+export function filterContentsByIds(
+  contents: Content[],
+  ids: string[],
+): Content[] {
+  if (ids.length === 0) return contents;
+  const byId = new Map(contents.map((c) => [c.id, c]));
+  const result: Content[] = [];
+  for (const id of ids) {
+    const found = byId.get(id);
+    if (found) result.push(found);
+  }
+  return result;
+}
+
 // 여러 페이지를 이어붙일 때 같은 콘텐츠가 중복되지 않게 id 기준으로 거른다.
 // 먼저 온 항목을 유지한다.
 export function mergeUniqueContents(contents: Content[]): Content[] {
