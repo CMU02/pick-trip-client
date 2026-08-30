@@ -1,20 +1,22 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 
-import { Icon } from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
 import { useBasket } from "@/hooks/useBasket";
 import { CONTENT_LIST_STALE_TIME } from "@/hooks/useLoadMoreContents";
 import { getContents } from "@/services/contentService";
 import {
-  CATEGORY_ICONS,
   CATEGORY_LABELS,
   CONTENT_CATEGORY_ORDER,
   type Content,
   type ContentCategory,
 } from "@/types/content";
-import { REGIONS } from "@/types/region";
+import { ALL_REGIONS_QUERY, REGIONS } from "@/types/region";
+
+import { TryItCard } from "./TryItCard";
 
 interface TryItGalleryProps {
   // TryItSection이 서버에서 받아온 초기 목록. TanStack Query의 initialData로
@@ -33,41 +35,19 @@ const TRY_IT_SIZE = 48;
 // 붙여둔 localStorage 퍼시스터·gcTime을 그대로 물려받는다.
 const TRY_IT_QUERY_KEY = ["contents", "home-try-it", TRY_IT_SIZE] as const;
 
-// 카테고리 파스텔 타일 (시안 TILE_BG / TILE_FG). 카테고리가 없는 콘텐츠는
-// 중립 그라디언트 + map-outline로 떨어진다.
-const TILE_BG: Record<ContentCategory, string> = {
-  FOOD: "linear-gradient(160deg, oklch(0.955 0.035 32), oklch(0.925 0.055 26))",
-  FESTIVAL:
-    "linear-gradient(160deg, oklch(0.955 0.035 12), oklch(0.925 0.055 6))",
-  ATTRACTION:
-    "linear-gradient(160deg, oklch(0.95 0.03 220), oklch(0.92 0.05 228))",
-  CULTURE:
-    "linear-gradient(160deg, oklch(0.955 0.03 60), oklch(0.925 0.05 52))",
-  NATURE:
-    "linear-gradient(160deg, oklch(0.95 0.035 155), oklch(0.915 0.055 160))",
-  EXPERIENCE:
-    "linear-gradient(160deg, oklch(0.95 0.03 300), oklch(0.92 0.05 305))",
-};
-const TILE_FG: Record<ContentCategory, string> = {
-  FOOD: "oklch(0.48 0.13 28)",
-  FESTIVAL: "oklch(0.48 0.14 12)",
-  ATTRACTION: "oklch(0.44 0.09 225)",
-  CULTURE: "oklch(0.45 0.09 52)",
-  NATURE: "oklch(0.42 0.09 158)",
-  EXPERIENCE: "oklch(0.44 0.1 302)",
-};
-const NEUTRAL_TILE =
-  "linear-gradient(160deg, oklch(0.955 0.008 30), oklch(0.925 0.012 30))";
-const NEUTRAL_FG = "oklch(0.45 0.015 30)";
-
 const CHIPS: ChipKey[] = ["ALL", ...CONTENT_CATEGORY_ORDER];
+
+// 담은 결과로 이어갈 AI 일정 생성 흐름. 홈은 지역을 고르지 않으므로 히어로
+// "AI 일정 살펴보기"와 동일하게 전체 지역으로 조건 입력 단계에 진입한다.
+const CONDITIONS_HREF = `/select/conditions?regions=${ALL_REGIONS_QUERY}`;
 
 function chipLabel(key: ChipKey): string {
   return key === "ALL" ? "전체" : CATEGORY_LABELS[key];
 }
 
 export function TryItGallery({ initialContents }: TryItGalleryProps) {
-  const { items, add, remove } = useBasket();
+  // items만 구독한다 — 담기 토글은 각 카드의 ContentCardActions가 직접 한다.
+  const { items } = useBasket();
   const [selected, setSelected] = useState<ChipKey>("ALL");
 
   const { data } = useQuery({
@@ -142,83 +122,24 @@ export function TryItGallery({ initialContents }: TryItGalleryProps) {
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {filtered.map((content) => (
-            <TryItCard
-              key={content.id}
-              content={content}
-              inBasket={items.some((i) => i.content.id === content.id)}
-              onAdd={() => add(content)}
-              onRemove={() => remove(content.id)}
-            />
+            <TryItCard key={content.id} content={content} />
           ))}
         </div>
       )}
-    </section>
-  );
-}
 
-function TryItCard({
-  content,
-  inBasket,
-  onAdd,
-  onRemove,
-}: {
-  content: Content;
-  inBasket: boolean;
-  onAdd: () => void;
-  onRemove: () => void;
-}) {
-  const category = content.category;
-  const tileBg = category ? TILE_BG[category] : NEUTRAL_TILE;
-  const tileFg = category ? TILE_FG[category] : NEUTRAL_FG;
-
-  return (
-    <div
-      className={`flex flex-col overflow-hidden rounded-[22px] border bg-white transition-all hover:-translate-y-1 hover:shadow-xl ${
-        inBasket ? "border-primary/40" : "border-border"
-      }`}
-    >
-      <div
-        className="relative grid h-[150px] place-items-center"
-        style={{ background: tileBg }}
-      >
-        <span
-          className="grid h-[58px] w-[58px] place-items-center rounded-full bg-white shadow-[0_0_0_1px_oklch(0.91_0.03_30),0_0_0_8px_oklch(1_0_0_/_0.55)]"
-          style={{ color: tileFg }}
-        >
-          <Icon
-            name={category ? CATEGORY_ICONS[category] : "map-outline"}
-            size={26}
-          />
-        </span>
-        {category && (
-          <span
-            className="absolute top-2.5 left-2.5 rounded-full bg-white/90 px-2.5 py-1 text-[10.5px] font-extrabold"
-            style={{ color: tileFg }}
-          >
-            {CATEGORY_LABELS[category]}
-          </span>
+      <div className="mt-8 flex justify-center">
+        {basketCount > 0 ? (
+          <Button asChild size="lg">
+            <Link href={CONDITIONS_HREF}>
+              담은 {basketCount}곳으로 일정 만들기
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild size="lg" variant="outline">
+            <Link href={CONDITIONS_HREF}>여행 조건부터 정하기</Link>
+          </Button>
         )}
       </div>
-
-      <div className="flex flex-1 flex-col p-4.5">
-        <p className="text-[15px] leading-snug font-bold tracking-tight">
-          {content.name}
-        </p>
-        <p className="mt-1.5 truncate text-xs text-muted-foreground">
-          {content.address}
-        </p>
-        <button
-          type="button"
-          onClick={inBasket ? onRemove : onAdd}
-          className={`mt-4 w-full rounded-xl py-2.5 text-[13px] font-bold transition-colors ${
-            inBasket
-              ? "bg-primary text-primary-foreground"
-              : "bg-[oklch(0.955_0.04_30)] text-primary"
-          }`}
-        >
-          {inBasket ? "✓ 담았어요" : "담기"}
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }

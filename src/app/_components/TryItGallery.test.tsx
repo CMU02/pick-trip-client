@@ -7,7 +7,17 @@ vi.mock("@/services/contentService", () => ({
   getContents: vi.fn(),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/",
+}));
+
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({ status: "authenticated" }),
+}));
+
 import { useBasketStore } from "@/stores/basketStore";
+import { useFavoriteStore } from "@/stores/favoriteStore";
 import {
   CATEGORY_LABELS,
   CONTENT_CATEGORY_ORDER,
@@ -49,9 +59,10 @@ function renderGallery(initialContents: Content[]) {
 
 describe("TryItGallery", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
     useBasketStore.setState({ items: [], hydrated: true });
+    useFavoriteStore.setState({ items: [], hydrated: true });
   });
 
   it("필터 결과 상위 4개만 카드로 보여준다", () => {
@@ -84,16 +95,46 @@ describe("TryItGallery", () => {
     ]);
   });
 
-  it("담기를 누르면 바구니에 담기고 라벨이 '✓ 담았어요'로 바뀐다", async () => {
+  it("카드의 담기 버튼을 누르면 바구니에 담기고 '담김'으로 바뀐다", async () => {
     renderGallery(sample);
 
-    const card = screen.getByText("쌍계사").closest("div") as HTMLElement;
+    const card = screen.getByText("쌍계사").closest("a")
+      ?.parentElement as HTMLElement;
     await userEvent.click(within(card).getByRole("button", { name: "담기" }));
 
     expect(useBasketStore.getState().items).toHaveLength(1);
     expect(
-      within(card).getByRole("button", { name: "✓ 담았어요" }),
+      within(card).getByRole("button", { name: "담김" }),
     ).toBeInTheDocument();
+  });
+
+  it("바구니가 비면 CTA가 '여행 조건부터 정하기'이고 조건 화면으로 연결된다", () => {
+    renderGallery(sample);
+
+    const cta = screen.getByRole("link", { name: "여행 조건부터 정하기" });
+    expect(cta).toHaveAttribute(
+      "href",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+    );
+  });
+
+  it("바구니에 담기면 CTA가 담은 개수를 반영한다", () => {
+    useBasketStore.setState({
+      items: [
+        { content: sample[0], addedAt: 1, priority: null },
+        { content: sample[1], addedAt: 2, priority: null },
+      ],
+      hydrated: true,
+    });
+
+    renderGallery(sample);
+
+    expect(
+      screen.getByRole("link", { name: "담은 2곳으로 일정 만들기" }),
+    ).toHaveAttribute(
+      "href",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+    );
   });
 
   it("바구니 개수에 따라 보조 문구가 바뀐다", () => {
