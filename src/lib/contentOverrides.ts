@@ -24,9 +24,9 @@ export const CONTENT_IMAGE_OVERRIDES: Record<string, string> = {
     "http://tong.visitkorea.or.kr/cms/resource/07/2868107_image2_1.jpg", // 벚굴식당
   "2788005":
     "http://tong.visitkorea.or.kr/cms/resource/02/2791002_image2_1.jpg", // 부두횟집
-  // 브릿지130: 상세 대표 이미지(images[0])로 카드·상세를 통일한다.
+  // 브릿지130: 목록에서 원래 쓰던 대표 이미지로 되돌리고, 상세도 이 이미지로 통일한다.
   "2870730":
-    "http://tong.visitkorea.or.kr/cms/resource/12/2870712_image2_1.jpg", // 브릿지130
+    "http://tong.visitkorea.or.kr/cms/resource/15/2870715_image2_1.jpg", // 브릿지130
   "2788011":
     "http://tong.visitkorea.or.kr/cms/resource/15/2790815_image2_1.jpg", // 삼성궁맛집 성남식당 (청학동)
   "2784765":
@@ -61,6 +61,21 @@ export const CONTENT_IMAGE_OVERRIDES: Record<string, string> = {
   // 축산본점식육식당: 상세 대표 이미지(images[0])로 카드·상세를 통일한다.
   "2629725":
     "http://tong.visitkorea.or.kr/cms/resource/53/2630253_image2_1.jpg", // [백년가게]축산본점식육식당(축산회관)
+
+  // 2026-08-30 예천 음식점 대표 이미지 일괄 교체 (사용자 지정 URL).
+  "2831942":
+    "http://tong.visitkorea.or.kr/cms/resource/37/2831937_image2_1.jpg", // 맛질예찬 토담
+  "2831962":
+    "http://tong.visitkorea.or.kr/cms/resource/55/2831955_image2_1.png", // 봉덕창고
+  "2831980":
+    "http://tong.visitkorea.or.kr/cms/resource/78/2831978_image2_1.jpg", // 용궁단골식당본점
+  "2832003":
+    "http://tong.visitkorea.or.kr/cms/resource/94/2831994_image2_1.jpg", // 윤훈식농가쌈밥
+  "2832015":
+    "http://tong.visitkorea.or.kr/cms/resource/08/2832008_image2_1.jpg", // 제주복집
+  // 청하 예천축산농협 한우프라자: 목록(콘텐츠 탐색)에서 쓰는 이미지로 상세를 통일한다.
+  "2832038":
+    "http://tong.visitkorea.or.kr/cms/resource/27/2832027_image2_1.jpg", // 청하 예천축산농협 한우프라자
 };
 
 // 백엔드 명칭이 길거나 옛 이름일 때 표시 이름을 교체한다.
