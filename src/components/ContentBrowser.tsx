@@ -493,7 +493,7 @@ function SkeletonCards({ count }: { count: number }) {
           key={i}
           className="animate-pulse overflow-hidden rounded-[18px] border border-border bg-card"
         >
-          <div className="aspect-[4/3] bg-muted" />
+          <div className="h-[150px] bg-muted" />
           <div className="flex flex-col gap-2 p-4">
             <div className="h-3 w-2/3 rounded-full bg-muted" />
             <div className="h-2.5 w-2/5 rounded-full bg-muted" />

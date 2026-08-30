@@ -19,7 +19,7 @@ export function ContentCard({ content }: ContentCardProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
       <Link href={`/contents/${content.id}`} className="block">
-        <div className="relative aspect-[4/3] bg-muted">
+        <div className="relative h-[140px] bg-muted">
           <ContentImage
             src={content.imageUrl}
             alt={content.name}
