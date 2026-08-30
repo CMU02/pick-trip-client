@@ -1,6 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/services/contentService", () => ({
+  getContents: vi.fn(),
+}));
 
 import { useBasketStore } from "@/stores/basketStore";
 import {
@@ -31,23 +36,34 @@ const sample: Content[] = [
   makeContent({ id: "5", name: "화개장터", category: "CULTURE" }),
 ];
 
+function renderGallery(initialContents: Content[]) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <TryItGallery initialContents={initialContents} />
+    </QueryClientProvider>,
+  );
+}
+
 describe("TryItGallery", () => {
   beforeEach(() => {
+    vi.resetAllMocks();
     localStorage.clear();
     useBasketStore.setState({ items: [], hydrated: true });
   });
 
   it("필터 결과 상위 4개만 카드로 보여준다", () => {
-    render(<TryItGallery contents={sample} />);
+    renderGallery(sample);
 
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByText("최참판댁")).toBeInTheDocument();
-    // 5번째(화개장터)는 상위 4개에서 잘린다.
     expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
   });
 
   it("칩을 바꾸면 그 카테고리 콘텐츠만 남는다", async () => {
-    render(<TryItGallery contents={sample} />);
+    renderGallery(sample);
 
     await userEvent.click(screen.getByRole("button", { name: "음식" }));
 
@@ -56,7 +72,7 @@ describe("TryItGallery", () => {
   });
 
   it("칩은 전체 + CONTENT_CATEGORY_ORDER 순서로 렌더된다", () => {
-    render(<TryItGallery contents={sample} />);
+    renderGallery(sample);
 
     const chips = within(screen.getByRole("group", { name: "카테고리 필터" }))
       .getAllByRole("button")
@@ -69,7 +85,7 @@ describe("TryItGallery", () => {
   });
 
   it("담기를 누르면 바구니에 담기고 라벨이 '✓ 담았어요'로 바뀐다", async () => {
-    render(<TryItGallery contents={sample} />);
+    renderGallery(sample);
 
     const card = screen.getByText("쌍계사").closest("div") as HTMLElement;
     await userEvent.click(within(card).getByRole("button", { name: "담기" }));
@@ -81,7 +97,7 @@ describe("TryItGallery", () => {
   });
 
   it("바구니 개수에 따라 보조 문구가 바뀐다", () => {
-    const { rerender } = render(<TryItGallery contents={sample} />);
+    const { rerender } = renderGallery(sample);
 
     expect(
       screen.getByText("두 곳만 담아도 일정을 만들 수 있어요"),
@@ -91,7 +107,14 @@ describe("TryItGallery", () => {
       items: [{ content: sample[0], addedAt: 1, priority: null }],
       hydrated: true,
     });
-    rerender(<TryItGallery contents={sample} />);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    rerender(
+      <QueryClientProvider client={client}>
+        <TryItGallery initialContents={sample} />
+      </QueryClientProvider>,
+    );
 
     expect(
       screen.getByText("1개 담았어요. 두 곳 이상이면 바로 생성됩니다"),
@@ -99,7 +122,7 @@ describe("TryItGallery", () => {
   });
 
   it("결과가 0개인 카테고리는 빈 상태 문구를 보여준다", async () => {
-    render(<TryItGallery contents={sample} />);
+    renderGallery(sample);
 
     await userEvent.click(screen.getByRole("button", { name: "축제" }));
 

@@ -38,7 +38,7 @@ export default function Home() {
 // TryItSection이 콘텐츠 목록을 받아오는 동안 나머지 홈은 먼저 스트리밍된다.
 function TryItSkeleton() {
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-20">
+    <section className="mx-auto w-full max-w-7xl px-4 py-16">
       <div className="h-9 w-64 animate-pulse rounded-lg bg-muted" />
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (

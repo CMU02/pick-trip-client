@@ -1,9 +1,12 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
+import { CONTENT_LIST_STALE_TIME } from "@/hooks/useLoadMoreContents";
+import { getContents } from "@/services/contentService";
 import {
   CATEGORY_ICONS,
   CATEGORY_LABELS,
@@ -11,12 +14,24 @@ import {
   type Content,
   type ContentCategory,
 } from "@/types/content";
+import { REGIONS } from "@/types/region";
 
 interface TryItGalleryProps {
-  contents: Content[];
+  // TryItSection이 서버에서 받아온 초기 목록. TanStack Query의 initialData로
+  // 넣어 SSR HTML에 콘텐츠가 담기고, 클라이언트에서는 CONTENT_LIST_STALE_TIME
+  // 동안 재요청하지 않는다(홈↔다른 페이지를 오가도 네트워크 없음).
+  initialContents: Content[];
 }
 
 type ChipKey = "ALL" | ContentCategory;
+
+// TryItSection과 동일한 조회 조건. 카테고리 파라미터가 백엔드에 없어 넉넉한
+// 샘플을 한 번 받아 클라이언트에서 칩으로 거른다.
+const TRY_IT_SIZE = 48;
+
+// ["contents", …] 프리픽스라 Providers의 setQueryDefaults(["contents"])가
+// 붙여둔 localStorage 퍼시스터·gcTime을 그대로 물려받는다.
+const TRY_IT_QUERY_KEY = ["contents", "home-try-it", TRY_IT_SIZE] as const;
 
 // 카테고리 파스텔 타일 (시안 TILE_BG / TILE_FG). 카테고리가 없는 콘텐츠는
 // 중립 그라디언트 + map-outline로 떨어진다.
@@ -51,9 +66,26 @@ function chipLabel(key: ChipKey): string {
   return key === "ALL" ? "전체" : CATEGORY_LABELS[key];
 }
 
-export function TryItGallery({ contents }: TryItGalleryProps) {
+export function TryItGallery({ initialContents }: TryItGalleryProps) {
   const { items, add, remove } = useBasket();
   const [selected, setSelected] = useState<ChipKey>("ALL");
+
+  const { data } = useQuery({
+    queryKey: TRY_IT_QUERY_KEY,
+    queryFn: () =>
+      getContents({
+        regions: [...REGIONS],
+        startDate: new Date().toISOString().split("T")[0],
+        nights: 0,
+        size: TRY_IT_SIZE,
+      }),
+    initialData: {
+      contents: initialContents,
+      total: initialContents.length,
+    },
+    staleTime: CONTENT_LIST_STALE_TIME,
+  });
+  const contents = data.contents;
 
   const basketCount = items.length;
   const hint =
@@ -68,13 +100,13 @@ export function TryItGallery({ contents }: TryItGalleryProps) {
   ).slice(0, 4);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-20">
+    <section className="mx-auto w-full max-w-7xl px-4 py-16">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11.5px] font-extrabold tracking-[0.14em] text-primary">
             TRY IT
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-[38px] sm:tracking-[-0.045em]">
+          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
             여기서 바로 담아보세요
           </h2>
           <p className="mt-2.5 text-sm text-muted-foreground">{hint}</p>
@@ -178,7 +210,7 @@ function TryItCard({
         <button
           type="button"
           onClick={inBasket ? onRemove : onAdd}
-          className={`mt-auto w-full rounded-xl py-2.5 text-[13px] font-bold transition-colors ${
+          className={`mt-4 w-full rounded-xl py-2.5 text-[13px] font-bold transition-colors ${
             inBasket
               ? "bg-primary text-primary-foreground"
               : "bg-[oklch(0.955_0.04_30)] text-primary"

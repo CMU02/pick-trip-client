@@ -11,7 +11,7 @@ export function CollectionsSection() {
   if (collections.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-20">
+    <section className="mx-auto w-full max-w-7xl px-4 py-16">
       <p className="text-[11.5px] font-extrabold tracking-[0.14em] text-primary">
         COLLECTIONS
       </p>

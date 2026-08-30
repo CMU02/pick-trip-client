@@ -51,8 +51,8 @@ const DEMO_ITEMS: {
 
 export function HowItWorksSection() {
   return (
-    <section className="mt-20 border-y border-[oklch(0.94_0.02_30)] bg-[oklch(0.98_0.014_32)]">
-      <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 py-[72px] lg:grid-cols-[1fr_1.05fr]">
+    <section className="mx-auto w-full max-w-7xl px-4 py-16">
+      <div className="grid items-center gap-14 rounded-3xl border border-[oklch(0.94_0.02_30)] bg-[oklch(0.98_0.014_32)] p-8 sm:p-12 lg:grid-cols-[1fr_1.05fr]">
         <div>
           <p className="text-[11.5px] font-extrabold tracking-[0.14em] text-primary">
             HOW IT WORKS

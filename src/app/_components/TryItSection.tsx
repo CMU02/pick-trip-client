@@ -26,5 +26,5 @@ export async function TryItSection() {
     contents = [];
   }
 
-  return <TryItGallery contents={contents} />;
+  return <TryItGallery initialContents={contents} />;
 }
