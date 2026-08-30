@@ -8,7 +8,11 @@ import {
   type ContentQueryParams,
   useLoadMoreContents,
 } from "@/hooks/useLoadMoreContents";
-import { CONTENT_PAGE_SIZE, sortContentsByCategory } from "@/lib/content";
+import {
+  CONTENT_PAGE_SIZE,
+  filterContentsByIds,
+  sortContentsByCategory,
+} from "@/lib/content";
 import {
   CATEGORY_LABELS,
   CONTENT_CATEGORIES,
@@ -35,12 +39,14 @@ function readInitialFilter(): {
   region: string | null;
   categories: ContentCategory[];
   keyword: string;
+  ids: string[];
 } {
   if (typeof window === "undefined") {
-    return { region: null, categories: [], keyword: "" };
+    return { region: null, categories: [], keyword: "", ids: [] };
   }
   const params = new URLSearchParams(window.location.search);
   const rawCat = params.get("cat");
+  const rawIds = params.get("ids");
   return {
     region: params.get("region"),
     categories: rawCat
@@ -51,6 +57,13 @@ function readInitialFilter(): {
           )
       : [],
     keyword: params.get("q") ?? "",
+    // 컬렉션(테마 묶음)이 넘겨준 콘텐츠 id 목록. 빈 값·공백은 버린다.
+    ids: rawIds
+      ? rawIds
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [],
   };
 }
 
@@ -84,6 +97,9 @@ export function ContentBrowser({
     ContentCategory[]
   >(initialFilter.categories);
   const [keyword, setKeyword] = useState(initialFilter.keyword);
+  // 컬렉션 링크(/explore?ids=…)로 들어온 콘텐츠 id 목록. 카테고리·검색어와
+  // 같은 성격의 클라이언트 필터다.
+  const [idFilter, setIdFilter] = useState<string[]>(initialFilter.ids);
 
   // 필터 state → URL. router.replace 대신 history.replaceState를 쓰면 Next가
   // 서버 컴포넌트를 다시 부르지 않고(재fetch 없음) URL만 갱신한다. 히스토리
@@ -98,6 +114,8 @@ export function ContentBrowser({
     const kw = keyword.trim();
     if (kw === "") params.delete("q");
     else params.set("q", kw);
+    if (idFilter.length === 0) params.delete("ids");
+    else params.set("ids", idFilter.join(","));
 
     const next = params.toString();
     if (next === new URLSearchParams(window.location.search).toString()) return;
@@ -106,7 +124,7 @@ export function ContentBrowser({
       "",
       next ? `?${next}` : window.location.pathname,
     );
-  }, [selectedRegion, selectedCategories, keyword]);
+  }, [selectedRegion, selectedCategories, keyword, idFilter]);
 
   const isInitial = selectedRegion === "ALL";
   const effectiveRegions = isInitial ? allowedRegions : [selectedRegion];
@@ -133,7 +151,8 @@ export function ContentBrowser({
   });
 
   const q = keyword.trim().toLowerCase();
-  const hasClientFilter = selectedCategories.length > 0 || q !== "";
+  const hasClientFilter =
+    selectedCategories.length > 0 || q !== "" || idFilter.length > 0;
   const matched = loadedContents.filter((c) => {
     const matchCategory =
       selectedCategories.length === 0 ||
@@ -142,13 +161,18 @@ export function ContentBrowser({
       q === "" ||
       c.name.toLowerCase().includes(q) ||
       c.address.toLowerCase().includes(q);
-    return matchCategory && matchKeyword;
+    const matchIds = idFilter.length === 0 || idFilter.includes(c.id);
+    return matchCategory && matchKeyword && matchIds;
   });
-  // 카테고리를 여러 개 동시에 선택하면(예: 음식+관광지+문화) 원래 로드
-  // 순서(지역·페이지 뒤섞임) 그대로 보여주면 뒤죽박죽으로 보인다. 그럴 때만
+  // id 필터(컬렉션)가 걸리면 그 id 목록 순서를 그대로 따른다. 아니면 카테고리를
+  // 여러 개 동시에 선택했을 때만(예: 음식+관광지+문화) 로드 순서 대신
   // CONTENT_CATEGORIES 선언 순서로 묶어서 보여준다.
   const filtered =
-    selectedCategories.length > 1 ? sortContentsByCategory(matched) : matched;
+    idFilter.length > 0
+      ? filterContentsByIds(matched, idFilter)
+      : selectedCategories.length > 1
+        ? sortContentsByCategory(matched)
+        : matched;
 
   // 카테고리/검색어는 여전히 클라이언트 필터라(백엔드에 category 파라미터가
   // 없음), 서버 페이지 하나에 여러 카테고리가 섞여 온다. 필터가 걸린 채로
@@ -174,7 +198,7 @@ export function ContentBrowser({
   // biome-ignore lint/correctness/useExhaustiveDependencies: 값을 읽지 않고 변경 트리거로만 사용
   useEffect(() => {
     setVisibleCount(CONTENT_PAGE_SIZE);
-  }, [selectedRegion, selectedCategories, keyword]);
+  }, [selectedRegion, selectedCategories, keyword, idFilter]);
 
   const backgroundLoading = hasClientFilter && hasMore;
   const visibleFiltered = hasClientFilter
@@ -193,6 +217,7 @@ export function ContentBrowser({
     setSelectedRegion("ALL");
     setSelectedCategories([]);
     setKeyword("");
+    setIdFilter([]);
   }
 
   return (
@@ -217,11 +242,13 @@ export function ContentBrowser({
         selectedRegion={selectedRegion}
         selectedCategories={selectedCategories}
         keyword={keyword}
+        idFilterCount={idFilter.length}
         onClearRegion={() => setSelectedRegion("ALL")}
         onClearCategory={(c) =>
           setSelectedCategories(selectedCategories.filter((x) => x !== c))
         }
         onClearKeyword={() => setKeyword("")}
+        onClearIdFilter={() => setIdFilter([])}
         onResetAll={resetFilters}
       />
 
@@ -283,9 +310,11 @@ function ResultHeader({
   selectedRegion,
   selectedCategories,
   keyword,
+  idFilterCount,
   onClearRegion,
   onClearCategory,
   onClearKeyword,
+  onClearIdFilter,
   onResetAll,
 }: {
   total: number;
@@ -297,22 +326,27 @@ function ResultHeader({
   selectedRegion: Region | "ALL";
   selectedCategories: ContentCategory[];
   keyword: string;
+  idFilterCount: number;
   onClearRegion: () => void;
   onClearCategory: (category: ContentCategory) => void;
   onClearKeyword: () => void;
+  onClearIdFilter: () => void;
   onResetAll: () => void;
 }) {
   const hasAnyFilter =
     selectedRegion !== "ALL" ||
     selectedCategories.length > 0 ||
-    keyword.trim() !== "";
+    keyword.trim() !== "" ||
+    idFilterCount > 0;
 
   const summary =
-    categoryTotal !== null
-      ? `${selectedCategories.map((c) => CATEGORY_LABELS[c]).join("·")} ${categoryTotal}개 중 ${shownCount}개 표시 중`
-      : hasClientFilter
-        ? `불러온 ${loadedCount}개 중 ${filteredCount}개`
-        : `${total}개 결과`;
+    idFilterCount > 0
+      ? `선택한 ${idFilterCount}곳 중 ${shownCount}개 표시 중`
+      : categoryTotal !== null
+        ? `${selectedCategories.map((c) => CATEGORY_LABELS[c]).join("·")} ${categoryTotal}개 중 ${shownCount}개 표시 중`
+        : hasClientFilter
+          ? `불러온 ${loadedCount}개 중 ${filteredCount}개`
+          : `${total}개 결과`;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -333,6 +367,9 @@ function ResultHeader({
       ))}
       {keyword.trim() && (
         <FilterPill label={`"${keyword.trim()}"`} onClear={onClearKeyword} />
+      )}
+      {idFilterCount > 0 && (
+        <FilterPill label="테마 선택" onClear={onClearIdFilter} />
       )}
       {hasAnyFilter && (
         <button

@@ -1,43 +1,40 @@
 import Link from "next/link";
 
+import { ContentImage } from "@/components/ContentImage";
 import {
-  ALL_REGIONS_QUERY,
   REGION_DESCRIPTIONS,
+  REGION_IMAGE_URLS,
   REGION_LABELS,
   REGIONS,
 } from "@/types/region";
 
-// 지역 카드는 지역별 소개를 보여주지만, 클릭 시 목적지는 앱의 다른 진입점과
-// 동일하게 "전체 지역" 여행 조건 페이지다(여행 조건 페이지에는 지역 선택
-// UI가 없어 한 지역으로 고정하면 다른 지역을 더할 수 없기 때문).
-const CONDITIONS_HREF = `/select/conditions?regions=${ALL_REGIONS_QUERY}`;
-
+// 지역 카드를 누르면 그 지역만 필터링된 콘텐츠 탐색(/explore)으로 간다.
 export function RegionShowcase() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16">
+    <section className="mx-auto w-full max-w-7xl px-4 py-16">
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
           어디부터 둘러볼까요?
         </h2>
         <p className="mt-2 text-muted-foreground">
-          지역을 선택하면 바로 여행 조건 입력으로 이동해요
+          지역을 선택하면 그 지역의 여행 콘텐츠를 둘러볼 수 있어요
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4.5 sm:grid-cols-3">
         {REGIONS.map((region) => (
           <Link
             key={region}
-            href={CONDITIONS_HREF}
+            href={`/explore?region=${region}`}
             className="group block overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
           >
-            <div
-              aria-hidden="true"
-              className="h-37.5"
-              style={{
-                background:
-                  "repeating-linear-gradient(45deg, oklch(0.93 0.028 30) 0 8px, oklch(0.965 0.014 30) 8px 16px)",
-              }}
-            />
+            <div className="relative aspect-[4/3] bg-muted">
+              <ContentImage
+                src={REGION_IMAGE_URLS[region]}
+                alt={`${REGION_LABELS[region]} 대표 사진`}
+                size="lg"
+                sizes="(max-width: 640px) 100vw, 33vw"
+              />
+            </div>
             <div className="p-5">
               <div className="flex items-center gap-2">
                 <span
@@ -55,7 +52,7 @@ export function RegionShowcase() {
                 {REGION_DESCRIPTIONS[region]}
               </p>
               <div className="mt-4 text-sm font-bold text-primary">
-                일정 만들기 →
+                둘러보기 →
               </div>
             </div>
           </Link>

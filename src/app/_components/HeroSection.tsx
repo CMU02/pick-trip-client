@@ -1,22 +1,19 @@
 import Link from "next/link";
 
+import { ContentImage } from "@/components/ContentImage";
 import { Button } from "@/components/ui/button";
-import { ALL_REGIONS_QUERY } from "@/types/region";
+import {
+  ALL_REGIONS_QUERY,
+  REGION_IMAGE_URLS,
+  REGION_LABELS,
+} from "@/types/region";
 
 // 매 요청마다 TourAPI를 3지역씩 호출해 실제 총 개수를 세던 방식은 API
 // 호출량이 너무 커서 정적 값으로 바꿨다. 값은 백엔드 /api/v1/contents의
-// 지역별 totalCount 합이라 TourAPI 카탈로그가 바뀌면 조금씩 흔들린다
-// (2026-08-16: 228 → 08-25: 226 → 08-27: 222 → 08-29: 하동 102 + 영주 68 + 예천 51 = 221).
-// 크게 벌어지면 이 숫자만 수동으로 갱신한다.
-const CONTENT_COUNT = 221;
-
-// 지역마다 다른 색으로 구분하지 않고 코랄 톤으로 통일한다.
-function stripeBackground() {
-  return {
-    background:
-      "repeating-linear-gradient(45deg, oklch(0.93 0.025 30) 0 8px, oklch(0.97 0.012 30) 8px 16px)",
-  };
-}
+// 지역별 totalCount 합이라 TourAPI 카탈로그가 바뀌면 흔들린다
+// (2026-08-16: 228 → 08-25: 226 → 08-27: 222 → 08-29: 221 → 08-30: 하동 190 +
+// 영주 145 + 예천 78 = 413). 크게 벌어지면 이 숫자만 수동으로 갱신한다.
+const CONTENT_COUNT = 413;
 
 export function HeroSection() {
   const heroStats = [
@@ -68,21 +65,30 @@ export function HeroSection() {
         </div>
 
         <div className="grid grid-cols-2 grid-rows-[150px_150px_150px] gap-3">
-          <div
-            aria-hidden="true"
-            style={stripeBackground()}
-            className="col-start-1 row-span-2 row-start-1 rounded-2xl"
-          />
-          <div
-            aria-hidden="true"
-            style={stripeBackground()}
-            className="rounded-2xl"
-          />
-          <div
-            aria-hidden="true"
-            style={stripeBackground()}
-            className="col-start-2 row-span-2 row-start-2 rounded-2xl"
-          />
+          <div className="relative col-start-1 row-span-2 row-start-1 overflow-hidden rounded-2xl bg-muted">
+            <ContentImage
+              src={REGION_IMAGE_URLS.HADONG}
+              alt={`${REGION_LABELS.HADONG} 대표 사진`}
+              size="lg"
+              sizes="(max-width: 1024px) 50vw, 24vw"
+            />
+          </div>
+          <div className="relative overflow-hidden rounded-2xl bg-muted">
+            <ContentImage
+              src={REGION_IMAGE_URLS.YEONGJU}
+              alt={`${REGION_LABELS.YEONGJU} 대표 사진`}
+              size="lg"
+              sizes="(max-width: 1024px) 50vw, 24vw"
+            />
+          </div>
+          <div className="relative col-start-2 row-span-2 row-start-2 overflow-hidden rounded-2xl bg-muted">
+            <ContentImage
+              src={REGION_IMAGE_URLS.YECHEON}
+              alt={`${REGION_LABELS.YECHEON} 대표 사진`}
+              size="lg"
+              sizes="(max-width: 1024px) 50vw, 24vw"
+            />
+          </div>
           <div className="flex flex-col justify-between rounded-2xl bg-primary p-4.5 text-primary-foreground">
             <div className="text-xs font-bold opacity-85">AI 일정</div>
             <div className="text-lg leading-tight font-bold tracking-tight">
