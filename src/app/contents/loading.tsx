@@ -1,5 +1,5 @@
 // ContentCard와 완전히 같은 텍스트 클래스(font-size/line-height/line-clamp)와
-// 썸네일 비율(aspect-[4/3])을 쓰고 text-transparent + bg-muted로 덮어, 실제 카드와
+// 썸네일 높이(h-[140px])를 쓰고 text-transparent + bg-muted로 덮어, 실제 카드와
 // 스켈레톤의 세로 크기 비율이 로딩 전후로 어긋나지 않게(레이아웃 시프트가
 // 생기지 않게) 맞춘다.
 function ContentCardSkeleton() {
@@ -8,7 +8,7 @@ function ContentCardSkeleton() {
       className="flex h-full flex-col overflow-hidden rounded-[18px] border border-border"
       aria-hidden="true"
     >
-      <div className="aspect-[4/3] animate-pulse bg-muted" />
+      <div className="h-[140px] animate-pulse bg-muted" />
       <div className="flex flex-col gap-1.5 p-4 pb-2">
         <h3 className="w-2/3 animate-pulse rounded bg-muted text-[14.5px] font-bold tracking-tight text-transparent">
           콘텐츠 이름
