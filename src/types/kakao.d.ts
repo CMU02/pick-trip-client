@@ -35,6 +35,7 @@ declare namespace kakao.maps {
     constructor(container: HTMLElement, options: MapOptions);
     setCenter(latlng: LatLng): void;
     setLevel(level: number): void;
+    getLevel(): number;
     setBounds(
       bounds: LatLngBounds,
       paddingTop?: number,

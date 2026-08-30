@@ -99,6 +99,7 @@ export default async function ContentDetailPage({
       content={content}
       showBasketAction={from !== "explore"}
       backHref={from === "explore" ? "/explore" : undefined}
+      fromParam={from}
     />
   );
 }
