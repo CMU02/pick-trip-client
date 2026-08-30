@@ -44,22 +44,25 @@ describe("PlaceItem", () => {
     expect(screen.getByText("고정")).toBeInTheDocument();
   });
 
-  it("방문 시각이 있으면 시각 칩을 표시한다", () => {
+  it("startTime·endTime이 둘 다 있으면 머무는 시간을 표시한다", () => {
     render(
       <PlaceItem item={makeItem({ startTime: "09:30", endTime: "11:00" })} />,
     );
 
-    expect(screen.getByText("09:30 – 11:00")).toBeInTheDocument();
+    expect(screen.getByText("09:30")).toBeInTheDocument();
+    expect(screen.getByText("11:00")).toBeInTheDocument();
+    expect(screen.getByText("머무는 시간 1시간 30분")).toBeInTheDocument();
   });
 
-  it("방문 시각이 한쪽만 있으면 그쪽만, 둘 다 없으면 칩이 없다", () => {
+  it("방문 시각이 한쪽만 있으면 머무는 시간을 표시하지 않는다", () => {
     const { rerender } = render(
       <PlaceItem item={makeItem({ startTime: "09:30", endTime: null })} />,
     );
     expect(screen.getByText("09:30")).toBeInTheDocument();
+    expect(screen.queryByText(/머무는 시간/)).not.toBeInTheDocument();
 
     rerender(<PlaceItem item={makeItem({ startTime: null, endTime: null })} />);
-    expect(screen.queryByText(/–/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/머무는 시간/)).not.toBeInTheDocument();
   });
 
   it("notes가 있으면 경고 문구를 모두 렌더한다", () => {

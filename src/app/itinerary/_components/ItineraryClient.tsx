@@ -39,11 +39,13 @@ import type {
   ItineraryResponse,
   SaveItineraryRequest,
 } from "@/types/itinerary";
+import type { ItineraryMapData } from "@/types/map";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
   COMPANION_CONDITION_TO_SERVER,
   type CompanionCondition,
 } from "@/types/travel-condition";
+import { DayMapPanel } from "./DayMapPanel";
 import { GeneratingState } from "./GeneratingState";
 import { ItineraryResult } from "./ItineraryResult";
 import { PreGenerateView } from "./PreGenerateView";
@@ -55,25 +57,78 @@ import { TripSummary } from "./TripSummary";
 // 단계에서 넘길 안정된 빈 배열.
 const EMPTY_DAYS: Day[] = [];
 
-// 핸드오프 스펙(9번 "일정 결과")의 결과 헤더 +
-// 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
-// 여정은 3단계(Step 1 여행 조건 → Step 2 콘텐츠 담기 → Step 3 AI 일정 생성)이고,
-// 이 화면은 Step 3의 "완료" 상태라 별도 단계 번호 없이 "AI 일정 생성 완료"로 표기한다.
-// 총 이동 시간은 사이드바 TripSummary(travelSummary prop), 총 이동 거리는
-// 그 아래 TripDistanceCard(Kakao 길찾기 실도로 값)에서 보여준다.
+// 여행 요약(travelDate·장소 수·이동 합계)을 한 줄로 압축한 결과 헤더 메타.
+// 이동 합계는 실도로 route 합계 우선, 없으면 백엔드 스케줄러 값 폴백.
+function headerMeta(
+  travelDate: string,
+  days: Day[],
+  mapData: ItineraryMapData,
+): string {
+  const [, month, day] = travelDate.split("-");
+  const dateText =
+    month && day ? `${Number(month)}월 ${Number(day)}일 출발` : null;
+  const totalPlaces = days.reduce((sum, d) => sum + d.items.length, 0);
+
+  const routeDays = mapData.days.filter((d) => d.route);
+  const fallback = sumDayTravel(days);
+  const totalMin =
+    routeDays.length > 0
+      ? routeDays.reduce(
+          (s, d) => s + Math.round((d.route?.totalDurationSeconds ?? 0) / 60),
+          0,
+        )
+      : fallback.totalMinutes;
+  const totalKm =
+    routeDays.length > 0
+      ? routeDays.reduce(
+          (s, d) => s + (d.route?.totalDistanceMeters ?? 0) / 1000,
+          0,
+        )
+      : fallback.totalKm;
+  const travelMin = formatTravelMinutes(totalMin);
+
+  return [
+    dateText,
+    totalPlaces > 0 ? `장소 ${totalPlaces}곳` : null,
+    travelMin ? `차량 이동 ${travelMin}` : null,
+    formatDistanceKm(totalKm),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+// 결과 헤더 + 일차 타임라인(좌) / 고정 지도 + 요약 사이드바(우) 레이아웃 래퍼.
+// 일차 선택 상태는 여기서 소유하고, 왼쪽(children)과 오른쪽 사이드바 지도가
+// 같은 일차를 보게 한다. children은 (선택 인덱스, 선택 핸들러)를 받는 렌더 함수.
 function ItineraryResultLayout({
   region,
   duration,
+  travelDate,
+  days,
+  mapData,
   actions,
   children,
   sidebar,
 }: {
   region: Region;
   duration: number;
+  travelDate: string;
+  days: Day[];
+  mapData: ItineraryMapData;
   actions: ReactNode;
-  children: ReactNode;
+  children: (
+    selectedDayIndex: number,
+    onSelectDay: (index: number) => void,
+  ) => ReactNode;
   sidebar: ReactNode;
 }) {
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const safeIndex =
+    days.length === 0
+      ? 0
+      : Math.min(Math.max(selectedDayIndex, 0), days.length - 1);
+  const meta = headerMeta(travelDate, days, mapData);
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -85,29 +140,32 @@ function ItineraryResultLayout({
           <h1 className="mt-2.5 text-[32px] font-extrabold tracking-tight">
             {REGION_LABELS[region]} {formatDuration(duration)} 일정
           </h1>
+          {meta && (
+            <p className="mt-1.5 text-[13px] text-muted-foreground">{meta}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">{actions}</div>
       </div>
 
-      {/* items-start를 빼면(기본값 stretch) 사이드바 칼럼 자체가 일차 카드
-          목록과 같은 높이(그리드 행 높이)로 늘어난다. sticky는 그 안쪽의
-          별도 wrapper에 걸어서, 늘어난 칼럼 높이 안에서만 스크롤을 따라다니고
-          칼럼 바닥(=일정 목록 하단)을 넘어가면 자연히 멈춘다 — "최소 높이는
-          일정 목록에 맞추되 sticky 동작은 유지" 요청에 맞춘 구조. */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="flex flex-col gap-4">{children}</div>
-        <div>
-          {/* 왼쪽 컬럼은 ItineraryResult의 "생성된 일정" 제목(text-lg =
-              line-height 1.75rem = h-7) + mt-4 뒤에 일차 카드가 온다. 오른쪽
-              여행 요약 카드가 그 일차 카드와 같은 y에서 시작하도록 동일한
-              높이(h-7 + mt-4)를 비워둔다. 폰트 렌더링에 의존하지 않도록
-              텍스트 대신 고정 높이 스페이서를 쓴다. sticky 박스 밖에 둬서,
-              스크롤로 고정될 때는 이 여백 없이 top-[86px]에 바로 붙는다. */}
-          <div aria-hidden="true" className="hidden h-7 lg:block" />
-          <div className="flex flex-col gap-3.5 lg:mt-4 lg:sticky lg:top-[86px]">
+      {/* 오른쪽 칼럼은 self-stretch로 왼쪽 타임라인 높이만큼 늘어나고, sticky는
+          그 안쪽 wrapper에 걸어 칼럼 바닥을 넘지 않게 한다. 상단 스페이서는
+          왼쪽의 일차 탭(45px) + 카드 mt-4(16px) = 61px 만큼 비워, 지도 상단이
+          1일차 카드 상단과 같은 y에서 시작하게 한다. */}
+      <div className="mt-6 grid grid-cols-1 gap-6.5 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="min-w-0">
+          {children(safeIndex, setSelectedDayIndex)}
+        </div>
+        <aside className="self-stretch">
+          <div aria-hidden="true" className="hidden h-[61px] lg:block" />
+          <div className="flex flex-col gap-3.5 lg:sticky lg:top-[86px]">
+            <DayMapPanel
+              days={days}
+              mapData={mapData}
+              selectedDayIndex={safeIndex}
+            />
             {sidebar}
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );
@@ -175,14 +233,19 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
     initialDays: data.days,
   });
 
+  const mapData = useItineraryMapData(editor.days);
   const travel = sumDayTravel(editor.days);
   const travelDuration = formatTravelMinutes(travel.totalMinutes);
   const travelDistance = formatDistanceKm(travel.totalKm);
+  const departureTime = editor.days[0]?.items[0]?.startTime ?? null;
 
   return (
     <ItineraryResultLayout
       region={data.region}
       duration={data.duration}
+      travelDate={data.travelDate}
+      days={editor.days}
+      mapData={mapData}
       actions={
         <ShareButton
           itineraryId={data.itineraryId}
@@ -213,6 +276,14 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
                 {editor.days.reduce((sum, day) => sum + day.items.length, 0)}개
               </dd>
             </div>
+            {departureTime && (
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-muted-foreground">출발 시각</dt>
+                <dd className="text-right font-bold tabular-nums text-foreground">
+                  {departureTime}
+                </dd>
+              </div>
+            )}
             {/* 편집 중이면 서버가 계산한 시각·거리가 어긋나므로 숫자 대신 안내를 둔다. */}
             {editor.isDirty ? (
               <p className="text-[12.5px] text-muted-foreground">
@@ -244,26 +315,34 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
         </section>
       }
     >
-      <p className="text-sm font-semibold text-primary">
-        일정이 저장되었습니다.
-      </p>
-      <ItineraryResult
-        data={data}
-        editor={{
-          region: data.region,
-          travelDate: data.travelDate,
-          duration: data.duration,
-          days: editor.days,
-          isDirty: editor.isDirty,
-          isSaving: editor.isSaving,
-          saveError: editor.saveError,
-          onMoveItem: editor.moveItem,
-          onRemoveItem: editor.removeItem,
-          onTogglePinned: editor.togglePinned,
-          onReplaceItem: editor.replaceItem,
-          onSave: editor.save,
-        }}
-      />
+      {(selectedDayIndex, onSelectDay) => (
+        <>
+          <p className="text-sm font-semibold text-primary">
+            일정이 저장되었습니다.
+          </p>
+          <ItineraryResult
+            data={data}
+            mapData={mapData}
+            selectedDayIndex={selectedDayIndex}
+            onSelectDay={onSelectDay}
+            hideMap
+            editor={{
+              region: data.region,
+              travelDate: data.travelDate,
+              duration: data.duration,
+              days: editor.days,
+              isDirty: editor.isDirty,
+              isSaving: editor.isSaving,
+              saveError: editor.saveError,
+              onMoveItem: editor.moveItem,
+              onRemoveItem: editor.removeItem,
+              onTogglePinned: editor.togglePinned,
+              onReplaceItem: editor.replaceItem,
+              onSave: editor.save,
+            }}
+          />
+        </>
+      )}
     </ItineraryResultLayout>
   );
 }
@@ -487,6 +566,9 @@ export function ItineraryClient({
       <ItineraryResultLayout
         region={phase.data.region}
         duration={phase.data.duration}
+        travelDate={phase.data.travelDate}
+        days={phase.data.days}
+        mapData={mapData}
         actions={
           <>
             <Button asChild>
@@ -518,16 +600,27 @@ export function ItineraryClient({
               showItemList={false}
               itemCount={previewItemCount}
               travelSummary={null}
+              departureTime={phase.data.days[0]?.items[0]?.startTime ?? null}
             />
             <TripDistanceCard mapDays={mapData.days} />
           </>
         }
       >
-        <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
-          이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로 저장할 수
-          있어요.
-        </p>
-        <ItineraryResult data={phase.data} mapData={mapData} />
+        {(selectedDayIndex, onSelectDay) => (
+          <>
+            <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
+              이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로
+              저장할 수 있어요.
+            </p>
+            <ItineraryResult
+              data={phase.data}
+              mapData={mapData}
+              selectedDayIndex={selectedDayIndex}
+              onSelectDay={onSelectDay}
+              hideMap
+            />
+          </>
+        )}
       </ItineraryResultLayout>
     );
   }
@@ -539,6 +632,9 @@ export function ItineraryClient({
       <ItineraryResultLayout
         region={phase.data.region}
         duration={phase.data.duration}
+        travelDate={phase.data.travelDate}
+        days={phase.data.days}
+        mapData={mapData}
         actions={
           titleDraft === null ? (
             <>
@@ -609,24 +705,35 @@ export function ItineraryClient({
                 0,
               )}
               travelSummary={sumDayTravel(phase.data.days)}
+              departureTime={phase.data.days[0]?.items[0]?.startTime ?? null}
             />
             <TripDistanceCard mapDays={mapData.days} />
           </>
         }
       >
-        {phase.status === "preview" && phase.error && (
-          <p className="text-sm text-destructive">
-            {phase.error.message}
-            {phase.error.traceId && ` (참고: ${phase.error.traceId})`}
-          </p>
+        {(selectedDayIndex, onSelectDay) => (
+          <>
+            {phase.status === "preview" && phase.error && (
+              <p className="text-sm text-destructive">
+                {phase.error.message}
+                {phase.error.traceId && ` (참고: ${phase.error.traceId})`}
+              </p>
+            )}
+            {blockedByEmptyDay && (
+              <p className="text-sm text-muted-foreground">
+                장소가 없는 날이 있어 저장할 수 없어요. 기간을 줄이거나 다시
+                생성해보세요.
+              </p>
+            )}
+            <ItineraryResult
+              data={phase.data}
+              mapData={mapData}
+              selectedDayIndex={selectedDayIndex}
+              onSelectDay={onSelectDay}
+              hideMap
+            />
+          </>
         )}
-        {blockedByEmptyDay && (
-          <p className="text-sm text-muted-foreground">
-            장소가 없는 날이 있어 저장할 수 없어요. 기간을 줄이거나 다시
-            생성해보세요.
-          </p>
-        )}
-        <ItineraryResult data={phase.data} mapData={mapData} />
       </ItineraryResultLayout>
     );
   }

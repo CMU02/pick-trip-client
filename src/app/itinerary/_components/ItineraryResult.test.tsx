@@ -29,7 +29,7 @@ const makeDay = (overrides: Partial<Day> = {}): Day => ({
 });
 
 describe("ItineraryResult", () => {
-  it("모든 일자를 렌더한다", () => {
+  it("선택한 일차 하나만 카드로 렌더하고, 지도(카드 내부)는 없다", () => {
     render(
       <ItineraryResult
         data={{
@@ -41,8 +41,29 @@ describe("ItineraryResult", () => {
       />,
     );
 
-    expect(screen.getByText("1일차")).toBeInTheDocument();
-    expect(screen.getByText("2일차")).toBeInTheDocument();
+    // 일차 카드 헤딩(h3)은 선택된 1개뿐 — "생성된 일정" h2도 사라졌다.
+    const headings = screen.getAllByRole("heading");
+    expect(headings).toHaveLength(1);
+    expect(headings[0]).toHaveTextContent("1일차");
+  });
+
+  it("탭을 클릭하면 다른 일차 카드로 전환한다", async () => {
+    render(
+      <ItineraryResult
+        data={{
+          days: [
+            makeDay({ dayIndex: 1 }),
+            makeDay({ dayId: "day-2", dayIndex: 2 }),
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("heading")).toHaveTextContent("1일차");
+
+    await userEvent.click(screen.getAllByRole("tab")[1]);
+
+    expect(screen.getByRole("heading")).toHaveTextContent("2일차");
   });
 
   it("일자가 없으면 빈 상태 메시지를 표시한다", () => {
