@@ -203,6 +203,27 @@ bun run build
 - `HOME_COLLECTIONS.contentIds`를 실행 중인 백엔드에서 채운다(백엔드 기동 필요).
 - PR 생성 → `Closes #<이슈번호>`. 병합 방식 Merge Commit.
 
+## 2026-08-30 2차 반영 (사용자 피드백)
+
+- **지역 대표 사진**: 히어로 사진 그리드 3칸 + 지역 카드 이미지를 코랄 스트라이프에서
+  VisitKorea 대표 사진으로 교체(`REGION_IMAGE_URLS` in `types/region.ts`). 지역 카드
+  이미지는 `aspect-[4/3]`(콘텐츠 카드와 동일 비율), `ContentImage`로 렌더.
+- **지역 카드 목적지**: `일정 만들기 → /select/conditions` → `둘러보기 → /explore?region=<지역>`
+  (그 지역만 필터링). 헤더 보조문구도 갱신.
+- **콘텐츠 개수 413**: 백엔드 실측 재집계(221 → 413, 하동 190 + 영주 145 + 예천 78).
+  `CONTENT_COUNT`(Hero) · `CATEGORY_COUNT_BY_REGION`(content.ts) · `CATEGORY_COUNTS`·ALL
+  (QuickCategoryRow) 갱신. 관련 테스트 기대값도 갱신.
+- **섹션 너비 통일**: `<main className="flex flex-col">` 안에서 `mx-auto max-w-7xl`만으로는
+  섹션이 콘텐츠 폭으로 줄어든다 → RegionShowcase·TryIt·HowItWorks·Collections에 `w-full`
+  추가. 헤더·푸터와 동일한 `max-w-7xl` 콘텐츠 열(이 뷰포트에서 633~1913px)로 정렬.
+  HowItWorks는 전체 폭 밴드 대신 `max-w-7xl` 안 톤 카드로, Cta는 전체 폭 그라디언트
+  밴드 + `max-w-7xl` 콘텐츠로.
+- **TryIt TanStack 캐싱**: `TryItGallery`가 `useQuery(["contents", "home-try-it", 48])`로
+  조회. `TryItSection`(서버) 데이터를 `initialData`로 시드, `staleTime`=`CONTENT_LIST_STALE_TIME`.
+  `["contents", …]` 프리픽스라 `Providers.setQueryDefaults(["contents"])`의 localStorage
+  퍼시스터·gcTime을 상속.
+- **Collections contentIds 채움**: 백엔드 실측 콘텐츠로 4개 테마 채움(`src/lib/collections.ts`).
+
 ## 범위 밖
 
 - 티커(지역명 흐르는 띠) — 시안에서 제거, 추가 안 함.
