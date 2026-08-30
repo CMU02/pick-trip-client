@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 import { Icon } from "@/components/ui/icon";
 import {
   formatDayDate,
@@ -6,13 +8,12 @@ import {
 } from "@/lib/itinerary";
 import type { Day } from "@/types/itinerary";
 import type { ItineraryMapDay } from "@/types/map";
-import { ItineraryMap } from "./ItineraryMap";
 import { PlaceItem } from "./PlaceItem";
 
 interface DayCardProps {
   day: Day;
-  // 이 날의 지도 데이터(좌표·경로). 좌표가 있는 장소가 하나라도 있을 때만
-  // 카드 안에 지도를 그린다.
+  // 이 날의 지도 데이터. 지도는 사이드바에서만 그리므로 여기서는 route(실도로
+  // 구간값)만 쓴다 — 장소 사이 이동 구간 pill과 헤더 이동 합계.
   mapDay?: ItineraryMapDay;
   onMoveItem?: (
     dayId: string,
@@ -32,13 +33,19 @@ export function DayCard({
   onTogglePinned,
   onOpenReplacePicker,
 }: DayCardProps) {
-  // 백엔드는 dayIndex를 1부터 채번한다(OpenAiItineraryClient 시스템 프롬프트,
-  // ItineraryServiceTest 등 서버 픽스처 전부 1부터 시작). 그대로 표시한다.
+  // 백엔드는 dayIndex를 1부터 채번한다.
   const dayNumber = day.dayIndex;
   const dateLabel = formatDayDate(day.date);
-  // 이동 요약: Kakao 길찾기(실제 도로) 결과가 있으면 우선, 없으면 백엔드
-  // 스케줄러 값(직선 근사)으로 폴백한다.
   const route = mapDay?.route ?? null;
+  // route.segments 는 좌표가 해석된 지점(points) 사이 구간이다. 좌표가 빠진
+  // 장소가 있으면 segments 인덱스가 items 인덱스와 어긋나므로, 전부 해석된
+  // 경우에만 장소 사이 구간 pill을 그린다.
+  const legsAligned =
+    route !== null && (mapDay?.points.length ?? 0) === day.items.length;
+
+  const departure = day.items[0]?.startTime ?? null;
+
+  // 이동 합계: Kakao 길찾기(실도로) 결과 우선, 없으면 백엔드 스케줄러 값.
   const travelDuration = route
     ? formatTravelMinutes(Math.round(route.totalDurationSeconds / 60))
     : formatTravelMinutes(day.totalTravelMinutes);
@@ -48,12 +55,13 @@ export function DayCard({
   const travelLabel = [travelDuration, travelDistance]
     .filter(Boolean)
     .join(" · ");
+
   const dayNotes = day.dayNotes ?? [];
 
   return (
     <div className="overflow-hidden rounded-[20px] border border-border bg-card">
       <div className="border-b border-[oklch(0.95_0.008_30)] bg-[oklch(0.985_0.012_30)] px-5.5 py-4.5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] bg-primary text-sm font-extrabold text-primary-foreground">
               {dayNumber}
@@ -67,20 +75,33 @@ export function DayCard({
               )}
             </h3>
           </div>
-          <span className="text-[12.5px] text-muted-foreground">
-            {day.items.length}곳
-          </span>
-        </div>
-        {travelLabel && (
-          <p className="mt-1.5 flex items-center gap-1 pl-[46px] text-[12px] text-muted-foreground">
-            <Icon name="compass-outline" size={13} className="shrink-0" />
-            이동 {travelLabel}
-            {route && (
-              <span className="text-muted-foreground/70"> · 자동차</span>
+          <div className="flex shrink-0 items-start gap-5 text-right">
+            {departure && (
+              <div>
+                <p className="text-[11px] text-muted-foreground">출발</p>
+                <p className="text-[13px] font-bold tabular-nums text-foreground">
+                  {departure}
+                </p>
+              </div>
             )}
-          </p>
-        )}
+            {travelLabel && (
+              <div>
+                <p className="text-[11px] text-muted-foreground">차량 이동</p>
+                <p className="text-[13px] font-bold tabular-nums text-foreground">
+                  {travelLabel}
+                </p>
+              </div>
+            )}
+            <div>
+              <p className="text-[11px] text-muted-foreground">장소</p>
+              <p className="text-[13px] font-bold text-foreground">
+                {day.items.length}곳
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
+
       {dayNotes.length > 0 && (
         <ul className="space-y-1 border-b border-border bg-amber-50/60 px-5.5 py-3 text-xs text-amber-700">
           {dayNotes.map((note) => (
@@ -95,50 +116,80 @@ export function DayCard({
           ))}
         </ul>
       )}
-      {mapDay && mapDay.points.length > 0 && (
-        <div className="border-b border-border px-5.5 py-4">
-          <ItineraryMap variant="day" days={[mapDay]} />
-        </div>
-      )}
+
       {day.items.length === 0 ? (
         <p className="px-5.5 py-6 text-sm text-muted-foreground">
           이 날에는 아직 일정이 없어요
         </p>
       ) : (
-        <div className="divide-y divide-border px-5.5">
-          {day.items.map((item, index) => (
-            <PlaceItem
-              key={item.itemId}
-              item={item}
-              isFirst={index === 0}
-              isLast={index === day.items.length - 1}
-              onMoveUp={
-                onMoveItem
-                  ? () => onMoveItem(day.dayId, item.itemId, "up")
-                  : undefined
-              }
-              onMoveDown={
-                onMoveItem
-                  ? () => onMoveItem(day.dayId, item.itemId, "down")
-                  : undefined
-              }
-              onRemove={
-                onRemoveItem
-                  ? () => onRemoveItem(day.dayId, item.itemId)
-                  : undefined
-              }
-              onTogglePinned={
-                onTogglePinned
-                  ? () => onTogglePinned(day.dayId, item.itemId)
-                  : undefined
-              }
-              onOpenReplacePicker={
-                onOpenReplacePicker
-                  ? () => onOpenReplacePicker(day.dayId, item.itemId)
-                  : undefined
-              }
-            />
-          ))}
+        <div className="grid grid-cols-[62px_26px_minmax(0,1fr)] gap-x-3.5 px-5.5 pt-4">
+          {day.items.map((item, index) => {
+            const segment = legsAligned
+              ? (route?.segments[index] ?? null)
+              : null;
+            const showLeg = index < day.items.length - 1 && segment !== null;
+            return (
+              <Fragment key={item.itemId}>
+                <PlaceItem
+                  item={item}
+                  isFirst={index === 0}
+                  isLast={index === day.items.length - 1}
+                  onMoveUp={
+                    onMoveItem
+                      ? () => onMoveItem(day.dayId, item.itemId, "up")
+                      : undefined
+                  }
+                  onMoveDown={
+                    onMoveItem
+                      ? () => onMoveItem(day.dayId, item.itemId, "down")
+                      : undefined
+                  }
+                  onRemove={
+                    onRemoveItem
+                      ? () => onRemoveItem(day.dayId, item.itemId)
+                      : undefined
+                  }
+                  onTogglePinned={
+                    onTogglePinned
+                      ? () => onTogglePinned(day.dayId, item.itemId)
+                      : undefined
+                  }
+                  onOpenReplacePicker={
+                    onOpenReplacePicker
+                      ? () => onOpenReplacePicker(day.dayId, item.itemId)
+                      : undefined
+                  }
+                />
+                {showLeg && segment && (
+                  <>
+                    <div />
+                    <div className="relative flex justify-center">
+                      <span className="absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-border" />
+                      <span className="relative z-10 mt-1 h-2 w-2 rounded-full bg-border" />
+                    </div>
+                    <div className="min-w-0 pb-4">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[12px] text-muted-foreground">
+                        <Icon
+                          name="compass-outline"
+                          size={13}
+                          className="shrink-0"
+                        />
+                        차로{" "}
+                        {[
+                          formatTravelMinutes(
+                            Math.round(segment.durationSeconds / 60),
+                          ),
+                          formatDistanceKm(segment.distanceMeters / 1000),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </Fragment>
+            );
+          })}
         </div>
       )}
     </div>

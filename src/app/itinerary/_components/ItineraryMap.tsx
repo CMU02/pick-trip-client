@@ -22,6 +22,9 @@ interface ItineraryMapProps {
   variant: "overview" | "day";
   days: ItineraryMapDay[];
   className?: string;
+  // 지도 박스 높이를 호출부에서 지정한다(예: 사이드바 고정 지도 h-[300px]).
+  // 없으면 variant 기본값.
+  heightClassName?: string;
 }
 
 function dayColor(dayIndex: number): string {
@@ -70,7 +73,12 @@ function caption(days: ItineraryMapDay[]): string | null {
   return label ? `직선거리 약 ${label}` : null;
 }
 
-export function ItineraryMap({ variant, days, className }: ItineraryMapProps) {
+export function ItineraryMap({
+  variant,
+  days,
+  className,
+  heightClassName,
+}: ItineraryMapProps) {
   const { status } = useKakaoMap();
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<kakao.maps.Map | null>(null);
@@ -163,7 +171,8 @@ export function ItineraryMap({ variant, days, className }: ItineraryMapProps) {
   }, []);
 
   const hasAnyPoint = days.some((d) => d.points.length > 0);
-  const boxHeight = variant === "overview" ? "h-[360px]" : "h-[220px]";
+  const boxHeight =
+    heightClassName ?? (variant === "overview" ? "h-[360px]" : "h-[220px]");
   const radius = variant === "overview" ? "rounded-2xl" : "rounded-xl";
   // 일차 지도 캡션은 바로 위 DayCard 헤더의 "이동 …" 칩과 중복이라 전체 지도에만.
   const captionText =

@@ -664,7 +664,9 @@ describe("ItineraryClient", () => {
     ).toBeInTheDocument();
     // 로그인 전 결과 화면도 preview와 동일한 여행 요약 카드를 보여준다.
     expect(screen.getByText("여행 요약")).toBeInTheDocument();
+    // 1일차 탭에는 쌍계사, 2일차 탭으로 넘기면 화개장터가 보인다.
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("tab")[1]);
     expect(screen.getByText("화개장터")).toBeInTheDocument();
     expect(screen.queryByText("로그인이 필요합니다.")).not.toBeInTheDocument();
     expect(
@@ -781,7 +783,10 @@ describe("ItineraryClient", () => {
     );
 
     // "일정 생성하기" 버튼을 누르지 않아도 생성 결과가 나온다.
-    expect(await screen.findByText("생성된 일정")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "저장" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(mockGenerateItinerary).toHaveBeenCalled();
   });
 

@@ -3,7 +3,8 @@
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
-import { formatTimeRange } from "@/lib/itinerary";
+import { formatTravelMinutes } from "@/lib/itinerary";
+import { cn } from "@/lib/utils";
 import type { Item } from "@/types/itinerary";
 
 interface PlaceItemProps {
@@ -17,6 +18,21 @@ interface PlaceItemProps {
   onOpenReplacePicker?: () => void;
 }
 
+/** "09:30","11:00" → 90(분). 한쪽이라도 없거나 0 이하면 null. */
+function stayMinutes(
+  start?: string | null,
+  end?: string | null,
+): number | null {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
+  const diff = eh * 60 + em - (sh * 60 + sm);
+  return diff > 0 ? diff : null;
+}
+
+// 시간축 타임라인의 한 행. 3열 그리드(62px 시각 / 26px 번호원·레일 / 1fr 카드)에
+// 직접 놓이도록 Fragment로 세 칸을 반환한다.
 export function PlaceItem({
   item,
   isFirst,
@@ -31,119 +47,158 @@ export function PlaceItem({
   const editable = Boolean(
     onMoveUp || onMoveDown || onRemove || onTogglePinned || onOpenReplacePicker,
   );
-  const timeRange = formatTimeRange(item.startTime, item.endTime);
+  const stay = stayMinutes(item.startTime, item.endTime);
+  const stayLabel = stay ? formatTravelMinutes(stay) : null;
   const notes = item.notes ?? [];
 
   return (
-    <div className="flex gap-3 py-3">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-        {item.order + 1}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <p className="font-semibold text-foreground">{item.title}</p>
-          {timeRange && (
-            <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
-              {timeRange}
-            </span>
-          )}
-          {item.pinned && (
-            <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-              고정
-            </span>
-          )}
-        </div>
-        {item.reason && (
-          <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-primary">
-            <Icon
-              name="wand"
-              size={13}
-              className="mt-0.5 shrink-0 text-primary"
-            />
-            <span>{item.reason}</span>
+    <>
+      {/* 1열: 시각 */}
+      <div className="pt-1 text-right">
+        {item.startTime && (
+          <p className="text-[15px] font-extrabold tabular-nums text-primary">
+            {item.startTime}
           </p>
         )}
-        {notes.length > 0 && (
-          <ul className="mt-1.5 flex flex-col gap-1.5">
-            {notes.map((note) => (
-              <li
-                key={note}
-                className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700"
-              >
-                <Icon
-                  name="alert"
-                  size={13}
-                  className="mt-0.5 shrink-0 text-amber-600"
-                />
-                <span>{note}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {editable && (
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              disabled={isFirst}
-              onClick={onMoveUp}
-              aria-label="위로 이동"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
-            >
-              <Icon name="chevron-up" size={16} />
-            </button>
-            <button
-              type="button"
-              disabled={isLast}
-              onClick={onMoveDown}
-              aria-label="아래로 이동"
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
-            >
-              <Icon name="chevron-down" size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={onTogglePinned}
-              aria-label={item.pinned ? "고정됨" : "고정"}
-              aria-pressed={item.pinned}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-[9px] border transition-colors ${
-                item.pinned
-                  ? "border-primary/40 bg-accent text-accent-foreground"
-                  : "border-border text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              <Icon name="pin" size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={onOpenReplacePicker}
-              className="rounded-[9px] border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
-            >
-              대체 장소
-            </button>
-            <button
-              type="button"
-              aria-label={confirmingRemove ? "정말 삭제?" : "삭제"}
-              onClick={() => {
-                if (confirmingRemove) {
-                  onRemove?.();
-                  setConfirmingRemove(false);
-                } else {
-                  setConfirmingRemove(true);
-                }
-              }}
-              className={`flex h-[30px] items-center justify-center gap-1 rounded-[9px] border text-xs font-semibold transition-colors ${
-                confirmingRemove
-                  ? "border-destructive/40 bg-destructive/10 px-2.5 text-destructive"
-                  : "w-[30px] border-border text-muted-foreground hover:border-destructive/40 hover:text-destructive"
-              }`}
-            >
-              <Icon name="close" size={16} />
-              {confirmingRemove && <span>삭제</span>}
-            </button>
-          </div>
+        {item.endTime && (
+          <p className="text-[11px] tabular-nums text-muted-foreground">
+            {item.endTime}
+          </p>
         )}
       </div>
-    </div>
+
+      {/* 2열: 번호 원 + 레일 */}
+      <div className="relative flex justify-center">
+        <span
+          className={cn(
+            "absolute left-1/2 w-0.5 -translate-x-1/2 bg-border",
+            isFirst ? "top-3.5" : "top-0",
+            isLast ? "h-3.5" : "bottom-0",
+          )}
+        />
+        <span className="relative z-10 mt-1 flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-card bg-primary text-[11px] font-extrabold text-primary-foreground">
+          {item.order + 1}
+        </span>
+      </div>
+
+      {/* 3열: 장소 카드 */}
+      <div className="min-w-0 pb-4">
+        <div className="rounded-[16px] border border-border bg-card p-3.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <p className="font-semibold text-foreground">{item.title}</p>
+                {item.pinned && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    <Icon name="pin" size={11} />
+                    고정
+                  </span>
+                )}
+              </div>
+              {stayLabel && (
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
+                  머무는 시간 {stayLabel}
+                </p>
+              )}
+            </div>
+
+            {editable && (
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  disabled={isFirst}
+                  onClick={onMoveUp}
+                  aria-label="위로 이동"
+                  className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <Icon name="chevron-up" size={16} />
+                </button>
+                <button
+                  type="button"
+                  disabled={isLast}
+                  onClick={onMoveDown}
+                  aria-label="아래로 이동"
+                  className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <Icon name="chevron-down" size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={onTogglePinned}
+                  aria-label={item.pinned ? "고정됨" : "고정"}
+                  aria-pressed={item.pinned}
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-[9px] border transition-colors",
+                    item.pinned
+                      ? "border-primary/40 bg-accent text-accent-foreground"
+                      : "border-border text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  <Icon name="pin" size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenReplacePicker}
+                  aria-label="대체 장소"
+                  className="rounded-[9px] border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
+                >
+                  대체
+                </button>
+                <button
+                  type="button"
+                  aria-label={confirmingRemove ? "정말 삭제?" : "삭제"}
+                  onClick={() => {
+                    if (confirmingRemove) {
+                      onRemove?.();
+                      setConfirmingRemove(false);
+                    } else {
+                      setConfirmingRemove(true);
+                    }
+                  }}
+                  className={cn(
+                    "flex h-8 items-center justify-center gap-1 rounded-[9px] border text-xs font-semibold transition-colors",
+                    confirmingRemove
+                      ? "border-destructive/40 bg-destructive/10 px-2.5 text-destructive"
+                      : "w-8 border-border text-muted-foreground hover:border-destructive/40 hover:text-destructive",
+                  )}
+                >
+                  <Icon name="close" size={16} />
+                  {confirmingRemove && <span>삭제</span>}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {item.reason && (
+            <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-primary">
+              <Icon
+                name="wand"
+                size={13}
+                className="mt-0.5 shrink-0 text-primary"
+              />
+              <span>{item.reason}</span>
+            </p>
+          )}
+
+          {notes.length > 0 && (
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              {notes.map((note) => (
+                <li
+                  key={note}
+                  className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700"
+                >
+                  <Icon
+                    name="alert"
+                    size={13}
+                    className="mt-0.5 shrink-0 text-amber-600"
+                  />
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

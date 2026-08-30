@@ -148,24 +148,49 @@ describe("DayCard", () => {
     expect(screen.getByText("7월 1일 (수)")).toBeInTheDocument();
   });
 
-  it("하루 이동 요약이 있으면 이동 칩을 표시한다", () => {
+  it("하루 이동 요약이 있으면 헤더에 차량 이동 값을 표시한다", () => {
     render(
       <DayCard
         day={makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 })}
       />,
     );
 
-    expect(screen.getByText("이동 1시간 15분 · 12.4km")).toBeInTheDocument();
+    expect(screen.getByText("차량 이동")).toBeInTheDocument();
+    expect(screen.getByText("1시간 15분 · 12.4km")).toBeInTheDocument();
   });
 
-  it("이동값이 없으면 이동 칩을 표시하지 않는다", () => {
+  it("이동값이 없으면 차량 이동 항목을 표시하지 않는다", () => {
     render(
       <DayCard
         day={makeDay({ totalTravelMinutes: null, totalTravelKm: null })}
       />,
     );
 
-    expect(screen.queryByText(/이동 /)).not.toBeInTheDocument();
+    expect(screen.queryByText("차량 이동")).not.toBeInTheDocument();
+  });
+
+  it("첫 장소의 startTime을 헤더의 출발 값으로 쓴다", () => {
+    render(
+      <DayCard
+        day={makeDay({
+          items: [
+            {
+              itemId: "item-1",
+              contentId: "content-1",
+              title: "쌍계사",
+              order: 0,
+              reason: "",
+              pinned: false,
+              startTime: "09:00",
+              endTime: "10:30",
+            },
+          ],
+        })}
+      />,
+    );
+
+    const label = screen.getByText("출발");
+    expect(label.nextElementSibling).toHaveTextContent("09:00");
   });
 
   it("Kakao 길찾기 결과가 있으면 백엔드 값 대신 그 거리·시간을 쓴다", () => {
@@ -188,12 +213,91 @@ describe("DayCard", () => {
       />,
     );
 
-    expect(
-      screen.getByText(
-        (_, el) => el?.textContent === "이동 20분 · 8.3km · 자동차",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("20분 · 8.3km")).toBeInTheDocument();
     expect(screen.queryByText(/12\.4km/)).not.toBeInTheDocument();
+  });
+
+  it("route.segments가 있으면 장소 사이마다 이동 구간 pill을 렌더한다", () => {
+    render(
+      <DayCard
+        day={makeDay({
+          items: [
+            {
+              itemId: "i1",
+              contentId: "c1",
+              title: "A",
+              order: 0,
+              reason: "",
+              pinned: false,
+            },
+            {
+              itemId: "i2",
+              contentId: "c2",
+              title: "B",
+              order: 1,
+              reason: "",
+              pinned: false,
+            },
+            {
+              itemId: "i3",
+              contentId: "c3",
+              title: "C",
+              order: 2,
+              reason: "",
+              pinned: false,
+            },
+          ],
+        })}
+        mapDay={{
+          dayIndex: 1,
+          points: [
+            { lat: 35.1, lng: 127.7, contentId: "c1", title: "A" },
+            { lat: 35.2, lng: 127.8, contentId: "c2", title: "B" },
+            { lat: 35.3, lng: 127.9, contentId: "c3", title: "C" },
+          ],
+          route: {
+            totalDistanceMeters: 12000,
+            totalDurationSeconds: 1800,
+            segments: [
+              { distanceMeters: 4800, durationSeconds: 540 },
+              { distanceMeters: 7200, durationSeconds: 1260 },
+            ],
+            path: [],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText(/차로/)).toHaveLength(2);
+  });
+
+  it("route가 없으면 이동 구간 pill을 렌더하지 않는다", () => {
+    render(
+      <DayCard
+        day={makeDay({
+          items: [
+            {
+              itemId: "i1",
+              contentId: "c1",
+              title: "A",
+              order: 0,
+              reason: "",
+              pinned: false,
+            },
+            {
+              itemId: "i2",
+              contentId: "c2",
+              title: "B",
+              order: 1,
+              reason: "",
+              pinned: false,
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.queryByText(/차로/)).not.toBeInTheDocument();
   });
 
   it("dayNotes가 있으면 경고 스트립을 렌더한다", () => {

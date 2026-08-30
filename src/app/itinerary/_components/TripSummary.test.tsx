@@ -28,7 +28,7 @@ describe("TripSummary", () => {
     expect(screen.getByText("1시간 35분")).toBeInTheDocument();
   });
 
-  it("이동 거리는 별도 카드가 담당하므로 여행 요약에는 '총 이동 거리' 행을 두지 않는다", () => {
+  it("travelSummary의 총 이동 거리를 행으로 표시한다", () => {
     render(
       <TripSummary
         {...baseProps}
@@ -36,7 +36,16 @@ describe("TripSummary", () => {
       />,
     );
 
-    expect(screen.queryByText("총 이동 거리")).not.toBeInTheDocument();
-    expect(screen.queryByText("40km")).not.toBeInTheDocument();
+    expect(screen.getByText("총 이동 거리")).toBeInTheDocument();
+    expect(screen.getByText("40km")).toBeInTheDocument();
+  });
+
+  it("departureTime이 있으면 출발 시각 행을 표시한다", () => {
+    render(
+      <TripSummary {...baseProps} travelSummary={null} departureTime="09:00" />,
+    );
+
+    expect(screen.getByText("출발 시각")).toBeInTheDocument();
+    expect(screen.getByText("09:00")).toBeInTheDocument();
   });
 });
