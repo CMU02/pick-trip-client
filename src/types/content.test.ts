@@ -31,9 +31,9 @@ describe("categoryCountFor", () => {
     );
   });
 
-  it("여러 지역이면 카테고리 수를 합산한다(전 지역 음식 = 53)", () => {
+  it("여러 지역이면 카테고리 수를 합산한다(전 지역 음식 = 112)", () => {
     expect(categoryCountFor(["FOOD"], ["HADONG", "YEONGJU", "YECHEON"])).toBe(
-      53,
+      112,
     );
   });
 
@@ -49,7 +49,7 @@ describe("categoryCountFor", () => {
     expect(categoryCountFor(["CULTURE"], [])).toBe(0);
   });
 
-  it("정적 실측치 합계는 221이다", () => {
+  it("정적 실측치 합계는 413이다", () => {
     const cats = [
       "FOOD",
       "FESTIVAL",
@@ -59,7 +59,7 @@ describe("categoryCountFor", () => {
       "EXPERIENCE",
     ] as const;
     expect(categoryCountFor([...cats], ["HADONG", "YEONGJU", "YECHEON"])).toBe(
-      221,
+      413,
     );
   });
 });

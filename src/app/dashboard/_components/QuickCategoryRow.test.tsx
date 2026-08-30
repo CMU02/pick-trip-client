@@ -12,12 +12,12 @@ describe("QuickCategoryRow", () => {
       .getAllByRole("button")
       .map((b) => b.querySelector("span > span")?.textContent);
     expect(labels).toEqual(["음식", "관광지", "문화", "자연", "체험", "전체"]);
-    expect(screen.getByText("76곳")).toBeInTheDocument();
-    expect(screen.getByText("53곳")).toBeInTheDocument();
-    expect(screen.getByText("24곳")).toBeInTheDocument();
-    // 자연·체험이 둘 다 33곳이라 같은 라벨이 두 번 나온다.
-    expect(screen.getAllByText("33곳")).toHaveLength(2);
-    expect(screen.getByText("221곳")).toBeInTheDocument();
+    expect(screen.getByText("112곳")).toBeInTheDocument();
+    expect(screen.getByText("68곳")).toBeInTheDocument();
+    expect(screen.getByText("117곳")).toBeInTheDocument();
+    expect(screen.getByText("50곳")).toBeInTheDocument();
+    expect(screen.getByText("57곳")).toBeInTheDocument();
+    expect(screen.getByText("413곳")).toBeInTheDocument();
   });
 
   it("타일을 클릭하면 onSelect를 호출한다", async () => {

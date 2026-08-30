@@ -251,9 +251,9 @@ describe("ExploreGrid", () => {
     expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
     expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
 
-    // 결과 헤더는 카테고리 정적 총계(음식 전 지역 53개)와 화면에 보여준 수를 함께 보여준다.
+    // 결과 헤더는 카테고리 정적 총계(음식 전 지역 112개)와 화면에 보여준 수를 함께 보여준다.
     await waitFor(() =>
-      expect(screen.getByText("음식 53개 중 3개 표시 중")).toBeInTheDocument(),
+      expect(screen.getByText("음식 112개 중 3개 표시 중")).toBeInTheDocument(),
     );
   });
 
