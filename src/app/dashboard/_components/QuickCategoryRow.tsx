@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   CATEGORY_ICONS,
   CATEGORY_LABELS,
+  CONTENT_CATEGORY_ORDER,
   type ContentCategory,
 } from "@/types/content";
 
@@ -15,8 +16,8 @@ interface QuickCategoryRowProps {
   onSelect: (category: QuickCategory) => void;
 }
 
-// 핸드오프 스펙의 퀵 카테고리 6열. 문화/음식/관광지/자연/체험 + 전체를
-// 클릭하면 아래 "FOR YOU 추천" 섹션이 해당 카테고리로 필터링된다.
+// 퀵 카테고리 6열(음식/관광지/문화/자연/체험 + 전체). 타일을 클릭하면 아래
+// "FOR YOU 추천" 섹션이 해당 카테고리로 필터링된다.
 //
 // 개수는 대시보드가 받아오는 작은 추천 풀(지역당 20개)이 아니라, 홈
 // 히어로(CONTENT_COUNT)와 같은 기준인 전체 카탈로그 실제 개수다. 매
@@ -26,15 +27,28 @@ interface QuickCategoryRowProps {
 // 변동으로 흔들린다: 2026-08-25 226 → 08-27 222 → 08-29 221(하동 102 + 영주 68
 // + 예천 51). 카테고리별 값은 2026-08-29 기준 아이템 category 필드 집계
 // (문화 76 + 음식 53 + 관광지 24 + 자연 33 + 체험 33 + 축제 2 = 221). 축제
-// (FESTIVAL 2)는 핸드오프 스펙의 6칸(문화/음식/관광지/자연/체험/전체)에 없어
-// 타일에서 빠지므로, 보이는 5칸 합(219)은 전체(221)보다 축제 2만큼 적다.
+// (FESTIVAL 2)는 타일에서 빠지므로, 보이는 5칸 합(219)은 전체(221)보다 축제
+// 2만큼 적다.
+const CATEGORY_COUNTS: Record<ContentCategory, number> = {
+  FOOD: 53,
+  FESTIVAL: 2,
+  ATTRACTION: 24,
+  CULTURE: 76,
+  NATURE: 33,
+  EXPERIENCE: 33,
+};
+
+// 타일 순서는 앱 공통 CONTENT_CATEGORY_ORDER를 따른다. 축제(개수 2)는
+// 타일에서 제외하고, "전체"는 항상 맨 뒤에 둔다.
 // 아이콘은 CATEGORY_ICONS와 마찬가지로 pick-trip-app(Ionicons)에 맞춘다.
 const QUICK_DEFS: { key: QuickCategory; icon: IconName; count: number }[] = [
-  { key: "CULTURE", icon: CATEGORY_ICONS.CULTURE, count: 76 },
-  { key: "FOOD", icon: CATEGORY_ICONS.FOOD, count: 53 },
-  { key: "ATTRACTION", icon: CATEGORY_ICONS.ATTRACTION, count: 24 },
-  { key: "NATURE", icon: CATEGORY_ICONS.NATURE, count: 33 },
-  { key: "EXPERIENCE", icon: CATEGORY_ICONS.EXPERIENCE, count: 33 },
+  ...CONTENT_CATEGORY_ORDER.filter((category) => category !== "FESTIVAL").map(
+    (category) => ({
+      key: category as QuickCategory,
+      icon: CATEGORY_ICONS[category],
+      count: CATEGORY_COUNTS[category],
+    }),
+  ),
   { key: "ALL", icon: "map-outline", count: 221 },
 ];
 

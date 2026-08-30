@@ -5,12 +5,13 @@ import { describe, expect, it, vi } from "vitest";
 import { QuickCategoryRow } from "./QuickCategoryRow";
 
 describe("QuickCategoryRow", () => {
-  it("문화/음식/관광지/자연/체험/전체 6개 타일과 정적 개수를 보여준다", () => {
+  it("음식/관광지/문화/자연/체험/전체 6개 타일을 CONTENT_CATEGORY_ORDER 순서로 보여준다", () => {
     render(<QuickCategoryRow selected="ALL" onSelect={vi.fn()} />);
 
-    for (const label of ["문화", "음식", "관광지", "자연", "체험", "전체"]) {
-      expect(screen.getByText(label)).toBeInTheDocument();
-    }
+    const labels = screen
+      .getAllByRole("button")
+      .map((b) => b.querySelector("span > span")?.textContent);
+    expect(labels).toEqual(["음식", "관광지", "문화", "자연", "체험", "전체"]);
     expect(screen.getByText("76곳")).toBeInTheDocument();
     expect(screen.getByText("53곳")).toBeInTheDocument();
     expect(screen.getByText("24곳")).toBeInTheDocument();
