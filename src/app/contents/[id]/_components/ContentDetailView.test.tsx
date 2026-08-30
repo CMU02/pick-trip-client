@@ -21,6 +21,12 @@ vi.mock("@/lib/kakaoMapLoader", () => ({
   loadKakaoMaps: () => loadKakaoMaps(),
 }));
 
+// 근처 콘텐츠는 useQuery(네트워크)에 의존한다 — 이 화면 테스트에서는 렌더만
+// 확인하면 되므로 빈 컴포넌트로 대체하고, 자체 동작은 NearbyContents.test.tsx에서 검증한다.
+vi.mock("./NearbyContents", () => ({
+  NearbyContents: () => null,
+}));
+
 import { useBasketStore } from "@/stores/basketStore";
 import { useFavoriteStore } from "@/stores/favoriteStore";
 import { useRecentViewsStore } from "@/stores/recentViewsStore";

@@ -14,11 +14,14 @@ import { REGION_LABELS } from "@/types/region";
 
 import { ContentGallery } from "./ContentGallery";
 import { ContentMap } from "./ContentMap";
+import { NearbyContents } from "./NearbyContents";
 
 interface ContentDetailViewProps {
   content: ContentDetail;
   showBasketAction?: boolean;
   backHref?: string;
+  // 상세 진입 경로(?from=). 근처 콘텐츠 카드 링크에 그대로 이어 붙인다.
+  fromParam?: string;
 }
 
 interface InfoRowProps {
@@ -58,6 +61,7 @@ export function ContentDetailView({
   content,
   showBasketAction = true,
   backHref,
+  fromParam,
 }: ContentDetailViewProps) {
   const router = useRouter();
   const { items, add, remove } = useBasket();
@@ -133,7 +137,7 @@ export function ContentDetailView({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1120px] px-4 py-6 lg:px-10">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6">
       <button
         type="button"
         onClick={handleBack}
@@ -170,6 +174,12 @@ export function ContentDetailView({
               <InfoRow key={row.label} label={row.label} value={row.value} />
             ))}
           </div>
+
+          {/* 좌표 기반 조회라 원본에 좌표가 있을 때만. 근처에 결과가 없거나
+              조회가 실패하면 컴포넌트가 스스로 아무것도 렌더하지 않는다. */}
+          {hasCoord && (
+            <NearbyContents contentId={content.id} fromParam={fromParam} />
+          )}
         </div>
 
         {/* 오른쪽 열 — 지도 + 액션 패널. items-start 그리드에서 sticky 가
