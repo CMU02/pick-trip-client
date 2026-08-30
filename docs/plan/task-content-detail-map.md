@@ -157,24 +157,39 @@ window.open(url, "_blank", "noopener,noreferrer");
   라벨 "담기/담김" → "일정에 담기/일정에 담김"으로 바뀌어 기존 exact-name 테스트 2개 수정.
 - **사진 갤러리** (커밋 `0b40525`, 스펙 외 추가 — 리뷰 중 사용자 요청) — `ContentGallery.tsx` 신규.
   여러 장일 때 히어로 양옆 화살표(기본 `opacity-40` → group-hover/focus 시 `opacity-100`, 양끝
-  순환) + `n / N` 배지, 아래 썸네일 클릭 전환(활성 `ring-2 ring-primary`). 썸네일 4열 그리드 전체
-  노출(기존 "처음 4장 + N" 오버레이 제거). 콘텐츠 변경 시 `key={content.id}` remount로 인덱스 초기화.
-  `ContentGallery.test.tsx` 6케이스 + ContentDetailView 통합 2케이스.
+  순환) + `n / N` 배지, 아래 썸네일 클릭 전환(활성 `ring-2 ring-primary`). 콘텐츠 변경 시
+  `key={content.id}` remount로 인덱스 초기화. `ContentGallery.test.tsx` 6케이스 + ContentDetailView 통합 2케이스.
 
-검증: `bun run test`(593) · `bunx tsc --noEmit` · `bun run lint` · `bun run build`(27/27) 전부 통과.
+### 완료 (2026-08-30 이어서 — 사용자 추가 요청 3건)
+
+- **너비 헤더 기준** — 컨테이너 `max-w-[1120px] px-4 py-6 lg:px-10` → `max-w-7xl px-4 py-6`.
+  헤더·푸터(`max-w-7xl px-4`)와 좌우 끝선 정렬. 사이드 패널 360px 유지, 본문 열이 넓어짐.
+- **§6 근처 콘텐츠 구현** — `feat/content-nearby-api`의 서비스 커밋(`943230a`)을 feat/5로
+  cherry-pick(`b264083`: `getNearbyContents` + `NearbyContent`/`NearbyContentsResponse` 타입).
+  신규 `NearbyContents.tsx` — 왼쪽 열 InfoRow 그리드 아래 **3칸 컴팩트 카드**.
+  `useQuery(["nearby-contents", id, 3])` `size:3` `staleTime` 1h. 이미지(4:3)+이름+`약 1.4km`
+  (1km 미만 `약 350m`)·카테고리. 원본 좌표 있을 때(`hasCoord`)만 마운트, 결과 없음/조회 실패 시
+  컴포넌트가 스스로 `null` → 섹션 숨김. queryKey를 `"contents"` 접두어와 분리(목록 로컬스토리지
+  캐시 비오염). 상세 진입 경로(`?from=`)를 카드 링크에 이어 붙임 — `page.tsx`가 `fromParam` prop 전달.
+  `NearbyContents.test.tsx` 5케이스. `ContentDetailView.test.tsx`는 `NearbyContents`를 목 처리.
+- **갤러리 "+N" 라이트박스** — 사진 4장 초과 시 썸네일 앞 3칸 + 마지막 칸을 `+{count-3}` 버튼으로
+  (정확히 4장이면 그대로 4칸). 클릭 → 전체화면 `role="dialog"` 라이트박스: 전 사진 2~4열 격자,
+  선택 시 대표 사진 전환 후 닫힘. 배경 클릭·닫기 버튼·Esc로 닫힘, 열려 있는 동안 `body` 스크롤 잠금.
+  `ContentGallery.test.tsx` +6케이스(총 12).
+
+검증: `bun run test`(608) · `bunx tsc --noEmit` · `bun run lint` · `bun run build`(27/27) 전부 통과.
 
 ### 남은 일 (다음 세션)
 
 1. **육안 확인 안 됨** — `bun run dev` + `.env`에 `NEXT_PUBLIC_KAKAO_JS_KEY` 필요. 확인 항목:
    2열 전환(1024px), `<aside>` sticky 실제 동작, 지도 마커 위치, 확대/축소 버튼, 좌표 없음 폴백,
-   갤러리 화살표 hover 트랜지션·썸네일 ring, 모바일에서 패널이 본문 아래로 쌓이는지.
-2. **§6 "근처에 함께 담기"** — 이번엔 제외했으나, 그 사이 `contentService.getNearbyContents()`
-   (브랜치 `feat/content-nearby-api`, 백엔드 `GET /api/v1/contents/{id}/nearby`)가 생겨서 이제
-   좌표 기반으로 진짜 구현 가능. 왼쪽 열 맨 아래 3칸 카드. 사용자 승인 후 진행.
-3. **모바일 담기/찜 하단 고정 바** — §1에서 "별도 판단"으로 남긴 항목. 현재는 패널 안에 그대로 둠.
-4. 거리 문구(§4) — 지역 중심 좌표 상수 + `haversineKm`로 "직선거리 약 N km" 넣을지 재검토.
-5. 갤러리 추가 개선 여지 — 키보드 좌우 화살표 네비, 스와이프(터치), 라이트박스(전체 화면) 등은
-   현재 미구현.
+   갤러리 화살표 hover 트랜지션·썸네일 ring, 모바일에서 패널이 본문 아래로 쌓이는지,
+   **근처 콘텐츠 3칸 실제 응답·거리 표기·`+N` 라이트박스 격자.**
+2. **모바일 담기/찜 하단 고정 바** — §1에서 "별도 판단"으로 남긴 항목. 현재는 패널 안에 그대로 둠.
+3. 거리 문구(§4) — 지역 중심 좌표 상수 + `haversineKm`로 "직선거리 약 N km" 넣을지 재검토.
+4. 갤러리 추가 개선 여지 — 키보드 좌우 화살표 네비, 스와이프(터치), 라이트박스 내 큰 미리보기 등 미구현.
+5. **근처 콘텐츠** — 백엔드 `/nearby` 응답이 원본 콘텐츠 자기 자신을 제외하는지 육안 확인,
+   `radiusKm` 기본(5km)에서 시골 지역 결과가 0인 경우 반경 확대 여부 검토.
 
 ### 이어서 시작하는 법
 
@@ -184,4 +199,5 @@ bun install   # 필요 시
 ```
 
 파일: `src/app/contents/[id]/_components/` 안 `ContentDetailView.tsx` · `ContentMap.tsx` ·
-`ContentGallery.tsx` (+ 각 `.test.tsx`). 지원 변경: `src/types/kakao.d.ts`, `src/test/kakaoMapMock.ts`.
+`ContentGallery.tsx` · `NearbyContents.tsx` (+ 각 `.test.tsx`). 지원 변경: `src/types/kakao.d.ts`,
+`src/test/kakaoMapMock.ts`, `src/services/contentService.ts`(`getNearbyContents`), `src/types/content.ts`(`NearbyContent`).
