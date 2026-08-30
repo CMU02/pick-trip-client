@@ -29,9 +29,21 @@ export const CATEGORY_ICONS: Record<ContentCategory, IconName> = {
   EXPERIENCE: "color-palette-outline",
 };
 
-export const CONTENT_CATEGORIES = Object.keys(
-  CATEGORY_LABELS,
-) as ContentCategory[];
+// 카테고리를 노출하는 모든 곳(필터 칩 · 그룹 헤더 · 다중 선택 정렬)이 따르는
+// 단일 순서. 라벨/아이콘 맵의 키 순서에 의존하지 않도록 명시적으로 고정한다.
+export const CONTENT_CATEGORY_ORDER = [
+  "FOOD",
+  "FESTIVAL",
+  "ATTRACTION",
+  "CULTURE",
+  "NATURE",
+  "EXPERIENCE",
+] as const satisfies readonly ContentCategory[];
+
+// 기존 소비처가 쓰던 mutable 배열. 순서는 CONTENT_CATEGORY_ORDER 하나가 결정한다.
+export const CONTENT_CATEGORIES: ContentCategory[] = [
+  ...CONTENT_CATEGORY_ORDER,
+];
 
 // 지역 × 카테고리 콘텐츠 수. 백엔드 /api/v1/contents를 지역별로 끝까지
 // 페이지네이션하며 아이템 category 필드를 직접 집계한 2026-08-29 실측치.

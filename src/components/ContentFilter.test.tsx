@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { CATEGORY_LABELS, CONTENT_CATEGORY_ORDER } from "@/types/content";
+
 import { ContentFilter } from "./ContentFilter";
 
 const REGIONS3 = ["HADONG", "YEONGJU", "YECHEON"] as const;
@@ -33,6 +35,19 @@ describe("ContentFilter", () => {
     for (const label of ["음식", "축제", "관광지", "문화", "자연", "체험"]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
+  });
+
+  it("카테고리 칩을 CONTENT_CATEGORY_ORDER 순서대로 렌더한다", () => {
+    setup();
+
+    const chipLabels = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent?.trim());
+    const expected = CONTENT_CATEGORY_ORDER.map(
+      (category) => CATEGORY_LABELS[category],
+    );
+
+    expect(chipLabels).toEqual(expected);
   });
 
   it("regions prop이 준 지역만 탭으로 렌더한다", () => {

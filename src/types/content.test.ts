@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { CATEGORY_COUNT_BY_REGION, categoryCountFor } from "./content";
+import {
+  CATEGORY_COUNT_BY_REGION,
+  CONTENT_CATEGORIES,
+  CONTENT_CATEGORY_ORDER,
+  categoryCountFor,
+} from "./content";
+
+describe("CONTENT_CATEGORY_ORDER", () => {
+  it("음식 → 축제 → 관광지 → 문화 → 자연 → 체험 순서다", () => {
+    expect([...CONTENT_CATEGORY_ORDER]).toEqual([
+      "FOOD",
+      "FESTIVAL",
+      "ATTRACTION",
+      "CULTURE",
+      "NATURE",
+      "EXPERIENCE",
+    ]);
+  });
+
+  it("CONTENT_CATEGORIES는 CONTENT_CATEGORY_ORDER와 같은 순서다", () => {
+    expect(CONTENT_CATEGORIES).toEqual([...CONTENT_CATEGORY_ORDER]);
+  });
+});
 
 describe("categoryCountFor", () => {
   it("한 지역 한 카테고리는 그 실측치를 그대로 반환한다", () => {
