@@ -109,6 +109,48 @@ describe("ItineraryResult", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("실도로 경로가 잡힌 날이 있으면 이동값 기준 안내문을 보여준다", () => {
+    render(
+      <ItineraryResult
+        data={{ days: [makeDay()] }}
+        hideMap
+        mapData={{
+          days: [
+            {
+              dayIndex: 1,
+              points: [
+                {
+                  lat: 35.1,
+                  lng: 127.7,
+                  contentId: "content-1",
+                  title: "쌍계사",
+                },
+              ],
+              route: {
+                totalDistanceMeters: 5000,
+                totalDurationSeconds: 600,
+                segments: [],
+                path: [],
+              },
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/카카오 모빌리티 자동차 길찾기 실제 도로/),
+    ).toBeInTheDocument();
+  });
+
+  it("경로 데이터가 없으면 이동값 안내문을 보여주지 않는다", () => {
+    render(<ItineraryResult data={{ days: [makeDay()] }} hideMap />);
+
+    expect(
+      screen.queryByText(/카카오 모빌리티 자동차 길찾기 실제 도로/),
+    ).not.toBeInTheDocument();
+  });
+
   it("장소가 없는 날이 있으면 편집기 저장 버튼이 비활성화되고 안내가 뜬다", () => {
     render(
       <ItineraryResult

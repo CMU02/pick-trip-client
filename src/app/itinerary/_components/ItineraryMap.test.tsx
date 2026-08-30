@@ -86,6 +86,41 @@ describe("ItineraryMap", () => {
     expect(screen.queryByText(/직선거리|이동/)).not.toBeInTheDocument();
   });
 
+  // 장소명 라벨 div 는 border-radius:7px 로 식별한다(title 속성은 항상 있으므로).
+  const hasLabel = (content: unknown) =>
+    String(content).includes("border-radius:7px");
+
+  it("day 뷰: 마커에 장소명 라벨을 붙이고, overview 뷰는 번호만 쓴다", async () => {
+    const { unmount } = render(
+      <ItineraryMap variant="day" days={[mapDay(1, 2)]} />,
+    );
+    await waitFor(() => expect(instances.overlays).toHaveLength(2));
+    expect(hasLabel(instances.overlays[0].options.content)).toBe(true);
+    expect(String(instances.overlays[0].options.content)).toContain("장소 1-0");
+    unmount();
+    uninstallKakaoMock();
+    instances = installKakaoMock();
+
+    render(<ItineraryMap variant="overview" days={[mapDay(1, 2)]} />);
+    await waitFor(() => expect(instances.overlays).toHaveLength(2));
+    expect(hasLabel(instances.overlays[0].options.content)).toBe(false);
+  });
+
+  it("day 뷰: 화면상 가까운 마커는 라벨을 숨긴다", async () => {
+    const day: ItineraryMapDay = {
+      dayIndex: 1,
+      points: [
+        { lat: 35.1, lng: 127.7, contentId: "a", title: "가까운앞" },
+        { lat: 35.1001, lng: 127.7001, contentId: "b", title: "가까운뒤" },
+      ],
+      route: null,
+    };
+    render(<ItineraryMap variant="day" days={[day]} />);
+    await waitFor(() => expect(instances.overlays).toHaveLength(2));
+    expect(hasLabel(instances.overlays[0].options.content)).toBe(true);
+    expect(hasLabel(instances.overlays[1].options.content)).toBe(false);
+  });
+
   it("좌표가 있는 장소가 없으면 안내 문구를 보이고 마커를 그리지 않는다", async () => {
     render(<ItineraryMap variant="day" days={[mapDay(1, 0)]} />);
 

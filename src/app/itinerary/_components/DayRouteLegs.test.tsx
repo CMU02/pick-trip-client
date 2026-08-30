@@ -30,6 +30,12 @@ describe("DayRouteLegs", () => {
     expect(rows[0]).toHaveTextContent("9분 · 4.8km");
   });
 
+  it("순번 텍스트(1→2)를 코랄로 표시한다", () => {
+    render(<DayRouteLegs points={points} route={route} />);
+
+    expect(screen.getByText("1→2")).toHaveClass("text-primary");
+  });
+
   it("route가 없으면 아무것도 렌더하지 않는다", () => {
     const { container } = render(<DayRouteLegs points={points} route={null} />);
 

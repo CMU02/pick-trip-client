@@ -44,6 +44,11 @@ class MockMap {
   });
   getLevel = vi.fn(() => this.level);
   relayout = vi.fn();
+  // 좌표 → 컨테이너 픽셀 근사(위경도에 큰 스케일). 라벨 겹침/뒤집기 계산 검증용.
+  getProjection = vi.fn(() => ({
+    containerPointFromCoords: (ll: MockLatLng) =>
+      new MockPoint((ll.lng - 127) * 5000, (36 - ll.lat) * 5000),
+  }));
   constructor(
     public container: HTMLElement,
     public options: unknown,

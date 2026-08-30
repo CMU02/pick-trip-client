@@ -27,14 +27,16 @@ export function DayRouteLegs({ points, route }: DayRouteLegsProps) {
             key={`${from.contentId}-${to.contentId}`}
             className="flex items-center gap-2 text-[12px] text-muted-foreground"
           >
-            <span className="shrink-0 font-bold tabular-nums text-foreground/70">
+            <span className="w-[34px] shrink-0 font-extrabold tabular-nums text-primary">
               {i + 1}→{i + 2}
             </span>
             <span className="min-w-0 flex-1 truncate">
               {from.title} → {to.title}
             </span>
             {parts.length > 0 && (
-              <span className="shrink-0 tabular-nums">{parts.join(" · ")}</span>
+              <span className="shrink-0 font-bold tabular-nums text-foreground/80">
+                {parts.join(" · ")}
+              </span>
             )}
           </li>
         );
