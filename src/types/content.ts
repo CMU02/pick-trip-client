@@ -124,20 +124,33 @@ export interface ContentsResponse {
   total: number;
 }
 
-// GET /api/v1/contents/{id}/nearby 한 항목. 기준 콘텐츠 좌표에서의 Haversine
-// 근사 거리(distanceKm, km)와 자기 좌표를 함께 들고 온다. 목록/상세와 달리
-// 이 응답은 category·좌표를 항상 채워주므로 좌표는 필수값으로 둔다.
+// distanceKm 산출 기준. ROAD는 Kakao 길찾기로 잰 실제 자동차 도로 거리,
+// STRAIGHT는 길찾기 실패 시 폴백한 직선(Haversine) 거리.
+export type NearbyDistanceBasis = "ROAD" | "STRAIGHT";
+
+// 주변 콘텐츠 조회 소스. LOCAL은 로컬 적재분, TOURAPI는 로컬에 기준 콘텐츠나
+// 주변 행이 없어 TourAPI 위치 검색으로 폴백한 경우. 화면에는 노출하지 않고
+// 데이터 출처 구분용으로만 들고 있는다.
+export type NearbySource = "LOCAL" | "TOURAPI";
+
+// GET /api/v1/contents/{id}/nearby 한 항목. 기준 콘텐츠 좌표에서의 거리
+// (distanceKm, km)와 자기 좌표를 함께 들고 온다. 목록/상세와 달리 이 응답은
+// category·좌표를 항상 채워주므로 좌표는 필수값으로 둔다.
 export interface NearbyContent extends Content {
   // TourAPI contentTypeId (상세 카테고리 매핑용). 응답에 없으면 생략.
   contentTypeId?: string;
   latitude: number;
   longitude: number;
   distanceKm: number;
+  // 자동차 소요 시간(분). distanceBasis가 "STRAIGHT"면 없다.
+  durationMinutes?: number;
+  distanceBasis: NearbyDistanceBasis;
 }
 
 export interface NearbyContentsResponse {
   originContentId: string;
   // 서버가 클램프한 실제 반경(km). 요청값과 다를 수 있다.
   radiusKm: number;
+  source: NearbySource;
   contents: NearbyContent[];
 }

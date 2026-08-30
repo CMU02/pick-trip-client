@@ -411,6 +411,7 @@ describe("getNearbyContents", () => {
       data: {
         originContentId: "111",
         radiusKm: 5,
+        source: "LOCAL",
         items: [
           {
             contentId: "222",
@@ -424,6 +425,8 @@ describe("getNearbyContents", () => {
             summary: "토지 배경",
             region: "HADONG",
             distanceKm: 1.23,
+            durationMinutes: 3,
+            distanceBasis: "ROAD",
           },
         ],
       },
@@ -435,6 +438,7 @@ describe("getNearbyContents", () => {
     expect(result).toEqual({
       originContentId: "111",
       radiusKm: 5,
+      source: "LOCAL",
       contents: [
         {
           id: "222",
@@ -448,6 +452,8 @@ describe("getNearbyContents", () => {
           latitude: 35.13,
           longitude: 127.57,
           distanceKm: 1.23,
+          durationMinutes: 3,
+          distanceBasis: "ROAD",
         },
       ],
     });
@@ -455,7 +461,12 @@ describe("getNearbyContents", () => {
 
   it("radiusKm·size가 주어지면 쿼리 문자열로 붙인다", async () => {
     mockGet.mockResolvedValueOnce({
-      data: { originContentId: "111", radiusKm: 20, items: [] },
+      data: {
+        originContentId: "111",
+        radiusKm: 20,
+        source: "LOCAL",
+        items: [],
+      },
     });
 
     await getNearbyContents("111", { radiusKm: 20, size: 30 });
@@ -470,6 +481,7 @@ describe("getNearbyContents", () => {
       data: {
         originContentId: "111",
         radiusKm: 5,
+        source: "LOCAL",
         items: [
           {
             contentId: "333",
@@ -482,6 +494,8 @@ describe("getNearbyContents", () => {
             summary: null,
             region: "HADONG",
             distanceKm: 2.5,
+            durationMinutes: 6,
+            distanceBasis: "ROAD",
           },
         ],
       },
@@ -494,11 +508,45 @@ describe("getNearbyContents", () => {
     expect(contents[0].contentTypeId).toBeUndefined();
   });
 
+  it("길찾기 실패로 STRAIGHT면 durationMinutes(null)를 생략하고 basis를 그대로 전달한다", async () => {
+    mockGet.mockResolvedValueOnce({
+      data: {
+        originContentId: "111",
+        radiusKm: 5,
+        source: "TOURAPI",
+        items: [
+          {
+            contentId: "444",
+            title: "먼 산 전망대",
+            contentTypeId: "12",
+            address: "하동군",
+            firstImage: null,
+            latitude: 35.2,
+            longitude: 127.6,
+            category: "ATTRACTION",
+            summary: null,
+            region: "HADONG",
+            distanceKm: 13.4,
+            durationMinutes: null,
+            distanceBasis: "STRAIGHT",
+          },
+        ],
+      },
+    });
+
+    const { source, contents } = await getNearbyContents("111");
+
+    expect(source).toBe("TOURAPI");
+    expect(contents[0].durationMinutes).toBeUndefined();
+    expect(contents[0].distanceBasis).toBe("STRAIGHT");
+  });
+
   it("이름·이미지 오버라이드 대상이면 교체값을 쓴다", async () => {
     mockGet.mockResolvedValueOnce({
       data: {
         originContentId: "111",
         radiusKm: 5,
+        source: "LOCAL",
         items: [
           {
             contentId: "3442627", // 티카페하동
@@ -511,6 +559,8 @@ describe("getNearbyContents", () => {
             category: "FOOD",
             region: "HADONG",
             distanceKm: 0.4,
+            durationMinutes: 1,
+            distanceBasis: "ROAD",
           },
         ],
       },

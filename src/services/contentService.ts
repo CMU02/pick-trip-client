@@ -11,6 +11,8 @@ import type {
   ContentsResponse,
   NearbyContent,
   NearbyContentsResponse,
+  NearbyDistanceBasis,
+  NearbySource,
 } from "@/types/content";
 import type { Region } from "@/types/region";
 
@@ -171,11 +173,15 @@ interface RawNearbyContentItem {
   // region은 @Enumerated(STRING)이라 "HADONG" 같은 코드로 온다.
   region: Region;
   distanceKm: number;
+  // distanceBasis가 "STRAIGHT"(길찾기 실패 폴백)면 null로 온다.
+  durationMinutes: number | null;
+  distanceBasis: NearbyDistanceBasis;
 }
 
 interface RawNearbyContentsResponse {
   originContentId: string;
   radiusKm: number;
+  source: NearbySource;
   items: RawNearbyContentItem[];
 }
 
@@ -192,6 +198,8 @@ function toNearbyContent(item: RawNearbyContentItem): NearbyContent {
     latitude: item.latitude,
     longitude: item.longitude,
     distanceKm: item.distanceKm,
+    durationMinutes: item.durationMinutes ?? undefined,
+    distanceBasis: item.distanceBasis,
   };
 }
 
@@ -223,6 +231,7 @@ export async function getNearbyContents(
   return {
     originContentId: data.originContentId,
     radiusKm: data.radiusKm,
+    source: data.source,
     contents: data.items.map(toNearbyContent),
   };
 }

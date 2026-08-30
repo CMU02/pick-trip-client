@@ -24,6 +24,8 @@ const makeNearby = (overrides: Partial<NearbyContent> = {}): NearbyContent => ({
   latitude: 35.13,
   longitude: 127.62,
   distanceKm: 1.4,
+  durationMinutes: 4,
+  distanceBasis: "ROAD",
   ...overrides,
 });
 
@@ -43,28 +45,52 @@ describe("NearbyContents", () => {
     vi.resetAllMocks();
   });
 
-  it("근처 콘텐츠를 카드로 렌더하고 거리를 표시한다", async () => {
+  it("ROAD 항목은 자동차 소요 시간을 표시한다", async () => {
     mockGetNearbyContents.mockResolvedValueOnce({
       originContentId: "1",
       radiusKm: 5,
+      source: "LOCAL",
       contents: [
-        makeNearby({ id: "2", name: "화개장터", distanceKm: 1.4 }),
-        makeNearby({ id: "3", name: "쌍계사", distanceKm: 0.35 }),
+        makeNearby({ id: "2", name: "화개장터", durationMinutes: 7 }),
+        makeNearby({ id: "3", name: "쌍계사", durationMinutes: 2 }),
       ],
     });
 
     renderNearby();
 
     expect(await screen.findByText("화개장터")).toBeInTheDocument();
-    expect(screen.getByText(/약 1\.4km/)).toBeInTheDocument();
+    expect(screen.getByText(/차로 약 7분/)).toBeInTheDocument();
+    expect(screen.getByText(/차로 약 2분/)).toBeInTheDocument();
+  });
+
+  it("STRAIGHT 항목은 직선거리로 표기하고 소요 시간을 숨긴다", async () => {
+    mockGetNearbyContents.mockResolvedValueOnce({
+      originContentId: "1",
+      radiusKm: 5,
+      source: "TOURAPI",
+      contents: [
+        makeNearby({
+          id: "2",
+          name: "먼 전망대",
+          distanceKm: 0.35,
+          durationMinutes: undefined,
+          distanceBasis: "STRAIGHT",
+        }),
+      ],
+    });
+
+    renderNearby();
+
     // 1km 미만은 m 단위로 표기한다.
-    expect(screen.getByText(/약 350m/)).toBeInTheDocument();
+    expect(await screen.findByText(/직선거리 약 350m/)).toBeInTheDocument();
+    expect(screen.queryByText(/차로/)).not.toBeInTheDocument();
   });
 
   it("size=3으로 조회한다", async () => {
     mockGetNearbyContents.mockResolvedValueOnce({
       originContentId: "1",
       radiusKm: 5,
+      source: "LOCAL",
       contents: [makeNearby()],
     });
 
@@ -79,6 +105,7 @@ describe("NearbyContents", () => {
     mockGetNearbyContents.mockResolvedValueOnce({
       originContentId: "1",
       radiusKm: 5,
+      source: "LOCAL",
       contents: [makeNearby({ id: "2", name: "화개장터" })],
     });
 
@@ -92,6 +119,7 @@ describe("NearbyContents", () => {
     mockGetNearbyContents.mockResolvedValueOnce({
       originContentId: "1",
       radiusKm: 5,
+      source: "LOCAL",
       contents: [],
     });
 
