@@ -27,8 +27,8 @@ export function BasketPanel({
   onGenerate,
 }: BasketPanelProps) {
   return (
-    <div className="sticky top-[86px] rounded-[20px] border border-border bg-card p-5 shadow-[0_14px_34px_oklch(0.5_0.02_30/0.06)]">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="sticky top-[86px] flex max-h-[calc(100vh-7rem)] flex-col rounded-[20px] border border-border bg-card p-5 shadow-[0_14px_34px_oklch(0.5_0.02_30/0.06)]">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <h2 className="flex items-center gap-1.5 font-semibold">
           <Icon name="bookmark" size={16} className="text-primary" />
           여행 바구니{" "}
@@ -52,7 +52,9 @@ export function BasketPanel({
           담은 콘텐츠가 없습니다
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        // 담은 콘텐츠가 많아도 패널이 화면 밖으로 자라지 않게 목록만 내부
+        // 스크롤한다 — 헤더와 "AI 일정 생성" 버튼은 항상 보이게 유지.
+        <ul className="flex min-h-0 flex-col gap-3 overflow-y-auto">
           {items.map((item) => (
             <li
               key={item.content.id}
@@ -106,7 +108,7 @@ export function BasketPanel({
         </ul>
       )}
 
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="mt-4 flex shrink-0 flex-col gap-2">
         <Button className="w-full" disabled={!canGenerate} onClick={onGenerate}>
           AI 일정 생성
         </Button>
