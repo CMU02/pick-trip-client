@@ -24,14 +24,14 @@ function formatDistance(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
 }
 
-// 도로 거리(ROAD)면 자동차 소요 시간을, 길찾기가 실패해 직선거리로 폴백한
-// 경우(STRAIGHT)면 그 사실을 밝히며 거리를 보여준다.
+// 도로 거리(ROAD)면 자동차 소요 시간과 도로 거리를 함께, 길찾기가 실패해
+// 직선거리로 폴백한 경우(STRAIGHT)면 그 사실을 밝히며 거리를 보여준다.
 function formatNearbyMeta(content: NearbyContent): string {
   if (
     content.distanceBasis === "ROAD" &&
     content.durationMinutes !== undefined
   ) {
-    return `차로 약 ${content.durationMinutes}분`;
+    return `차로 약 ${content.durationMinutes}분 · ${formatDistance(content.distanceKm)}`;
   }
   return `직선거리 약 ${formatDistance(content.distanceKm)}`;
 }
