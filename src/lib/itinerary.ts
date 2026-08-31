@@ -17,6 +17,37 @@ export function formatTimeRange(
   return start || end || null;
 }
 
+/**
+ * "09:30","11:00" → 90(분). 한쪽이라도 없거나 형식이 어긋나거나 0 이하면 null.
+ * 장소 카드의 "머무는 시간"과 여행 요약의 "총 머무는 시간"이 같은 규칙을 쓰도록 공유한다.
+ */
+export function stayMinutes(
+  start?: string | null,
+  end?: string | null,
+): number | null {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
+  const diff = eh * 60 + em - (sh * 60 + sm);
+  return diff > 0 ? diff : null;
+}
+
+/**
+ * 모든 날의 모든 장소 체류 시간 합(분). stayMinutes가 계산되는 장소가 하나도
+ * 없으면 null(=표시 안 함).
+ */
+export function sumStayMinutes(days: Day[]): number | null {
+  let total: number | null = null;
+  for (const day of days) {
+    for (const item of day.items) {
+      const minutes = stayMinutes(item.startTime, item.endTime);
+      if (minutes !== null) total = (total ?? 0) + minutes;
+    }
+  }
+  return total;
+}
+
 /** 45 → "45분", 90 → "1시간 30분", 120 → "2시간". null/0 → null. */
 export function formatTravelMinutes(minutes?: number | null): string | null {
   if (!minutes || minutes <= 0) return null;

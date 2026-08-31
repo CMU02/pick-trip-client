@@ -65,6 +65,13 @@ describe("PlaceItem", () => {
     expect(screen.queryByText(/머무는 시간/)).not.toBeInTheDocument();
   });
 
+  it("방문 시각이 없어도 시각 열 placeholder를 유지한다", () => {
+    render(<PlaceItem item={makeItem({ startTime: null, endTime: null })} />);
+
+    // 시각이 없을 때도 타임라인 정렬을 위해 · placeholder를 둔다.
+    expect(screen.getByText("·")).toBeInTheDocument();
+  });
+
   it("notes가 있으면 경고 문구를 모두 렌더한다", () => {
     render(
       <PlaceItem

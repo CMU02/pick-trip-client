@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
-import { formatTravelMinutes } from "@/lib/itinerary";
+import { formatTravelMinutes, stayMinutes } from "@/lib/itinerary";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/types/itinerary";
 
@@ -16,19 +16,6 @@ interface PlaceItemProps {
   onRemove?: () => void;
   onTogglePinned?: () => void;
   onOpenReplacePicker?: () => void;
-}
-
-/** "09:30","11:00" → 90(분). 한쪽이라도 없거나 0 이하면 null. */
-function stayMinutes(
-  start?: string | null,
-  end?: string | null,
-): number | null {
-  if (!start || !end) return null;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
-  const diff = eh * 60 + em - (sh * 60 + sm);
-  return diff > 0 ? diff : null;
 }
 
 // 시간축 타임라인의 한 행. 3열 그리드(62px 시각 / 26px 번호원·레일 / 1fr 카드)에
@@ -53,16 +40,26 @@ export function PlaceItem({
 
   return (
     <>
-      {/* 1열: 시각 */}
-      <div className="pt-1 text-right">
-        {item.startTime && (
-          <p className="text-[15px] font-extrabold tabular-nums text-primary">
-            {item.startTime}
-          </p>
-        )}
-        {item.endTime && (
-          <p className="text-[11px] tabular-nums text-muted-foreground">
-            {item.endTime}
+      {/* 1열: 시각 — 방문 시각이 없어도 열은 항상 유지해 타임라인 정렬이
+          흐트러지지 않게 한다. */}
+      <div className="min-h-[2.5rem] pt-1 text-right">
+        {item.startTime ? (
+          <>
+            <p className="text-[15px] font-extrabold tabular-nums text-primary">
+              {item.startTime}
+            </p>
+            {item.endTime && (
+              <p className="text-[11px] tabular-nums text-muted-foreground">
+                {item.endTime}
+              </p>
+            )}
+          </>
+        ) : (
+          <p
+            aria-hidden="true"
+            className="text-[15px] font-extrabold text-muted-foreground/40"
+          >
+            ·
           </p>
         )}
       </div>
@@ -98,9 +95,12 @@ export function PlaceItem({
                 )}
               </div>
               {stayLabel && (
-                <p className="mt-0.5 text-[12px] text-muted-foreground">
-                  머무는 시간 {stayLabel}
-                </p>
+                <div className="mt-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-0.5 text-[11.5px] font-semibold text-foreground/70">
+                    <Icon name="clock" size={11} className="shrink-0" />
+                    머무는 시간 {stayLabel}
+                  </span>
+                </div>
               )}
             </div>
 
