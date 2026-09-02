@@ -10,7 +10,9 @@ import {
   formatTimeRange,
   formatTravelMinutes,
   hasEmptyDay,
+  stayMinutes,
   sumDayTravel,
+  sumStayMinutes,
   toSaveDays,
 } from "./itinerary";
 
@@ -61,6 +63,49 @@ describe("dayTravelLabel", () => {
         makeDay({ totalTravelMinutes: null, totalTravelKm: null }),
       ),
     ).toBeNull();
+  });
+});
+
+describe("stayMinutes", () => {
+  it("시작·종료가 둘 다 있으면 분 차이를 반환한다", () => {
+    expect(stayMinutes("09:30", "11:00")).toBe(90);
+  });
+
+  it("한쪽이라도 없으면 null", () => {
+    expect(stayMinutes("09:30", null)).toBeNull();
+    expect(stayMinutes(null, "11:00")).toBeNull();
+    expect(stayMinutes(undefined, undefined)).toBeNull();
+  });
+
+  it("종료가 시작보다 빠르거나 같으면 null", () => {
+    expect(stayMinutes("11:00", "09:30")).toBeNull();
+    expect(stayMinutes("09:30", "09:30")).toBeNull();
+  });
+
+  it("형식이 어긋나면 null", () => {
+    expect(stayMinutes("아침", "점심")).toBeNull();
+  });
+});
+
+describe("sumStayMinutes", () => {
+  it("모든 날의 체류 시간을 합한다", () => {
+    const days = [
+      makeDay({
+        items: [
+          makeItem({ startTime: "09:00", endTime: "10:30" }),
+          makeItem({ startTime: "11:00", endTime: "12:00" }),
+        ],
+      }),
+      makeDay({
+        dayId: "day-2",
+        items: [makeItem({ startTime: "13:00", endTime: "14:15" })],
+      }),
+    ];
+    expect(sumStayMinutes(days)).toBe(90 + 60 + 75);
+  });
+
+  it("체류 시간이 계산되는 장소가 없으면 null", () => {
+    expect(sumStayMinutes([makeDay({ items: [makeItem()] })])).toBeNull();
   });
 });
 

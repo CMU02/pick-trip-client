@@ -166,7 +166,7 @@ export function PreGenerateView({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-1 pb-16">
+    <div className="w-full pb-16">
       <nav className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         <Link href={conditionsHref} className="hover:text-primary">
           {JOURNEY_STEPS[0].label}
@@ -208,7 +208,7 @@ export function PreGenerateView({
           </p>
         </div>
 
-        <dl className="grid w-full shrink-0 grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/16 lg:w-[330px]">
+        <dl className="grid w-full shrink-0 grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/16 lg:w-[360px]">
           {[
             { value: items.length, unit: "개", label: "담은 콘텐츠" },
             { value: dayCount, unit: "일", label: "여행 기간" },
@@ -235,7 +235,7 @@ export function PreGenerateView({
       </section>
 
       {/* 2열 그리드 */}
-      <div className="mt-6 grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[1fr_340px]">
+      <div className="mt-6 grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-5">
           {/* 2. 여행 조건 */}
           <section className="rounded-[22px] border border-border bg-white p-6">

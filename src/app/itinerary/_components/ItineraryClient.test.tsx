@@ -438,6 +438,49 @@ describe("ItineraryClient", () => {
     expect(within(summary as HTMLElement).getByText("1개")).toBeInTheDocument();
   });
 
+  it("generate 응답에 adjustments가 있으면 결과 화면에 조정 안내를 노출한다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue({
+      ...mockGenerateResponse,
+      adjustments: ["'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."],
+    });
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(
+      await screen.findByText("AI가 일정을 이렇게 조정했어요"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."),
+    ).toBeInTheDocument();
+  });
+
   it("저장 버튼 클릭 시 미리보기 데이터를 SaveItineraryRequest로 변환해 save API를 호출한다", async () => {
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",

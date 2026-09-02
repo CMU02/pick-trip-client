@@ -27,8 +27,8 @@ export function BasketPanel({
   onGenerate,
 }: BasketPanelProps) {
   return (
-    <div className="sticky top-[86px] rounded-[20px] border border-border bg-card p-5 shadow-[0_14px_34px_oklch(0.5_0.02_30/0.06)]">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="sticky top-[86px] flex max-h-[calc(100vh-7rem)] flex-col rounded-[20px] border border-border bg-card p-5 shadow-[0_14px_34px_oklch(0.5_0.02_30/0.06)]">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <h2 className="flex items-center gap-1.5 font-semibold">
           <Icon name="bookmark" size={16} className="text-primary" />
           여행 바구니{" "}
@@ -52,19 +52,27 @@ export function BasketPanel({
           담은 콘텐츠가 없습니다
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        // 담은 콘텐츠가 많아도 패널이 화면 밖으로 자라지 않게 목록만 내부
+        // 스크롤한다 — 헤더와 "AI 일정 생성" 버튼은 항상 보이게 유지.
+        // 4개 이상이면 3개가 온전히 보이는 높이로 고정해 그 안에서 스크롤한다.
+        <ul
+          className={cn(
+            "flex min-h-0 flex-col gap-2.5 overflow-y-auto",
+            items.length >= 4 && "max-h-[16rem] pr-1",
+          )}
+        >
           {items.map((item) => (
             <li
               key={item.content.id}
-              className="rounded-lg bg-muted/50 px-3 py-2"
+              className="rounded-lg bg-muted/50 px-3 py-1.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
+                  <p className="truncate text-sm font-medium leading-tight">
                     {item.content.name}
                   </p>
                   {item.content.category && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] leading-tight text-muted-foreground">
                       {CATEGORY_LABELS[item.content.category]}
                     </p>
                   )}
@@ -72,14 +80,14 @@ export function BasketPanel({
                 <button
                   type="button"
                   onClick={() => onRemove(item.content.id)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
                   aria-label={`${item.content.name} 삭제`}
                 >
                   <Icon name="trash" size={14} />
                 </button>
               </div>
 
-              <div className="mt-2 flex gap-1">
+              <div className="mt-1.5 flex gap-1">
                 {PRIORITY_LEVELS.map((level) => (
                   <button
                     key={level}
@@ -91,7 +99,7 @@ export function BasketPanel({
                       )
                     }
                     className={cn(
-                      "flex min-h-11 flex-1 items-center justify-center rounded px-1 text-[10px] transition-colors",
+                      "flex min-h-7 flex-1 items-center justify-center rounded px-1 text-[10px] transition-colors",
                       item.priority === level
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80",
@@ -106,7 +114,7 @@ export function BasketPanel({
         </ul>
       )}
 
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="mt-4 flex shrink-0 flex-col gap-2">
         <Button className="w-full" disabled={!canGenerate} onClick={onGenerate}>
           AI 일정 생성
         </Button>
