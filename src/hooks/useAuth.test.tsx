@@ -219,4 +219,71 @@ describe("useAuth", () => {
     expect(result.current.accessToken).toBeNull();
     expect(result.current.user).toBeNull();
   });
+
+  it("withdraw 성공 시 /auth/withdraw를 호출하고 세션을 초기화한다", async () => {
+    mockPost
+      .mockResolvedValueOnce(
+        sessionData({ accessToken: "access-1", user: mockUser }),
+      )
+      .mockResolvedValueOnce({ data: { ok: true } });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.withdraw();
+    });
+
+    expect(ok).toBe(true);
+    expect(mockPost).toHaveBeenCalledWith("/auth/withdraw");
+    await waitFor(() => expect(result.current.status).toBe("unauthenticated"));
+    expect(result.current.accessToken).toBeNull();
+    expect(result.current.user).toBeNull();
+  });
+
+  it("withdraw가 ok:false면 세션을 유지하고 false를 반환한다", async () => {
+    mockPost
+      .mockResolvedValueOnce(
+        sessionData({ accessToken: "access-1", user: mockUser }),
+      )
+      .mockResolvedValueOnce({ data: { ok: false } });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.withdraw();
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.status).toBe("authenticated");
+    expect(result.current.user).toEqual(mockUser);
+  });
+
+  it("withdraw 요청 자체가 실패하면 세션을 유지하고 false를 반환한다", async () => {
+    mockPost
+      .mockResolvedValueOnce(
+        sessionData({ accessToken: "access-1", user: mockUser }),
+      )
+      .mockRejectedValueOnce(new Error("network"));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.withdraw();
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.status).toBe("authenticated");
+  });
 });

@@ -10,6 +10,7 @@ import {
   getCurrentUser,
   logoutUser,
   refreshAccessToken,
+  withdrawUser,
 } from "./authService";
 
 vi.mock("./apiClient", () => ({
@@ -85,6 +86,18 @@ describe("logoutUser", () => {
 
     expect(mockDelete).toHaveBeenCalledWith("/api/v1/auth/logout", {
       headers: undefined,
+    });
+  });
+});
+
+describe("withdrawUser", () => {
+  it("Authorization 헤더를 붙여 DELETE /api/v1/users/me를 호출", async () => {
+    mockDelete.mockResolvedValueOnce({ data: undefined });
+
+    await withdrawUser("access-1");
+
+    expect(mockDelete).toHaveBeenCalledWith("/api/v1/users/me", {
+      headers: { Authorization: "Bearer access-1" },
     });
   });
 });
