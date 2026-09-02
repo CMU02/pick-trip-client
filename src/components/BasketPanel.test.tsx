@@ -52,6 +52,20 @@ describe("BasketPanel", () => {
     expect(screen.getByRole("list").className).toContain("overflow-y-auto");
   });
 
+  it("콘텐츠가 3개 이하면 목록에 고정 높이 제한이 없다", () => {
+    const items = [1, 2, 3].map((n) => makeItem(`${n}`, `장소${n}`));
+    render(<BasketPanel items={items} {...defaultProps} />);
+    expect(screen.getByRole("list").className).not.toMatch(/\bmax-h-\[/);
+  });
+
+  it("콘텐츠가 4개 이상이면 목록이 고정 높이로 내부 스크롤된다", () => {
+    const items = [1, 2, 3, 4].map((n) => makeItem(`${n}`, `장소${n}`));
+    render(<BasketPanel items={items} {...defaultProps} />);
+    const list = screen.getByRole("list");
+    expect(list.className).toMatch(/\bmax-h-\[/);
+    expect(list.className).toContain("overflow-y-auto");
+  });
+
   it("삭제 버튼 클릭 시 onRemove를 해당 id로 호출한다", async () => {
     const onRemove = vi.fn();
     const items = [makeItem("1", "쌍계사")];

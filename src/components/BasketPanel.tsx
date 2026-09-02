@@ -54,19 +54,25 @@ export function BasketPanel({
       ) : (
         // 담은 콘텐츠가 많아도 패널이 화면 밖으로 자라지 않게 목록만 내부
         // 스크롤한다 — 헤더와 "AI 일정 생성" 버튼은 항상 보이게 유지.
-        <ul className="flex min-h-0 flex-col gap-3 overflow-y-auto">
+        // 4개 이상이면 3개가 온전히 보이는 높이로 고정해 그 안에서 스크롤한다.
+        <ul
+          className={cn(
+            "flex min-h-0 flex-col gap-2.5 overflow-y-auto",
+            items.length >= 4 && "max-h-[16rem] pr-1",
+          )}
+        >
           {items.map((item) => (
             <li
               key={item.content.id}
-              className="rounded-lg bg-muted/50 px-3 py-2"
+              className="rounded-lg bg-muted/50 px-3 py-1.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
+                  <p className="truncate text-sm font-medium leading-tight">
                     {item.content.name}
                   </p>
                   {item.content.category && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] leading-tight text-muted-foreground">
                       {CATEGORY_LABELS[item.content.category]}
                     </p>
                   )}
@@ -74,14 +80,14 @@ export function BasketPanel({
                 <button
                   type="button"
                   onClick={() => onRemove(item.content.id)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
                   aria-label={`${item.content.name} 삭제`}
                 >
                   <Icon name="trash" size={14} />
                 </button>
               </div>
 
-              <div className="mt-2 flex gap-1">
+              <div className="mt-1.5 flex gap-1">
                 {PRIORITY_LEVELS.map((level) => (
                   <button
                     key={level}
@@ -93,7 +99,7 @@ export function BasketPanel({
                       )
                     }
                     className={cn(
-                      "flex min-h-11 flex-1 items-center justify-center rounded px-1 text-[10px] transition-colors",
+                      "flex min-h-7 flex-1 items-center justify-center rounded px-1 text-[10px] transition-colors",
                       item.priority === level
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80",
