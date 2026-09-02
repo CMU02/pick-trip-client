@@ -45,6 +45,15 @@ export async function logoutUser(accessToken?: string): Promise<void> {
   });
 }
 
+// 소프트 탈퇴. 서버가 리프레시 토큰을 즉시 폐기하지만 이미 발급된 액세스
+// 토큰은 최대 1시간 유효하므로 호출부에서 로컬 토큰을 반드시 지워야 한다.
+// 204(완료)와 404 USER_NOT_FOUND(이미 하드 삭제)는 모두 탈퇴 완료로 본다.
+export async function withdrawUser(accessToken: string): Promise<void> {
+  await apiClient.delete<void>("/api/v1/users/me", {
+    headers: authHeaders(accessToken),
+  });
+}
+
 export async function getCurrentUser(
   accessToken: string,
 ): Promise<UserMeResponse> {
