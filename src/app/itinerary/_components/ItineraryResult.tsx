@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { useItineraryMapData } from "@/hooks/useItineraryMapData";
 import type { ParsedApiError } from "@/lib/errors";
 import { hasEmptyDay } from "@/lib/itinerary";
@@ -12,6 +11,7 @@ import type { Content } from "@/types/content";
 import type { Day } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
 import type { Region } from "@/types/region";
+import { AdjustmentsNotice } from "./AdjustmentsNotice";
 import { AlternativePlacePicker } from "./AlternativePlacePicker";
 import { DayCard } from "./DayCard";
 import { DayMapPanel } from "./DayMapPanel";
@@ -47,6 +47,10 @@ interface ItineraryResultProps {
   selectedDayIndex?: number;
   onSelectDay?: (index: number) => void;
   hideMap?: boolean;
+  // 레이아웃(ItineraryResultLayout)이 조정 안내를 2열 그리드 위 전체 폭으로
+  // 직접 렌더할 때 true — 여기서는 중복 렌더를 막는다. 단독 렌더(공유·저장 목록)는
+  // false(기본)로 두고 이 컴포넌트가 그린다.
+  hideAdjustments?: boolean;
 }
 
 export function ItineraryResult({
@@ -57,6 +61,7 @@ export function ItineraryResult({
   selectedDayIndex,
   onSelectDay,
   hideMap = false,
+  hideAdjustments = false,
 }: ItineraryResultProps) {
   const [replaceTarget, setReplaceTarget] = useState<{
     dayId: string;
@@ -96,17 +101,9 @@ export function ItineraryResult({
         {headerAction}
       </div>
 
-      {adjustments.length > 0 && (
-        <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 p-4">
-          <p className="flex items-center gap-1.5 text-[13px] font-bold text-primary">
-            <Icon name="wand" size={14} className="shrink-0" />
-            AI가 일정을 이렇게 조정했어요
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-foreground/80">
-            {adjustments.map((adjustment) => (
-              <li key={adjustment}>{adjustment}</li>
-            ))}
-          </ul>
+      {!hideAdjustments && adjustments.length > 0 && (
+        <div className="mt-4">
+          <AdjustmentsNotice adjustments={adjustments} />
         </div>
       )}
 

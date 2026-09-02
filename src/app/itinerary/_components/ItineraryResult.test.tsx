@@ -109,6 +109,19 @@ describe("ItineraryResult", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("hideAdjustments면 adjustments가 있어도 배너를 렌더하지 않는다", () => {
+    render(
+      <ItineraryResult
+        data={{ days: [makeDay()], adjustments: ["휴무여서 옮겼습니다."] }}
+        hideAdjustments
+      />,
+    );
+
+    expect(
+      screen.queryByText("AI가 일정을 이렇게 조정했어요"),
+    ).not.toBeInTheDocument();
+  });
+
   it("실도로 경로가 잡힌 날이 있으면 이동값 기준 안내문을 보여준다", () => {
     render(
       <ItineraryResult
