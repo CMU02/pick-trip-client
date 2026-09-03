@@ -19,6 +19,7 @@ interface RecommendedCardProps {
 export function RecommendedCard({ content, detailHref }: RecommendedCardProps) {
   const body = (
     <>
+      {/* 콘텐츠 목록 카드 공통 썸네일 높이. 목록이 너무 길어지지 않게 고정 높이를 쓴다. */}
       <div className="relative h-[140px] bg-muted">
         <ContentImage
           src={content.imageUrl}

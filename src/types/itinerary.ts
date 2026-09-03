@@ -12,6 +12,10 @@ export interface SaveItineraryRequest {
 export interface DayRequest {
   dayIndex: number;
   items: ItemRequest[];
+  // 미리보기에서 받은 하루 이동 요약을 그대로 되돌려 저장한다(서버는 저장 시
+  // 스케줄러를 다시 돌리지 않으므로 클라이언트가 왕복시켜야 값이 유지된다).
+  totalTravelMinutes?: number;
+  totalTravelKm?: number;
 }
 
 export interface ItemRequest {
@@ -20,6 +24,9 @@ export interface ItemRequest {
   order?: number;
   reason?: string;
   pinned?: boolean;
+  // 미리보기에서 받은 방문 시각("HH:mm")을 그대로 되돌려 저장한다.
+  startTime?: string;
+  endTime?: string;
 }
 
 // ── 조회/저장/수정 응답 공용 (GET, POST save, PATCH modify) ──────────
@@ -37,6 +44,12 @@ export interface Day {
   dayId: string;
   dayIndex: number;
   items: Item[];
+  // 하루 이동 요약. 조회/저장/공유 응답 + generate 응답 모두에 있다(nullable).
+  totalTravelMinutes?: number | null;
+  totalTravelKm?: number | null;
+  // date/dayNotes는 generate(미리보기) 응답 전용 — 저장·공유 응답에는 없다.
+  date?: string | null; // "yyyy-MM-dd"
+  dayNotes?: string[];
 }
 
 export interface Item {
@@ -46,8 +59,11 @@ export interface Item {
   order: number;
   reason: string;
   pinned: boolean;
-  // 백엔드 Item 스키마에는 startTime/endTime/stayDuration/needsVerification이 없다.
-  // 화면 표시용으로 필요하면 별도 확인 후 추가한다.
+  // 방문 시각("HH:mm"). 조회/저장/공유 + generate 응답 모두에 있다(nullable).
+  startTime?: string | null;
+  endTime?: string | null;
+  // notes는 generate(미리보기) 응답 전용 — 저장·공유 응답에는 없다.
+  notes?: string[];
 }
 
 // ── 생성 응답 (POST /api/v1/itineraries/generate) ───────────────────
@@ -57,6 +73,10 @@ export interface Item {
 export interface RawGeneratedDay {
   dayIndex: number;
   items: RawGeneratedItem[];
+  date: string | null;
+  totalTravelMinutes: number | null;
+  totalTravelKm: number | null;
+  dayNotes: string[];
 }
 
 export interface RawGeneratedItem {
@@ -64,6 +84,9 @@ export interface RawGeneratedItem {
   title: string;
   order: number;
   reason: string;
+  startTime: string | null;
+  endTime: string | null;
+  notes: string[];
 }
 
 export interface RawItineraryGenerateResponse {
@@ -72,6 +95,9 @@ export interface RawItineraryGenerateResponse {
   travelDate: string;
   duration: number;
   days: RawGeneratedDay[];
+  // 스케줄러가 AI 안을 어떻게 바꿨는지 설명하는 여정 단위 안내 문구. 서버가
+  // 항상 보낸다(빈 배열일 수 있음). generate 응답에만 있다.
+  adjustments: string[];
 }
 
 export interface ItineraryGenerateResponse {
@@ -80,6 +106,7 @@ export interface ItineraryGenerateResponse {
   travelDate: string;
   duration: number;
   days: Day[];
+  adjustments: string[];
 }
 
 // ── 저장한 일정 목록 (브라우저 로컬 저장, 서버 계약 아님) ───────────

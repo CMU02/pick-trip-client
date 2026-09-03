@@ -5,8 +5,8 @@ import { ALL_REGIONS_QUERY } from "@/types/region";
 
 export function CtaSection() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16">
-      <div className="rounded-3xl bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] p-12 text-center text-white">
+    <section className="w-full bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] py-16 text-center text-white">
+      <div className="mx-auto max-w-7xl px-4">
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
           아직 무엇을 담을지 고민 중이신가요?
         </h2>

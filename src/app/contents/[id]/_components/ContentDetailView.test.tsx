@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { installKakaoMock, uninstallKakaoMock } from "@/test/kakaoMapMock";
 
 const mockBack = vi.fn();
 const mockPush = vi.fn();
@@ -12,6 +14,17 @@ vi.mock("next/navigation", () => ({
 const mockUseAuth = vi.fn();
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
+}));
+
+const loadKakaoMaps = vi.fn(() => Promise.resolve());
+vi.mock("@/lib/kakaoMapLoader", () => ({
+  loadKakaoMaps: () => loadKakaoMaps(),
+}));
+
+// 근처 콘텐츠는 useQuery(네트워크)에 의존한다 — 이 화면 테스트에서는 렌더만
+// 확인하면 되므로 빈 컴포넌트로 대체하고, 자체 동작은 NearbyContents.test.tsx에서 검증한다.
+vi.mock("./NearbyContents", () => ({
+  NearbyContents: () => null,
 }));
 
 import { useBasketStore } from "@/stores/basketStore";
@@ -37,18 +50,32 @@ const stub: ContentDetail = {
   reservationRequired: false,
   dataSource: "한국관광공사",
   imageUrls: [],
+  latitude: 35.2345,
+  longitude: 127.6789,
 };
 
 describe("ContentDetailView", () => {
+  const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+
   beforeEach(() => {
+    vi.restoreAllMocks();
     localStorage.clear();
     mockBack.mockClear();
     mockPush.mockClear();
     mockUseAuth.mockReturnValue({ status: "authenticated" });
+    loadKakaoMaps.mockReturnValue(Promise.resolve());
+    installKakaoMock();
+    // jsdom 에는 navigator.clipboard 가 없다 — 주소 복사 버튼용으로 주입한다.
+    clipboardWriteText.mockClear();
+    Object.assign(navigator, { clipboard: { writeText: clipboardWriteText } });
     // 전역 스토어는 테스트 간 상태가 누수되므로 초기 상태로 리셋한다.
     useBasketStore.setState({ items: [], hydrated: false });
     useFavoriteStore.setState({ items: [], hydrated: false });
     useRecentViewsStore.setState({ items: [], hydrated: false });
+  });
+
+  afterEach(() => {
+    uninstallKakaoMock();
   });
 
   it("콘텐츠 이름을 렌더한다", () => {
@@ -76,6 +103,22 @@ describe("ContentDetailView", () => {
     expect(screen.getAllByText("정보 없음").length).toBeGreaterThan(0);
   });
 
+  it("운영시간 원문에 <br> 태그가 있으면 여러 줄로 나눠 렌더한다", () => {
+    render(
+      <ContentDetailView
+        content={{
+          ...stub,
+          operatingHours: "평일 09:00~18:00<br>주말 10:00~17:00",
+        }}
+      />,
+    );
+    expect(screen.getByText("평일 09:00~18:00")).toBeInTheDocument();
+    expect(screen.getByText("주말 10:00~17:00")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/평일 09:00~18:00<br>주말/),
+    ).not.toBeInTheDocument();
+  });
+
   it("데이터 출처를 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
     expect(screen.getByText("한국관광공사")).toBeInTheDocument();
@@ -100,9 +143,11 @@ describe("ContentDetailView", () => {
   it("담기 버튼 클릭 시 새로고침 없이 담김으로 즉시 바뀐다", async () => {
     render(<ContentDetailView content={stub} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "담기" }));
+    await userEvent.click(screen.getByRole("button", { name: "일정에 담기" }));
 
-    expect(screen.getByRole("button", { name: "담김" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "일정에 담김" }),
+    ).toBeInTheDocument();
   });
 
   it("showBasketAction이 false이면 담기 버튼을 렌더하지 않는다", () => {
@@ -112,21 +157,33 @@ describe("ContentDetailView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("backHref가 없으면 '← 목록으로' 클릭 시 router.back을 호출한다", async () => {
-    render(<ContentDetailView content={stub} />);
+  it("앱 내 히스토리가 있으면 '목록으로'가 router.back으로 직전 화면에 복귀한다", async () => {
+    vi.spyOn(window.history, "length", "get").mockReturnValue(3);
+    render(<ContentDetailView content={stub} backHref="/explore" />);
 
     await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
 
     expect(mockBack).toHaveBeenCalledOnce();
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("backHref가 주어지면 '← 목록으로'가 해당 경로로 이동하는 링크다", () => {
+  it("직접 진입(히스토리 없음)이면 '목록으로'가 backHref 경로로 이동한다", async () => {
+    vi.spyOn(window.history, "length", "get").mockReturnValue(1);
     render(<ContentDetailView content={stub} backHref="/explore" />);
 
-    expect(screen.getByRole("link", { name: /목록으로/ })).toHaveAttribute(
-      "href",
-      "/explore",
-    );
+    await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
+
+    expect(mockPush).toHaveBeenCalledWith("/explore");
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("backHref가 없고 히스토리도 없으면 /contents로 이동한다", async () => {
+    vi.spyOn(window.history, "length", "get").mockReturnValue(1);
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /목록으로/ }));
+
+    expect(mockPush).toHaveBeenCalledWith("/contents");
   });
 
   it("찜 버튼을 렌더하고 클릭하면 찜 상태가 토글된다", async () => {
@@ -165,5 +222,90 @@ describe("ContentDetailView", () => {
     const items = useRecentViewsStore.getState().items;
     expect(items).toHaveLength(1);
     expect(items[0].content.id).toBe("1");
+  });
+
+  it("사진이 여러 장이면 갤러리 화살표와 썸네일 버튼을 렌더한다", () => {
+    render(
+      <ContentDetailView
+        content={{
+          ...stub,
+          imageUrl: "https://example.com/1.jpg",
+          imageUrls: ["https://example.com/2.jpg", "https://example.com/3.jpg"],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "다음 사진" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /번 사진 보기$/ }),
+    ).toHaveLength(3);
+  });
+
+  it("사진이 한 장뿐이면 갤러리 화살표를 렌더하지 않는다", () => {
+    render(
+      <ContentDetailView
+        content={{ ...stub, imageUrl: "https://example.com/1.jpg" }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "다음 사진" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("좌표가 유효하면 지도 패널과 '카카오맵 길찾기' 버튼을 렌더한다", () => {
+    render(<ContentDetailView content={stub} />);
+
+    expect(screen.getByTestId("content-map")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "카카오맵 길찾기" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/위치 좌표가 없어요/)).not.toBeInTheDocument();
+  });
+
+  it("좌표가 (0, 0)이면 안내 문구를 보이고 길찾기 버튼을 숨긴다", () => {
+    render(
+      <ContentDetailView content={{ ...stub, latitude: 0, longitude: 0 }} />,
+    );
+
+    expect(screen.getByText(/위치 좌표가 없어요/)).toBeInTheDocument();
+    expect(screen.queryByTestId("content-map")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "카카오맵 길찾기" }),
+    ).not.toBeInTheDocument();
+    // 좌표가 없어도 주소 복사는 남는다.
+    expect(
+      screen.getByRole("button", { name: "주소 복사" }),
+    ).toBeInTheDocument();
+  });
+
+  it("'주소 복사' 클릭 시 clipboard.writeText가 주소로 호출되고 라벨이 바뀐다", async () => {
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "주소 복사" }));
+
+    expect(clipboardWriteText).toHaveBeenCalledWith("경남 하동군 화개면");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "복사됨" }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("'카카오맵 길찾기' 클릭 시 카카오맵 길찾기 URL을 새 창으로 연다", async () => {
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    render(<ContentDetailView content={stub} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "카카오맵 길찾기" }),
+    );
+
+    expect(open).toHaveBeenCalledWith(
+      `https://map.kakao.com/link/to/${encodeURIComponent("쌍계사")},35.2345,127.6789`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 });

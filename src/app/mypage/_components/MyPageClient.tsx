@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
+import { WithdrawSection } from "./WithdrawSection";
 
 const PROVIDER_LABELS: Record<string, string> = {
   KAKAO: "카카오",
@@ -188,6 +189,8 @@ export function MyPageClient() {
           </div>
         )}
       </section>
+
+      <WithdrawSection />
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
   usePathname: () => "/dashboard/for-you",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/hooks/useAuth", () => ({
@@ -77,6 +78,14 @@ describe("ForYouGrid", () => {
     useBasketStore.setState({ items: [], hydrated: true });
     useFavoriteStore.setState({ items: [], hydrated: true });
     vi.resetAllMocks();
+    // ContentBrowser는 마운트 시 window.location.search로 초기 필터를 읽고
+    // 필터 변경 시 history.replaceState로 되쓴다. jsdom은 이 값을 테스트
+    // 사이에 유지하므로 매 테스트 전에 초기화한다.
+    window.history.replaceState(null, "", "/");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("전달받은 콘텐츠 카드를 모두 렌더한다", () => {
@@ -195,12 +204,12 @@ describe("ForYouGrid", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
 
-    // "전체" 탭은 3개 지역을 동시에 조회하므로 size는 20이 아니라
-    // 지역 수만큼 나눈 값(ceil(20/3)=7)이다.
+    // size는 항상 CONTENT_PAGE_SIZE(20)로 넘긴다 — getContents가 지역별로
+    // 쪼개므로("전체" 탭이어도) 한 페이지 합계는 20으로 유지된다.
     expect(mockGetContents).toHaveBeenCalledWith({
       ...defaultQueryParams,
       page: 1,
-      size: 7,
+      size: 20,
     });
     await waitFor(() =>
       expect(screen.getByText("화개장터")).toBeInTheDocument(),

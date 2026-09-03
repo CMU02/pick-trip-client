@@ -19,6 +19,8 @@ interface AuthContextValue {
   user: UserMeResponse | null;
   refresh: () => Promise<string | null>;
   logout: () => Promise<void>;
+  // 회원 탈퇴. 성공(true) 시 로컬 세션이 비워진다. 실패(false) 시 세션은 유지된다.
+  withdraw: () => Promise<boolean>;
   runAuthed: <T>(fn: (token?: string) => Promise<T>) => Promise<T>;
 }
 
@@ -85,6 +87,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // 탈퇴 성공(ok:true)일 때만 로컬 세션을 비운다. 서버가 아직 회원으로
+  // 두는 실패(ok:false)나 요청 자체 실패면 세션을 유지하고 false를 반환한다.
+  const withdraw = async (): Promise<boolean> => {
+    try {
+      const { data } = await apiClient.post<{ ok: boolean }>("/auth/withdraw");
+      if (!data?.ok) {
+        return false;
+      }
+      queryClient.setQueryData<SessionResponse>(SESSION_QUERY_KEY, {
+        accessToken: null,
+        user: null,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   // 인증이 필요한 호출을 실행하고, AUTH_REQUIRED로 실패하면 세션을 갱신해
   // 새 토큰으로 1회만 재시도한다.
   const runAuthed = async <T,>(
@@ -108,7 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // 바뀔 때 value를 재계산하면 최신 상태를 클로저로 참조하므로 이 셋만 의존성에 둔다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: 위 함수들은 최신 상태를 클로저로 캡처한다
   const value = useMemo<AuthContextValue>(
-    () => ({ status, accessToken, user, refresh, logout, runAuthed }),
+    () => ({ status, accessToken, user, refresh, logout, withdraw, runAuthed }),
     [status, accessToken, user],
   );
 

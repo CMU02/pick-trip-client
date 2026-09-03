@@ -12,6 +12,12 @@ import type { Content, ContentsResponse } from "@/types/content";
 
 export { CONTENT_PAGE_SIZE };
 
+// 지역 탭(시드 없는 조건)도 이 시간 동안은 신선한 것으로 간주해, 같은 조건으로
+// 다시 마운트해도(탭 재선택) 즉시 백그라운드 refetch를 걸지 않는다. 콘텐츠
+// 동기화 배치가 주 1회라(docs/plan/content-load-more.md) 넉넉히 잡아도 안전.
+// (docs/plan/contents-list-tanstack-query-cache.md 참고)
+export const CONTENT_LIST_STALE_TIME = 60 * 60 * 1000; // 1시간
+
 export type ContentQueryParams = Omit<GetContentsParams, "page" | "size">;
 
 interface UseLoadMoreContentsParams {
@@ -79,9 +85,10 @@ export function useLoadMoreContents({
           pageParams: [0],
         }
       : undefined,
-    // 시드가 있을 때만 무한대로 둔다 — 시드가 없으면 기본 staleTime(0)이라
-    // 마운트 즉시(첫 fetch로) 데이터를 받아온다.
-    staleTime: hasSeed ? Number.POSITIVE_INFINITY : undefined,
+    // 시드가 있으면(SSR 0페이지) 무한대로 둬 재검증하지 않는다. 시드가 없는
+    // 지역 탭도 최소 CONTENT_LIST_STALE_TIME 동안은 fresh로 간주해, 같은
+    // 탭을 다시 선택할 때마다 매번 백그라운드 refetch가 나가지 않게 한다.
+    staleTime: hasSeed ? Number.POSITIVE_INFINITY : CONTENT_LIST_STALE_TIME,
   });
 
   const pages = query.data?.pages ?? [];

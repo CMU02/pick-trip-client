@@ -15,17 +15,26 @@ import { ItineraryClient } from "./ItineraryClient";
 
 // useSavedItineraries.add/useBasket.clear를 테스트에서 참조하기 위해
 // hoisted mock으로 선언한다.
-const { mockAddSavedItinerary, mockClearBasket, mockSaveBasket } = vi.hoisted(
-  () => ({
-    mockAddSavedItinerary: vi.fn(),
-    mockClearBasket: vi.fn(),
-    mockSaveBasket: vi.fn(),
-  }),
-);
+const {
+  mockAddSavedItinerary,
+  mockClearBasket,
+  mockSaveBasket,
+  mockUseItineraryMapData,
+} = vi.hoisted(() => ({
+  mockAddSavedItinerary: vi.fn(),
+  mockClearBasket: vi.fn(),
+  mockSaveBasket: vi.fn(),
+  mockUseItineraryMapData: vi.fn(),
+}));
 
 vi.mock("@/services/basketService");
 vi.mock("@/services/itineraryService");
 vi.mock("@/services/shareService");
+// 지도 좌표/경로 해석은 별도 훅 테스트에서 검증한다. 기본은 비활성이고,
+// 이동 거리 카드를 검증하는 테스트만 경로가 붙은 결과를 돌려준다.
+vi.mock("@/hooks/useItineraryMapData", () => ({
+  useItineraryMapData: () => mockUseItineraryMapData(),
+}));
 // runAuthed는 fn을 그대로 실행(토큰 없음)해 재시도 없이 최종 결과/에러를 그대로 노출한다.
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
@@ -86,6 +95,7 @@ const mockGenerateResponse: ItineraryGenerateResponse = {
   region: "HADONG",
   travelDate: "2026-08-01",
   duration: 1,
+  adjustments: [],
   days: [
     {
       dayId: "day-1",
@@ -129,6 +139,7 @@ describe("ItineraryClient", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    mockUseItineraryMapData.mockReturnValue({ status: "ready", days: [] });
     // 대부분의 테스트는 reconcile 자체가 아니라 그 이후 흐름을 검증하므로,
     // 서버 바구니가 비어있다고 가정해 기존과 동일하게 로컬 항목이 전부
     // addBasketItem으로 추가되게 한다. reconcile 자체를 검증하는 테스트는
@@ -205,6 +216,68 @@ describe("ItineraryClient", () => {
     expect(mockClearBasket).toHaveBeenCalledTimes(1);
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
+  });
+
+  it("미리보기 사이드바에 Kakao 길찾기 실도로 거리로 '이동 거리 합계' 카드를 표시한다", async () => {
+    mockUseItineraryMapData.mockReturnValue({
+      status: "ready",
+      days: [
+        {
+          dayIndex: 0,
+          points: [
+            { lat: 35.1, lng: 127.7, contentId: "content-1", title: "쌍계사" },
+            {
+              lat: 35.2,
+              lng: 127.8,
+              contentId: "content-2",
+              title: "화개장터",
+            },
+          ],
+          route: {
+            totalDistanceMeters: 18_000,
+            totalDurationSeconds: 1200,
+            segments: [{ distanceMeters: 18_000, durationSeconds: 1200 }],
+            path: [
+              [127.7, 35.1],
+              [127.8, 35.2],
+            ],
+          },
+        },
+      ],
+    });
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(await screen.findByText("이동 거리 합계")).toBeInTheDocument();
+    expect(screen.getByText("18km")).toBeInTheDocument();
   });
 
   it("서버 바구니를 로컬 바구니에 맞춰 정리한다: 로컬에 없는 서버 항목은 지우고, 이미 서버에 있는 항목은 다시 추가하지 않는다", async () => {
@@ -363,6 +436,49 @@ describe("ItineraryClient", () => {
     const summary = screen.getByText("여행 요약").closest("section");
     expect(summary).not.toBeNull();
     expect(within(summary as HTMLElement).getByText("1개")).toBeInTheDocument();
+  });
+
+  it("generate 응답에 adjustments가 있으면 결과 화면에 조정 안내를 노출한다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue({
+      ...mockGenerateResponse,
+      adjustments: ["'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."],
+    });
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(
+      await screen.findByText("AI가 일정을 이렇게 조정했어요"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."),
+    ).toBeInTheDocument();
   });
 
   it("저장 버튼 클릭 시 미리보기 데이터를 SaveItineraryRequest로 변환해 save API를 호출한다", async () => {
@@ -591,7 +707,9 @@ describe("ItineraryClient", () => {
     ).toBeInTheDocument();
     // 로그인 전 결과 화면도 preview와 동일한 여행 요약 카드를 보여준다.
     expect(screen.getByText("여행 요약")).toBeInTheDocument();
+    // 1일차 탭에는 쌍계사, 2일차 탭으로 넘기면 화개장터가 보인다.
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("tab")[1]);
     expect(screen.getByText("화개장터")).toBeInTheDocument();
     expect(screen.queryByText("로그인이 필요합니다.")).not.toBeInTheDocument();
     expect(
@@ -678,6 +796,7 @@ describe("ItineraryClient", () => {
       region: "HADONG",
       travelDate: "2026-08-01",
       duration: 1,
+      adjustments: [],
       days: [
         {
           dayId: "day-1",
@@ -707,7 +826,10 @@ describe("ItineraryClient", () => {
     );
 
     // "일정 생성하기" 버튼을 누르지 않아도 생성 결과가 나온다.
-    expect(await screen.findByText("생성된 일정")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "저장" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(mockGenerateItinerary).toHaveBeenCalled();
   });
 

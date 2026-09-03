@@ -10,13 +10,15 @@ import {
 } from "@/hooks/useLoadMoreContents";
 import {
   CONTENT_PAGE_SIZE,
-  distributePageSize,
+  filterContentsByIds,
   sortContentsByCategory,
 } from "@/lib/content";
 import {
   CATEGORY_LABELS,
+  CONTENT_CATEGORIES,
   type Content,
   type ContentCategory,
+  categoryCountFor,
 } from "@/types/content";
 import { REGION_LABELS, REGIONS, type Region } from "@/types/region";
 
@@ -31,6 +33,40 @@ interface ContentBrowserProps {
   gridClassName: string;
 }
 
+// 마운트 시 한 번만 호출한다. SSR에는 window가 없으므로 빈 필터를 돌려준다
+// (이 컴포넌트는 SSR에서도 렌더되지만, 초기 필터는 클라이언트에서 확정된다).
+function readInitialFilter(): {
+  region: string | null;
+  categories: ContentCategory[];
+  keyword: string;
+  ids: string[];
+} {
+  if (typeof window === "undefined") {
+    return { region: null, categories: [], keyword: "", ids: [] };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const rawCat = params.get("cat");
+  const rawIds = params.get("ids");
+  return {
+    region: params.get("region"),
+    categories: rawCat
+      ? rawCat
+          .split(",")
+          .filter((c): c is ContentCategory =>
+            CONTENT_CATEGORIES.includes(c as ContentCategory),
+          )
+      : [],
+    keyword: params.get("q") ?? "",
+    // 컬렉션(테마 묶음)이 넘겨준 콘텐츠 id 목록. 빈 값·공백은 버린다.
+    ids: rawIds
+      ? rawIds
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [],
+  };
+}
+
 export function ContentBrowser({
   initialContents,
   initialTotal,
@@ -40,11 +76,55 @@ export function ContentBrowser({
 }: ContentBrowserProps) {
   const allowedRegions = REGIONS.filter((r) => queryParams.regions.includes(r));
 
-  const [selectedRegion, setSelectedRegion] = useState<Region | "ALL">("ALL");
+  // 지역 탭·카테고리·검색어를 URL 쿼리(?region=&cat=&q=)에 싣는다. 상세에
+  // 들어갔다 "목록으로"로 돌아오면(뒤로가기) 필터가 그대로 살아나고, 새로고침·
+  // 링크 공유도 된다.
+  //
+  // URL은 마운트 시 딱 한 번 읽어 초기 state를 만들고, 이후로는 state만
+  // 신뢰한다(단방향). next/navigation의 useSearchParams는 쓰지 않는다 — 이
+  // 훅을 쓰면 Suspense 경계가 없을 때 이 클라이언트 트리 전체가 프리렌더에서
+  // 빠지고(CSR 바일아웃), 로드 직후 첫 클릭이 유실되는 문제가 생긴다. 초기값만
+  // 필요하므로 window.location.search를 직접 읽으면 그 문제가 사라진다.
+  const [initialFilter] = useState(readInitialFilter);
+
+  const [selectedRegion, setSelectedRegion] = useState<Region | "ALL">(() =>
+    initialFilter.region &&
+    allowedRegions.includes(initialFilter.region as Region)
+      ? (initialFilter.region as Region)
+      : "ALL",
+  );
   const [selectedCategories, setSelectedCategories] = useState<
     ContentCategory[]
-  >([]);
-  const [keyword, setKeyword] = useState("");
+  >(initialFilter.categories);
+  const [keyword, setKeyword] = useState(initialFilter.keyword);
+  // 컬렉션 링크(/explore?ids=…)로 들어온 콘텐츠 id 목록. 카테고리·검색어와
+  // 같은 성격의 클라이언트 필터다.
+  const [idFilter, setIdFilter] = useState<string[]>(initialFilter.ids);
+
+  // 필터 state → URL. router.replace 대신 history.replaceState를 쓰면 Next가
+  // 서버 컴포넌트를 다시 부르지 않고(재fetch 없음) URL만 갱신한다. 히스토리
+  // 엔트리도 안 쌓인다. 다른 페이지 조건(?regions=&startDate= 등)은
+  // window.location.search를 베이스로 삼아 보존한다.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (selectedRegion === "ALL") params.delete("region");
+    else params.set("region", selectedRegion);
+    if (selectedCategories.length === 0) params.delete("cat");
+    else params.set("cat", selectedCategories.join(","));
+    const kw = keyword.trim();
+    if (kw === "") params.delete("q");
+    else params.set("q", kw);
+    if (idFilter.length === 0) params.delete("ids");
+    else params.set("ids", idFilter.join(","));
+
+    const next = params.toString();
+    if (next === new URLSearchParams(window.location.search).toString()) return;
+    window.history.replaceState(
+      null,
+      "",
+      next ? `?${next}` : window.location.pathname,
+    );
+  }, [selectedRegion, selectedCategories, keyword, idFilter]);
 
   const isInitial = selectedRegion === "ALL";
   const effectiveRegions = isInitial ? allowedRegions : [selectedRegion];
@@ -52,12 +132,8 @@ export function ContentBrowser({
     ...queryParams,
     regions: effectiveRegions,
   };
-  // /api/v1/contents는 지역마다 같은 size로 fan-out 하므로, 여러 지역을
-  // 동시에("전체" 탭) 조회할 때 size를 그대로 두면 한 번에 20개가 아니라
-  // 20개 × 지역 수(예: 60개)가 온다. 지역 수만큼 나눠 요청해 합계가 대략
-  // CONTENT_PAGE_SIZE(20)에 맞게 한다.
-  const fetchPageSize = distributePageSize(effectiveRegions.length);
-
+  // getContents가 size를 지역별로 쪼개 fan-out 하므로, 여러 지역을 동시에
+  // ("전체" 탭) 조회해도 한 페이지 합계가 CONTENT_PAGE_SIZE(20)로 유지된다.
   const {
     contents: loadedContents,
     total,
@@ -67,15 +143,16 @@ export function ContentBrowser({
     errorMessage,
     loadMore,
   } = useLoadMoreContents({
-    queryKey: ["contents", effectiveParams, fetchPageSize],
+    queryKey: ["contents", effectiveParams, CONTENT_PAGE_SIZE],
     queryParams: effectiveParams,
     initialContents: isInitial ? initialContents : undefined,
     initialTotal: isInitial ? initialTotal : undefined,
-    pageSize: fetchPageSize,
+    pageSize: CONTENT_PAGE_SIZE,
   });
 
   const q = keyword.trim().toLowerCase();
-  const hasClientFilter = selectedCategories.length > 0 || q !== "";
+  const hasClientFilter =
+    selectedCategories.length > 0 || q !== "" || idFilter.length > 0;
   const matched = loadedContents.filter((c) => {
     const matchCategory =
       selectedCategories.length === 0 ||
@@ -84,13 +161,18 @@ export function ContentBrowser({
       q === "" ||
       c.name.toLowerCase().includes(q) ||
       c.address.toLowerCase().includes(q);
-    return matchCategory && matchKeyword;
+    const matchIds = idFilter.length === 0 || idFilter.includes(c.id);
+    return matchCategory && matchKeyword && matchIds;
   });
-  // 카테고리를 여러 개 동시에 선택하면(예: 음식+관광지+문화) 원래 로드
-  // 순서(지역·페이지 뒤섞임) 그대로 보여주면 뒤죽박죽으로 보인다. 그럴 때만
+  // id 필터(컬렉션)가 걸리면 그 id 목록 순서를 그대로 따른다. 아니면 카테고리를
+  // 여러 개 동시에 선택했을 때만(예: 음식+관광지+문화) 로드 순서 대신
   // CONTENT_CATEGORIES 선언 순서로 묶어서 보여준다.
   const filtered =
-    selectedCategories.length > 1 ? sortContentsByCategory(matched) : matched;
+    idFilter.length > 0
+      ? filterContentsByIds(matched, idFilter)
+      : selectedCategories.length > 1
+        ? sortContentsByCategory(matched)
+        : matched;
 
   // 카테고리/검색어는 여전히 클라이언트 필터라(백엔드에 category 파라미터가
   // 없음), 서버 페이지 하나에 여러 카테고리가 섞여 온다. 필터가 걸린 채로
@@ -116,17 +198,26 @@ export function ContentBrowser({
   // biome-ignore lint/correctness/useExhaustiveDependencies: 값을 읽지 않고 변경 트리거로만 사용
   useEffect(() => {
     setVisibleCount(CONTENT_PAGE_SIZE);
-  }, [selectedRegion, selectedCategories, keyword]);
+  }, [selectedRegion, selectedCategories, keyword, idFilter]);
 
   const backgroundLoading = hasClientFilter && hasMore;
   const visibleFiltered = hasClientFilter
     ? filtered.slice(0, visibleCount)
     : filtered;
 
+  // 카테고리만 걸렸을 때(검색어 없음)는 백엔드에 category 파라미터가 없어
+  // "이 카테고리 전체 N개"를 실시간으로 셀 수 없다. 대신 지역×카테고리 정적
+  // 실측치(categoryCountFor)를 총계로 쓰고, 화면에 펼쳐 보여준 수를 함께 보여준다.
+  const categoryTotal =
+    selectedCategories.length > 0 && q === ""
+      ? categoryCountFor(selectedCategories, effectiveRegions)
+      : null;
+
   function resetFilters() {
     setSelectedRegion("ALL");
     setSelectedCategories([]);
     setKeyword("");
+    setIdFilter([]);
   }
 
   return (
@@ -145,15 +236,19 @@ export function ContentBrowser({
         total={total}
         loadedCount={loadedContents.length}
         filteredCount={filtered.length}
+        shownCount={visibleFiltered.length}
+        categoryTotal={categoryTotal}
         hasClientFilter={hasClientFilter}
         selectedRegion={selectedRegion}
         selectedCategories={selectedCategories}
         keyword={keyword}
+        idFilterCount={idFilter.length}
         onClearRegion={() => setSelectedRegion("ALL")}
         onClearCategory={(c) =>
           setSelectedCategories(selectedCategories.filter((x) => x !== c))
         }
         onClearKeyword={() => setKeyword("")}
+        onClearIdFilter={() => setIdFilter([])}
         onResetAll={resetFilters}
       />
 
@@ -209,39 +304,53 @@ function ResultHeader({
   total,
   loadedCount,
   filteredCount,
+  shownCount,
+  categoryTotal,
   hasClientFilter,
   selectedRegion,
   selectedCategories,
   keyword,
+  idFilterCount,
   onClearRegion,
   onClearCategory,
   onClearKeyword,
+  onClearIdFilter,
   onResetAll,
 }: {
   total: number;
   loadedCount: number;
   filteredCount: number;
+  shownCount: number;
+  categoryTotal: number | null;
   hasClientFilter: boolean;
   selectedRegion: Region | "ALL";
   selectedCategories: ContentCategory[];
   keyword: string;
+  idFilterCount: number;
   onClearRegion: () => void;
   onClearCategory: (category: ContentCategory) => void;
   onClearKeyword: () => void;
+  onClearIdFilter: () => void;
   onResetAll: () => void;
 }) {
   const hasAnyFilter =
     selectedRegion !== "ALL" ||
     selectedCategories.length > 0 ||
-    keyword.trim() !== "";
+    keyword.trim() !== "" ||
+    idFilterCount > 0;
+
+  const summary =
+    idFilterCount > 0
+      ? `선택한 ${idFilterCount}곳 중 ${shownCount}개 표시 중`
+      : categoryTotal !== null
+        ? `${selectedCategories.map((c) => CATEGORY_LABELS[c]).join("·")} ${categoryTotal}개 중 ${shownCount}개 표시 중`
+        : hasClientFilter
+          ? `불러온 ${loadedCount}개 중 ${filteredCount}개`
+          : `${total}개 결과`;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-bold">
-        {hasClientFilter
-          ? `불러온 ${loadedCount}개 중 ${filteredCount}개`
-          : `${total}개 결과`}
-      </span>
+      <span className="text-sm font-bold">{summary}</span>
 
       {selectedRegion !== "ALL" && (
         <FilterPill
@@ -258,6 +367,9 @@ function ResultHeader({
       ))}
       {keyword.trim() && (
         <FilterPill label={`"${keyword.trim()}"`} onClear={onClearKeyword} />
+      )}
+      {idFilterCount > 0 && (
+        <FilterPill label="테마 선택" onClear={onClearIdFilter} />
       )}
       {hasAnyFilter && (
         <button

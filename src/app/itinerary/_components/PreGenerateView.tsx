@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
 import { formatDuration } from "@/lib/itinerary";
+import { JOURNEY_STEPS } from "@/lib/journey";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
 import { REGION_LABELS, type Region } from "@/types/region";
@@ -165,17 +166,19 @@ export function PreGenerateView({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-1 pb-16">
+    <div className="w-full pb-16">
       <nav className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         <Link href={conditionsHref} className="hover:text-primary">
-          지역 선택
+          {JOURNEY_STEPS[0].label}
         </Link>
         <span aria-hidden="true">›</span>
         <Link href={contentsHref} className="hover:text-primary">
-          콘텐츠 담기
+          {JOURNEY_STEPS[1].label}
         </Link>
         <span aria-hidden="true">›</span>
-        <span className="font-semibold text-foreground">일정 생성</span>
+        <span className="font-semibold text-foreground">
+          {JOURNEY_STEPS[2].label}
+        </span>
       </nav>
 
       {error && (
@@ -192,7 +195,7 @@ export function PreGenerateView({
       <section className="mt-5 flex flex-col gap-6 rounded-[26px] bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] px-[38px] py-[34px] text-white lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <span className="inline-block rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-extrabold tracking-[0.12em] uppercase">
-            STEP 3 · 일정 생성
+            Step {JOURNEY_STEPS[2].n} · {JOURNEY_STEPS[2].label}
           </span>
           <h1 className="mt-3.5 text-[36px] leading-[1.22] font-extrabold tracking-[-0.045em]">
             담은 콘텐츠로
@@ -205,7 +208,7 @@ export function PreGenerateView({
           </p>
         </div>
 
-        <dl className="grid w-full shrink-0 grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/16 lg:w-[330px]">
+        <dl className="grid w-full shrink-0 grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/16 lg:w-[360px]">
           {[
             { value: items.length, unit: "개", label: "담은 콘텐츠" },
             { value: dayCount, unit: "일", label: "여행 기간" },
@@ -232,7 +235,7 @@ export function PreGenerateView({
       </section>
 
       {/* 2열 그리드 */}
-      <div className="mt-6 grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[1fr_340px]">
+      <div className="mt-6 grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-5">
           {/* 2. 여행 조건 */}
           <section className="rounded-[22px] border border-border bg-white p-6">

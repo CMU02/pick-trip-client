@@ -5,18 +5,19 @@ import { describe, expect, it, vi } from "vitest";
 import { QuickCategoryRow } from "./QuickCategoryRow";
 
 describe("QuickCategoryRow", () => {
-  it("문화/음식/관광지/자연/체험/전체 6개 타일과 정적 개수를 보여준다", () => {
+  it("음식/관광지/문화/자연/체험/전체 6개 타일을 CONTENT_CATEGORY_ORDER 순서로 보여준다", () => {
     render(<QuickCategoryRow selected="ALL" onSelect={vi.fn()} />);
 
-    for (const label of ["문화", "음식", "관광지", "자연", "체험", "전체"]) {
-      expect(screen.getByText(label)).toBeInTheDocument();
-    }
-    expect(screen.getByText("77곳")).toBeInTheDocument();
-    expect(screen.getByText("53곳")).toBeInTheDocument();
-    expect(screen.getByText("27곳")).toBeInTheDocument();
-    // 자연·체험이 둘 다 33곳이라 같은 라벨이 두 번 나온다.
-    expect(screen.getAllByText("33곳")).toHaveLength(2);
-    expect(screen.getByText("222곳")).toBeInTheDocument();
+    const labels = screen
+      .getAllByRole("button")
+      .map((b) => b.querySelector("span > span")?.textContent);
+    expect(labels).toEqual(["음식", "관광지", "문화", "자연", "체험", "전체"]);
+    expect(screen.getByText("112곳")).toBeInTheDocument();
+    expect(screen.getByText("68곳")).toBeInTheDocument();
+    expect(screen.getByText("117곳")).toBeInTheDocument();
+    expect(screen.getByText("50곳")).toBeInTheDocument();
+    expect(screen.getByText("57곳")).toBeInTheDocument();
+    expect(screen.getByText("413곳")).toBeInTheDocument();
   });
 
   it("타일을 클릭하면 onSelect를 호출한다", async () => {

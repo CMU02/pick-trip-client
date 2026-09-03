@@ -44,6 +44,58 @@ describe("PlaceItem", () => {
     expect(screen.getByText("고정")).toBeInTheDocument();
   });
 
+  it("startTime·endTime이 둘 다 있으면 머무는 시간을 표시한다", () => {
+    render(
+      <PlaceItem item={makeItem({ startTime: "09:30", endTime: "11:00" })} />,
+    );
+
+    expect(screen.getByText("09:30")).toBeInTheDocument();
+    expect(screen.getByText("11:00")).toBeInTheDocument();
+    expect(screen.getByText("머무는 시간 1시간 30분")).toBeInTheDocument();
+  });
+
+  it("방문 시각이 한쪽만 있으면 머무는 시간을 표시하지 않는다", () => {
+    const { rerender } = render(
+      <PlaceItem item={makeItem({ startTime: "09:30", endTime: null })} />,
+    );
+    expect(screen.getByText("09:30")).toBeInTheDocument();
+    expect(screen.queryByText(/머무는 시간/)).not.toBeInTheDocument();
+
+    rerender(<PlaceItem item={makeItem({ startTime: null, endTime: null })} />);
+    expect(screen.queryByText(/머무는 시간/)).not.toBeInTheDocument();
+  });
+
+  it("방문 시각이 없어도 시각 열 placeholder를 유지한다", () => {
+    render(<PlaceItem item={makeItem({ startTime: null, endTime: null })} />);
+
+    // 시각이 없을 때도 타임라인 정렬을 위해 · placeholder를 둔다.
+    expect(screen.getByText("·")).toBeInTheDocument();
+  });
+
+  it("notes가 있으면 경고 문구를 모두 렌더한다", () => {
+    render(
+      <PlaceItem
+        item={makeItem({
+          notes: [
+            "개장 전 도착이라 09:30까지 대기가 필요합니다.",
+            "방문 예정일이 휴무일입니다.",
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText("개장 전 도착이라 09:30까지 대기가 필요합니다."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("방문 예정일이 휴무일입니다.")).toBeInTheDocument();
+  });
+
+  it("notes가 없으면 경고 목록을 렌더하지 않는다", () => {
+    render(<PlaceItem item={makeItem({ notes: [] })} />);
+
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
   it("isFirst=true이면 위로 이동 버튼이 비활성화된다", () => {
     render(
       <PlaceItem

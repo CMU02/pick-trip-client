@@ -4,11 +4,13 @@ import { ApiError } from "@/lib/errors";
 import type { Content } from "@/types/content";
 
 import {
-  distributePageSize,
+  filterContentsByIds,
   getContentFetchErrorMessage,
   groupContentsByCategory,
   mergeUniqueContents,
   sortContentsByCategory,
+  splitBrLines,
+  splitPageSizeAcrossRegions,
 } from "./content";
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
@@ -28,7 +30,7 @@ describe("groupContentsByCategory", () => {
     expect(groupContentsByCategory([])).toEqual([]);
   });
 
-  it("CONTENT_CATEGORIES 선언 순서대로 그룹을 반환한다", () => {
+  it("CONTENT_CATEGORY_ORDER대로 그룹을 반환한다", () => {
     const contents = [
       makeContent({ id: "1", category: "CULTURE" }),
       makeContent({ id: "2", category: "FOOD" }),
@@ -81,27 +83,85 @@ describe("mergeUniqueContents", () => {
   });
 });
 
-describe("distributePageSize", () => {
+describe("filterContentsByIds", () => {
+  it("ids가 비면 원본을 그대로 돌려준다", () => {
+    const contents = [makeContent({ id: "1" }), makeContent({ id: "2" })];
+
+    expect(filterContentsByIds(contents, [])).toEqual(contents);
+  });
+
+  it("id 목록에 속한 콘텐츠만 남긴다", () => {
+    const contents = [
+      makeContent({ id: "1" }),
+      makeContent({ id: "2" }),
+      makeContent({ id: "3" }),
+    ];
+
+    const result = filterContentsByIds(contents, ["1", "3"]);
+
+    expect(result.map((c) => c.id)).toEqual(["1", "3"]);
+  });
+
+  it("id 목록의 순서를 따른다", () => {
+    const contents = [
+      makeContent({ id: "1" }),
+      makeContent({ id: "2" }),
+      makeContent({ id: "3" }),
+    ];
+
+    const result = filterContentsByIds(contents, ["3", "1", "2"]);
+
+    expect(result.map((c) => c.id)).toEqual(["3", "1", "2"]);
+  });
+
+  it("목록에 없는 id는 조용히 건너뛴다", () => {
+    const contents = [makeContent({ id: "1" })];
+
+    expect(
+      filterContentsByIds(contents, ["1", "999"]).map((c) => c.id),
+    ).toEqual(["1"]);
+  });
+});
+
+describe("splitPageSizeAcrossRegions", () => {
   it("지역이 1개면 페이지 크기를 그대로 준다", () => {
-    expect(distributePageSize(1, 20)).toBe(20);
+    expect(splitPageSizeAcrossRegions(20, 1)).toEqual([20]);
   });
 
-  it("지역이 여러 개면 나눠서 준다(합쳐서 대략 페이지 크기가 되도록)", () => {
-    expect(distributePageSize(3, 20)).toBe(7);
-    expect(distributePageSize(2, 20)).toBe(10);
+  it("나눠떨어지지 않으면 나머지를 앞 지역부터 1씩 더해 합계를 정확히 맞춘다", () => {
+    expect(splitPageSizeAcrossRegions(20, 3)).toEqual([7, 7, 6]);
+    expect(splitPageSizeAcrossRegions(20, 2)).toEqual([10, 10]);
+    expect(splitPageSizeAcrossRegions(10, 3)).toEqual([4, 3, 3]);
   });
 
-  it("결과가 0 이하로 내려가지 않는다", () => {
-    expect(distributePageSize(100, 20)).toBe(1);
+  it("각 지역 몫이 0으로 내려가지 않는다", () => {
+    expect(splitPageSizeAcrossRegions(2, 3)).toEqual([1, 1, 1]);
   });
 
-  it("지역 수가 0이어도 나누기 오류 없이 안전하게 처리한다", () => {
-    expect(distributePageSize(0, 20)).toBe(20);
+  it("지역 수가 0이면 빈 배열을 반환한다", () => {
+    expect(splitPageSizeAcrossRegions(20, 0)).toEqual([]);
+  });
+});
+
+describe("splitBrLines", () => {
+  it("<br> 태그로 나누고 공백/빈 줄을 정리한다", () => {
+    expect(splitBrLines("평일 09:00~18:00<br>주말 10:00~17:00")).toEqual([
+      "평일 09:00~18:00",
+      "주말 10:00~17:00",
+    ]);
+    expect(splitBrLines("가능 <br/> 요금 (무료)")).toEqual([
+      "가능",
+      "요금 (무료)",
+    ]);
+  });
+
+  it("<br>가 없으면 한 줄 그대로", () => {
+    expect(splitBrLines("연중무휴")).toEqual(["연중무휴"]);
   });
 });
 
 describe("sortContentsByCategory", () => {
-  it("CONTENT_CATEGORIES 선언 순서로 정렬한다", () => {
+  it("CONTENT_CATEGORY_ORDER대로 정렬한다", () => {
     const contents = [
       makeContent({ id: "1", category: "NATURE" }),
       makeContent({ id: "2", category: "FOOD" }),

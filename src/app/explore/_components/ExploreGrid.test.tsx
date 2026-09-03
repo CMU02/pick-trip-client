@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/services/contentService", () => ({
   getContents: vi.fn(),
@@ -62,6 +62,15 @@ function renderExploreGrid({
 describe("ExploreGrid", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // ContentBrowser는 마운트 시 window.location.search로 초기 필터를 읽고
+    // 필터 변경 시 history.replaceState로 되쓴다. jsdom은 이 값을 테스트
+    // 사이에 유지하므로 매 테스트 전에 초기화한다.
+    window.history.replaceState(null, "", "/");
+  });
+
+  afterEach(() => {
+    // history.replaceState를 spy한 테스트가 원본을 되돌리도록.
+    vi.restoreAllMocks();
   });
 
   it("전달받은 콘텐츠 카드를 모두 렌더한다", () => {
@@ -182,13 +191,12 @@ describe("ExploreGrid", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /더보기/ }));
 
-    // "전체" 탭은 3개 지역을 동시에 조회하므로, size는 20이 아니라
-    // 지역 수만큼 나눈 값(ceil(20/3)=7)이다 — 안 그러면 한 번에
-    // 20개가 아니라 60개(20×3)가 늘어난다.
+    // size는 항상 CONTENT_PAGE_SIZE(20)로 넘긴다 — getContents가 지역별로
+    // 쪼개므로("전체" 탭이어도) 한 페이지 합계는 20으로 유지된다.
     expect(mockGetContents).toHaveBeenCalledWith({
       ...defaultQueryParams,
       page: 1,
-      size: 7,
+      size: 20,
     });
     await waitFor(() =>
       expect(screen.getByText("화개장터")).toBeInTheDocument(),
@@ -229,7 +237,7 @@ describe("ExploreGrid", () => {
       expect(mockGetContents).toHaveBeenCalledWith({
         ...defaultQueryParams,
         page: 1,
-        size: 7,
+        size: 20,
       }),
     );
 
@@ -242,6 +250,54 @@ describe("ExploreGrid", () => {
     expect(screen.getByText("재첩국3")).toBeInTheDocument();
     expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
     expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+
+    // 결과 헤더는 카테고리 정적 총계(음식 전 지역 112개)와 화면에 보여준 수를 함께 보여준다.
+    await waitFor(() =>
+      expect(screen.getByText("음식 112개 중 3개 표시 중")).toBeInTheDocument(),
+    );
+  });
+
+  it("URL의 ?cat= 로 진입하면 그 카테고리 필터가 적용된 채로 뜬다", () => {
+    window.history.replaceState(null, "", "?cat=FOOD");
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "재첩국", category: "FOOD" }),
+        makeContent({ id: "2", name: "쌍계사", category: "CULTURE" }),
+      ],
+      initialTotal: 2,
+    });
+
+    expect(screen.getByText("재첩국")).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "음식" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("카테고리를 고르면 URL 쿼리(?cat=)에 반영한다", async () => {
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1", category: "CULTURE" })],
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "문화" }));
+
+    expect(replaceState).toHaveBeenCalledWith(null, "", "?cat=CULTURE");
+  });
+
+  it("검색어가 있으면 정적 총계 대신 기존 '불러온 N개 중 M개' 문구를 쓴다", async () => {
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "재첩국", category: "FOOD" }),
+        makeContent({ id: "2", name: "쌍계사", category: "CULTURE" }),
+      ],
+      initialTotal: 2,
+    });
+
+    await userEvent.type(screen.getByRole("searchbox"), "재첩");
+
+    expect(screen.getByText("불러온 2개 중 1개")).toBeInTheDocument();
   });
 
   it("필터링된 개수가 한 페이지 분량을 넘으면 더보기가 그 개수만큼만 늘고 중복 없이 끝난다", async () => {
@@ -286,6 +342,60 @@ describe("ExploreGrid", () => {
     );
     // 새로 펼쳐진 뒤에도 중복 없이 정확히 22장만 보인다.
     expect(screen.getAllByText(/^재첩국\d+$/)).toHaveLength(22);
+  });
+
+  it("URL의 ?ids= 로 진입하면 그 콘텐츠만 id 목록 순서대로 표시한다", () => {
+    window.history.replaceState(null, "", "?ids=3,1");
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "쌍계사" }),
+        makeContent({ id: "2", name: "화개장터" }),
+        makeContent({ id: "3", name: "최참판댁" }),
+      ],
+      initialTotal: 3,
+    });
+
+    const names = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(names).toEqual(["최참판댁", "쌍계사"]);
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    expect(screen.getByText("선택한 2곳 중 2개 표시 중")).toBeInTheDocument();
+  });
+
+  it("?ids= 진입 후 '테마 선택' 해제 pill을 누르면 전체가 다시 보인다", async () => {
+    window.history.replaceState(null, "", "?ids=1");
+    renderExploreGrid({
+      initialContents: [
+        makeContent({ id: "1", name: "쌍계사" }),
+        makeContent({ id: "2", name: "화개장터" }),
+      ],
+      initialTotal: 2,
+    });
+
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "테마 선택 해제" }),
+    );
+
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
+    expect(screen.getByText("화개장터")).toBeInTheDocument();
+  });
+
+  it("?ids= 필터를 해제하면 URL 쿼리에서도 ids가 빠진다", async () => {
+    window.history.replaceState(null, "", "?ids=1");
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    renderExploreGrid({
+      initialContents: [makeContent({ id: "1", name: "쌍계사" })],
+      initialTotal: 1,
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "테마 선택 해제" }),
+    );
+
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/");
   });
 
   it("카테고리를 여러 개 선택하면 로드 순서와 무관하게 카테고리 선언 순서로 묶여서 보인다", async () => {

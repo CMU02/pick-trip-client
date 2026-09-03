@@ -6,11 +6,23 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useItineraryEditor } from "@/hooks/useItineraryEditor";
+import { useItineraryMapData } from "@/hooks/useItineraryMapData";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
+import {
+  formatDistanceKm,
+  formatDuration,
+  formatTravelMinutes,
+  hasEmptyDay,
+  sumDayTravel,
+  toSaveDays,
+} from "@/lib/itinerary";
+import { toSnapshot } from "@/lib/itineraryMapSnapshot";
+import { JOURNEY_STEPS } from "@/lib/journey";
 import {
   addBasketItem,
   getBasket,
@@ -18,79 +30,163 @@ import {
   updateBasketConditions,
 } from "@/services/basketService";
 import { generateItinerary, saveItinerary } from "@/services/itineraryService";
+import { useItineraryMapSnapshotStore } from "@/stores/itineraryMapSnapshotStore";
 import type { BasketItem } from "@/types/basket";
 import { BASKET_PRIORITY_TO_SERVER } from "@/types/basket";
 import type {
+  Day,
   ItineraryGenerateResponse,
   ItineraryResponse,
   SaveItineraryRequest,
 } from "@/types/itinerary";
+import type { ItineraryMapData } from "@/types/map";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
   COMPANION_CONDITION_TO_SERVER,
   type CompanionCondition,
 } from "@/types/travel-condition";
+import { AdjustmentsNotice } from "./AdjustmentsNotice";
+import { DayMapPanel } from "./DayMapPanel";
+import { DayTabs } from "./DayTabs";
 import { GeneratingState } from "./GeneratingState";
 import { ItineraryResult } from "./ItineraryResult";
 import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
+import { TripDistanceCard } from "./TripDistanceCard";
 import { TripSummary } from "./TripSummary";
 
-function formatDuration(nights: number) {
-  return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
+// useItineraryMapData 를 조건부로 부를 수 없어(hooks 규칙), 지도 대상이 아닌
+// 단계에서 넘길 안정된 빈 배열.
+const EMPTY_DAYS: Day[] = [];
+
+// 여행 요약(travelDate·장소 수·이동 합계)을 한 줄로 압축한 결과 헤더 메타.
+// 이동 합계는 실도로 route 합계 우선, 없으면 백엔드 스케줄러 값 폴백.
+function headerMeta(
+  travelDate: string,
+  days: Day[],
+  mapData: ItineraryMapData,
+): string {
+  const [, month, day] = travelDate.split("-");
+  const dateText =
+    month && day ? `${Number(month)}월 ${Number(day)}일 출발` : null;
+  const totalPlaces = days.reduce((sum, d) => sum + d.items.length, 0);
+
+  const routeDays = mapData.days.filter((d) => d.route);
+  const fallback = sumDayTravel(days);
+  const totalMin =
+    routeDays.length > 0
+      ? routeDays.reduce(
+          (s, d) => s + Math.round((d.route?.totalDurationSeconds ?? 0) / 60),
+          0,
+        )
+      : fallback.totalMinutes;
+  const totalKm =
+    routeDays.length > 0
+      ? routeDays.reduce(
+          (s, d) => s + (d.route?.totalDistanceMeters ?? 0) / 1000,
+          0,
+        )
+      : fallback.totalKm;
+  const travelMin = formatTravelMinutes(totalMin);
+
+  return [
+    dateText,
+    totalPlaces > 0 ? `장소 ${totalPlaces}곳` : null,
+    travelMin ? `차량 이동 ${travelMin}` : null,
+    formatDistanceKm(totalKm),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
-// 핸드오프 스펙(9번 "일정 결과")의 "STEP 4 · 일정 완성" 헤더 +
-// 1fr/320px 레이아웃(일차 카드 | 여행 요약 사이드바)을 감싸는 래퍼.
-// (Step 1 조건 → Step 2 콘텐츠 담기 → Step 3 일정 생성(PreGenerateView) → Step 4 완성)
-// "이동 거리 합계" 카드는 서버가 이동 거리 데이터를 내려주지 않아 뺐다
-// (핸드오프 README도 데이터 없으면 빼도 된다고 명시).
+// 결과 헤더 + 일차 타임라인(좌) / 고정 지도 + 요약 사이드바(우) 레이아웃 래퍼.
+// 일차 선택 상태는 여기서 소유하고, 왼쪽(children)과 오른쪽 사이드바 지도가
+// 같은 일차를 보게 한다. children은 (선택 인덱스, 선택 핸들러)를 받는 렌더 함수.
 function ItineraryResultLayout({
   region,
   duration,
+  travelDate,
+  days,
+  mapData,
   actions,
+  banner,
   children,
   sidebar,
 }: {
   region: Region;
   duration: number;
+  travelDate: string;
+  days: Day[];
+  mapData: ItineraryMapData;
   actions: ReactNode;
-  children: ReactNode;
+  // 제목/액션 행과 2열 그리드 사이에 전체 폭으로 렌더하는 안내(조정 내역, 오류,
+  // "예시"·"저장됨" 배너 등). 그리드 위에 두어야 왼쪽 타임라인과 오른쪽 지도의
+  // 상단선이 어긋나지 않는다.
+  banner?: ReactNode;
+  children: (
+    selectedDayIndex: number,
+    onSelectDay: (index: number) => void,
+  ) => ReactNode;
   sidebar: ReactNode;
 }) {
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const safeIndex =
+    days.length === 0
+      ? 0
+      : Math.min(Math.max(selectedDayIndex, 0), days.length - 1);
+  const meta = headerMeta(travelDate, days, mapData);
+  const mapDaysByIndex = new Map(mapData.days.map((d) => [d.dayIndex, d]));
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-extrabold tracking-widest text-primary/70 uppercase">
-            Step 4 · 일정 완성
+          <p className="inline-flex items-center gap-1 text-xs font-extrabold tracking-widest text-primary uppercase">
+            <Icon name="check" size={13} />
+            {JOURNEY_STEPS[2].label} 완료
           </p>
           <h1 className="mt-2.5 text-[32px] font-extrabold tracking-tight">
             {REGION_LABELS[region]} {formatDuration(duration)} 일정
           </h1>
+          {meta && (
+            <p className="mt-1.5 text-[13px] text-muted-foreground">{meta}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">{actions}</div>
       </div>
 
-      {/* items-start를 빼면(기본값 stretch) 사이드바 칼럼 자체가 일차 카드
-          목록과 같은 높이(그리드 행 높이)로 늘어난다. sticky는 그 안쪽의
-          별도 wrapper에 걸어서, 늘어난 칼럼 높이 안에서만 스크롤을 따라다니고
-          칼럼 바닥(=일정 목록 하단)을 넘어가면 자연히 멈춘다 — "최소 높이는
-          일정 목록에 맞추되 sticky 동작은 유지" 요청에 맞춘 구조. */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="flex flex-col gap-4">{children}</div>
-        <div>
-          {/* 왼쪽 컬럼은 ItineraryResult의 "생성된 일정" 제목(text-lg =
-              line-height 1.75rem = h-7) + mt-4 뒤에 일차 카드가 온다. 오른쪽
-              여행 요약 카드가 그 일차 카드와 같은 y에서 시작하도록 동일한
-              높이(h-7 + mt-4)를 비워둔다. 폰트 렌더링에 의존하지 않도록
-              텍스트 대신 고정 높이 스페이서를 쓴다. sticky 박스 밖에 둬서,
-              스크롤로 고정될 때는 이 여백 없이 top-[86px]에 바로 붙는다. */}
-          <div aria-hidden="true" className="hidden h-7 lg:block" />
-          <div className="flex flex-col gap-3.5 lg:mt-4 lg:sticky lg:top-[86px]">
+      {banner && <div className="mt-5 space-y-3">{banner}</div>}
+
+      {/* 오른쪽 칼럼은 self-stretch로 왼쪽 타임라인 높이만큼 늘어나고, sticky는
+          그 안쪽 wrapper에 걸어 칼럼 바닥을 넘지 않게 한다. 상단 스페이서는
+          왼쪽 pre-card 블록(일차 탭 행 + 카드 mt-4)을 그대로 미러링해, 탭 유무·
+          다일/당일 여부와 무관하게 지도 상단이 1일차 카드 상단과 같은 y에서
+          시작하게 한다. */}
+      <div className="mt-6 grid grid-cols-1 gap-6.5 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="min-w-0">
+          {children(safeIndex, setSelectedDayIndex)}
+        </div>
+        <aside className="self-stretch">
+          <div aria-hidden="true" className="hidden lg:block">
+            <div className="invisible flex min-h-[45px] flex-wrap items-center gap-3">
+              <DayTabs
+                days={days}
+                mapDaysByIndex={mapDaysByIndex}
+                selectedIndex={safeIndex}
+                onSelect={setSelectedDayIndex}
+              />
+            </div>
+            <div className="h-4" />
+          </div>
+          <div className="flex flex-col gap-3.5 lg:sticky lg:top-[86px]">
+            <DayMapPanel
+              days={days}
+              mapData={mapData}
+              selectedDayIndex={safeIndex}
+            />
             {sidebar}
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );
@@ -143,6 +239,8 @@ function buildLoginPreviewItinerary(
     travelDate: startDate,
     duration: nights,
     days,
+    // 로컬에서 만든 가짜 데이터라 스케줄러 조정 내역이 없다.
+    adjustments: [],
   };
 }
 
@@ -156,64 +254,79 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
     initialDays: data.days,
   });
 
+  const mapData = useItineraryMapData(editor.days);
+  const departureTime = editor.days[0]?.items[0]?.startTime ?? null;
+
   return (
     <ItineraryResultLayout
       region={data.region}
       duration={data.duration}
+      travelDate={data.travelDate}
+      days={editor.days}
+      mapData={mapData}
       actions={
         <ShareButton
           itineraryId={data.itineraryId}
           linkBoxClassName="w-full sm:w-[28rem]"
         />
       }
+      banner={
+        <p className="text-sm font-semibold text-primary">
+          일정이 저장되었습니다.
+        </p>
+      }
       sidebar={
-        <section className="rounded-[20px] border border-border bg-card p-5.5">
-          <h2 className="text-[17px] font-bold tracking-tight text-foreground">
-            여행 요약
-          </h2>
-          <dl className="mt-4 flex flex-col gap-2.5 text-[13.5px]">
-            <div className="flex items-start justify-between gap-3">
-              <dt className="text-muted-foreground">지역</dt>
-              <dd className="text-right font-bold text-foreground">
-                {REGION_LABELS[data.region]}
-              </dd>
-            </div>
-            <div className="flex items-start justify-between gap-3">
-              <dt className="text-muted-foreground">기간</dt>
-              <dd className="text-right font-bold text-foreground">
-                {formatDuration(data.duration)}
-              </dd>
-            </div>
-            <div className="flex items-start justify-between gap-3">
-              <dt className="text-muted-foreground">담은 콘텐츠</dt>
-              <dd className="text-right font-bold text-foreground">
-                {editor.days.reduce((sum, day) => sum + day.items.length, 0)}개
-              </dd>
-            </div>
-          </dl>
-        </section>
+        <>
+          <TripSummary
+            regions={[data.region]}
+            startDate={data.travelDate}
+            nights={data.duration}
+            companions={[]}
+            items={[]}
+            showItemList={false}
+            itemCount={editor.days.reduce(
+              (sum, day) => sum + day.items.length,
+              0,
+            )}
+            days={editor.days}
+            // 편집 중이면 서버가 계산한 이동값이 어긋나므로 숫자 대신 안내를 둔다.
+            travelSummary={editor.isDirty ? null : sumDayTravel(editor.days)}
+            departureTime={departureTime}
+          />
+          {editor.isDirty && (
+            <p className="px-1 text-[12.5px] text-muted-foreground">
+              일정을 바꿔 이동 시간을 다시 계산해야 해요
+            </p>
+          )}
+        </>
       }
     >
-      <p className="text-sm font-semibold text-primary">
-        일정이 저장되었습니다.
-      </p>
-      <ItineraryResult
-        data={data}
-        editor={{
-          region: data.region,
-          travelDate: data.travelDate,
-          duration: data.duration,
-          days: editor.days,
-          isDirty: editor.isDirty,
-          isSaving: editor.isSaving,
-          saveError: editor.saveError,
-          onMoveItem: editor.moveItem,
-          onRemoveItem: editor.removeItem,
-          onTogglePinned: editor.togglePinned,
-          onReplaceItem: editor.replaceItem,
-          onSave: editor.save,
-        }}
-      />
+      {(selectedDayIndex, onSelectDay) => (
+        <>
+          <ItineraryResult
+            data={data}
+            mapData={mapData}
+            selectedDayIndex={selectedDayIndex}
+            onSelectDay={onSelectDay}
+            hideMap
+            hideAdjustments
+            editor={{
+              region: data.region,
+              travelDate: data.travelDate,
+              duration: data.duration,
+              days: editor.days,
+              isDirty: editor.isDirty,
+              isSaving: editor.isSaving,
+              saveError: editor.saveError,
+              onMoveItem: editor.moveItem,
+              onRemoveItem: editor.removeItem,
+              onTogglePinned: editor.togglePinned,
+              onReplaceItem: editor.replaceItem,
+              onSave: editor.save,
+            }}
+          />
+        </>
+      )}
     </ItineraryResultLayout>
   );
 }
@@ -239,7 +352,18 @@ export function ItineraryClient({
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
   const { items, clear: clearBasket, save: saveBasket } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
+  const setMapSnapshot = useItineraryMapSnapshotStore((s) => s.set);
   const { runAuthed } = useAuth();
+
+  // 미리보기 단계의 일정으로 지도 데이터(좌표·경로)를 해석한다. 결과 화면에
+  // 넘겨 지도를 그리고, 저장 시 그 시점 상태를 스냅샷으로 남긴다.
+  const previewDays: Day[] =
+    phase.status === "preview" ||
+    phase.status === "saving" ||
+    phase.status === "loginPreview"
+      ? phase.data.days
+      : EMPTY_DAYS;
+  const mapData = useItineraryMapData(previewDays);
 
   // 로그인 전 미리보기로 전환하며 비운 바구니의 스냅샷. "로그인하고 계속하기"나
   // "다시 생성"으로 흐름을 이어갈 때만 복원하고, 그냥 페이지를 벗어나면
@@ -372,6 +496,8 @@ export function ItineraryClient({
   function handleSave(title: string) {
     if (phase.status !== "preview") return;
     const previewData = phase.data;
+    // 장소가 없는 날이 있으면 백엔드가 저장을 거부한다(저장 버튼도 이미 막혀 있음).
+    if (hasEmptyDay(previewData.days)) return;
 
     setPhase({ status: "saving", data: previewData });
 
@@ -380,16 +506,7 @@ export function ItineraryClient({
       region: previewData.region,
       travelDate: previewData.travelDate,
       duration: previewData.duration,
-      days: previewData.days.map((day) => ({
-        dayIndex: day.dayIndex,
-        items: day.items.map((item) => ({
-          contentId: item.contentId,
-          title: item.title,
-          order: item.order,
-          reason: item.reason,
-          pinned: item.pinned ?? false,
-        })),
-      })),
+      days: toSaveDays(previewData.days),
     };
 
     saveMutation.mutate(request, {
@@ -402,6 +519,10 @@ export function ItineraryClient({
           duration: saved.duration,
           savedAt: Date.now(),
         });
+        // 저장 시점 지도 상태(좌표·경로)를 스냅샷으로 남긴다 — 저장한 일정을
+        // 다시 볼 때 재조회 없이 지도를 그린다. 아직 해석 중이던 날은 스냅샷에서
+        // 빠지고 조회 시 라이브 폴백된다.
+        setMapSnapshot(saved.itineraryId, toSnapshot(mapData));
         setTitleDraft(null);
         setPhase({ status: "saved", data: saved });
       },
@@ -429,6 +550,9 @@ export function ItineraryClient({
       <ItineraryResultLayout
         region={phase.data.region}
         duration={phase.data.duration}
+        travelDate={phase.data.travelDate}
+        days={phase.data.days}
+        mapData={mapData}
         actions={
           <>
             <Button asChild>
@@ -449,38 +573,59 @@ export function ItineraryClient({
             </Button>
           </>
         }
+        banner={
+          <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
+            이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로 저장할
+            수 있어요.
+          </p>
+        }
         sidebar={
-          <TripSummary
-            regions={parsedRegions}
-            startDate={startDate}
-            nights={parsedNights}
-            companions={parsedCompanions}
-            items={preLoginBasketRef.current}
-            showItemList={false}
-            itemCount={previewItemCount}
-          />
+          <>
+            <TripSummary
+              regions={parsedRegions}
+              startDate={startDate}
+              nights={parsedNights}
+              companions={parsedCompanions}
+              items={preLoginBasketRef.current}
+              showItemList={false}
+              itemCount={previewItemCount}
+              days={phase.data.days}
+              travelSummary={null}
+              departureTime={phase.data.days[0]?.items[0]?.startTime ?? null}
+            />
+            <TripDistanceCard mapDays={mapData.days} />
+          </>
         }
       >
-        <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
-          이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로 저장할 수
-          있어요.
-        </p>
-        <ItineraryResult data={phase.data} />
+        {(selectedDayIndex, onSelectDay) => (
+          <ItineraryResult
+            data={phase.data}
+            mapData={mapData}
+            selectedDayIndex={selectedDayIndex}
+            onSelectDay={onSelectDay}
+            hideMap
+            hideAdjustments
+          />
+        )}
       </ItineraryResultLayout>
     );
   }
 
   if (phase.status === "preview" || phase.status === "saving") {
     const isSaving = phase.status === "saving";
+    const blockedByEmptyDay = hasEmptyDay(phase.data.days);
     return (
       <ItineraryResultLayout
         region={phase.data.region}
         duration={phase.data.duration}
+        travelDate={phase.data.travelDate}
+        days={phase.data.days}
+        mapData={mapData}
         actions={
           titleDraft === null ? (
             <>
               <Button
-                disabled={isSaving}
+                disabled={isSaving || blockedByEmptyDay}
                 onClick={() => setTitleDraft(phase.data.title)}
               >
                 저장
@@ -530,30 +675,56 @@ export function ItineraryClient({
             </form>
           )
         }
-        sidebar={
-          <TripSummary
-            regions={parsedRegions}
-            startDate={startDate}
-            nights={parsedNights}
-            companions={parsedCompanions}
-            items={items}
-            showItemList={false}
-            // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
-            // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
-            itemCount={phase.data.days.reduce(
-              (sum, day) => sum + day.items.length,
-              0,
+        banner={
+          <>
+            <AdjustmentsNotice adjustments={phase.data.adjustments} />
+            {phase.status === "preview" && phase.error && (
+              <p className="text-sm text-destructive">
+                {phase.error.message}
+                {phase.error.traceId && ` (참고: ${phase.error.traceId})`}
+              </p>
             )}
-          />
+            {blockedByEmptyDay && (
+              <p className="text-sm text-muted-foreground">
+                장소가 없는 날이 있어 저장할 수 없어요. 기간을 줄이거나 다시
+                생성해보세요.
+              </p>
+            )}
+          </>
+        }
+        sidebar={
+          <>
+            <TripSummary
+              regions={parsedRegions}
+              startDate={startDate}
+              nights={parsedNights}
+              companions={parsedCompanions}
+              items={items}
+              showItemList={false}
+              // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
+              // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
+              itemCount={phase.data.days.reduce(
+                (sum, day) => sum + day.items.length,
+                0,
+              )}
+              days={phase.data.days}
+              travelSummary={sumDayTravel(phase.data.days)}
+              departureTime={phase.data.days[0]?.items[0]?.startTime ?? null}
+            />
+            <TripDistanceCard mapDays={mapData.days} />
+          </>
         }
       >
-        {phase.status === "preview" && phase.error && (
-          <p className="text-sm text-destructive">
-            {phase.error.message}
-            {phase.error.traceId && ` (참고: ${phase.error.traceId})`}
-          </p>
+        {(selectedDayIndex, onSelectDay) => (
+          <ItineraryResult
+            data={phase.data}
+            mapData={mapData}
+            selectedDayIndex={selectedDayIndex}
+            onSelectDay={onSelectDay}
+            hideMap
+            hideAdjustments
+          />
         )}
-        <ItineraryResult data={phase.data} />
       </ItineraryResultLayout>
     );
   }
