@@ -9,6 +9,13 @@ interface DayMapPanelProps {
   days: Day[];
   mapData: ItineraryMapData;
   selectedDayIndex: number;
+  // 지도 우상단에 워터마크형 확대 버튼을 올릴지 여부 + 상태/토글. 저장한 일정
+  // 펼침(SavedItineraryDetail)에서만 넘긴다 — 없으면 버튼을 그리지 않고
+  // 지도 높이도 기존 고정값(h-[300px])을 그대로 쓴다(다른 호출부는 영향 없음).
+  expandable?: {
+    expanded: boolean;
+    onToggle: () => void;
+  };
 }
 
 // 선택한 일차 하나만 보여주는 고정 지도 + 구간 목록 + 카카오맵 링크.
@@ -21,6 +28,7 @@ export function DayMapPanel({
   days,
   mapData,
   selectedDayIndex,
+  expandable,
 }: DayMapPanelProps) {
   const day = days[selectedDayIndex];
   const mapDay = day
@@ -45,7 +53,10 @@ export function DayMapPanel({
         <ItineraryMap
           variant="day"
           days={[mapDay]}
-          heightClassName="h-[300px]"
+          // expandable일 땐 바깥(SavedItineraryDetail)이 패널 너비를 애니메이션
+          // 시키므로, aspect-ratio로 높이가 폭에 비례해 따라오게 한다(380x300과
+          // 같은 19:15 비율이라 접힌 상태에선 h-[300px]와 결과가 같다).
+          heightClassName={expandable ? "aspect-[19/15]" : "h-[300px]"}
           bare
         />
 
@@ -63,6 +74,21 @@ export function DayMapPanel({
             {[`${day.items.length}곳`, travelLabel].filter(Boolean).join(" · ")}
           </span>
         </div>
+
+        {expandable && (
+          <button
+            type="button"
+            onClick={expandable.onToggle}
+            aria-label={expandable.expanded ? "지도 축소" : "지도 확대"}
+            aria-pressed={expandable.expanded}
+            className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/35 text-foreground/60 opacity-70 backdrop-blur-sm transition-all hover:bg-white hover:text-foreground hover:opacity-100 hover:shadow-[0_6px_18px_-10px_rgba(48,20,12,.5)]"
+          >
+            <Icon
+              name={expandable.expanded ? "collapse" : "expand"}
+              size={15}
+            />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 p-4">

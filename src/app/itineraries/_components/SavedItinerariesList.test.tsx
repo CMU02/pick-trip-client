@@ -107,17 +107,17 @@ describe("SavedItinerariesList", () => {
     expect(await screen.findByText("쌍계사")).toBeInTheDocument();
   });
 
-  it("'보기'로 펼친 영역의 '생성된 일정' 옆에 공유하기 버튼을 보여준다", async () => {
+  it("펼치지 않아도 '보기' 버튼 옆에 공유하기 버튼을 보여준다", async () => {
     seedSaved([summary]);
-    mockGetItinerary.mockResolvedValue(detailResponse);
 
     render(<SavedItinerariesList />);
-    await userEvent.click(await screen.findByRole("button", { name: "보기" }));
-    await screen.findByText("쌍계사");
+    await screen.findByRole("button", { name: "보기" });
 
     expect(
       screen.getByRole("button", { name: "공유하기" }),
     ).toBeInTheDocument();
+    // 아직 상세를 조회하지 않았으므로 지연 조회는 트리거되지 않는다.
+    expect(mockGetItinerary).not.toHaveBeenCalled();
   });
 
   it("같은 항목을 다시 '보기' 클릭해도 재조회하지 않는다", async () => {

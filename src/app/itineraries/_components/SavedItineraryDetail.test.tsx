@@ -17,14 +17,6 @@ vi.mock("@/hooks/useItineraryMapData", () => ({
   useItineraryMapData: (days: unknown) => useItineraryMapData(days),
 }));
 
-// ShareButton(headerAction)이 요구하는 인증 컨텍스트를 대체한다.
-vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => ({
-    runAuthed: (fn: (token?: string) => Promise<unknown>) =>
-      fn("access-token-1"),
-  }),
-}));
-
 import { SavedItineraryDetail } from "./SavedItineraryDetail";
 
 const data: ItineraryResponse = {
@@ -98,11 +90,7 @@ describe("SavedItineraryDetail", () => {
     // DayCard 헤딩도 "1일차"/"2일차" 텍스트를 쓰므로, 지도 위 요약 배지
     // (.pointer-events-none)로 범위를 좁혀 확인한다.
     const { container } = render(
-      <SavedItineraryDetail
-        data={data}
-        mapData={mapData}
-        itineraryId="itinerary-1"
-      />,
+      <SavedItineraryDetail data={data} mapData={mapData} />,
     );
     const badge = () => container.querySelector(".pointer-events-none");
 
@@ -115,21 +103,28 @@ describe("SavedItineraryDetail", () => {
 
   it("mapData(스냅샷)를 주면 useItineraryMapData가 빈 배열로 호출된다", () => {
     useItineraryMapData.mockClear();
-    render(
-      <SavedItineraryDetail
-        data={data}
-        mapData={mapData}
-        itineraryId="itinerary-1"
-      />,
-    );
+    render(<SavedItineraryDetail data={data} mapData={mapData} />);
 
     expect(useItineraryMapData).toHaveBeenCalledWith([]);
   });
 
   it("mapData가 없으면 useItineraryMapData를 실제 days로 호출한다", () => {
     useItineraryMapData.mockClear();
-    render(<SavedItineraryDetail data={data} itineraryId="itinerary-1" />);
+    render(<SavedItineraryDetail data={data} />);
 
     expect(useItineraryMapData).toHaveBeenCalledWith(data.days);
+  });
+
+  it("지도 확대 버튼을 누르면 축소 버튼으로 바뀐다", async () => {
+    render(<SavedItineraryDetail data={data} mapData={mapData} />);
+
+    const expandButton = await screen.findByRole("button", {
+      name: "지도 확대",
+    });
+    await userEvent.click(expandButton);
+
+    expect(
+      screen.getByRole("button", { name: "지도 축소" }),
+    ).toBeInTheDocument();
   });
 });
