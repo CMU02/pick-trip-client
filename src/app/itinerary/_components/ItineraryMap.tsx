@@ -139,6 +139,10 @@ export function ItineraryMap({
   const overlaysRef = useRef<{ setMap: (m: kakao.maps.Map | null) => void }[]>(
     [],
   );
+  // 아래 리사이즈 옵저버가 relayout() 직후 "같은 구도"로 다시 맞출 때 쓸 최신
+  // fit 함수. 매 렌더의 bounds/pointCount를 그대로 캡처해두고, ref로 옮겨서
+  // 리사이즈 이펙트(마운트 1회)가 항상 최신 버전을 부를 수 있게 한다.
+  const fitToContentRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (status !== "ready" || !boxRef.current) return;
@@ -182,14 +186,18 @@ export function ItineraryMap({
       pointCount += day.points.length;
     }
 
-    if (pointCount === 1) {
-      map.setLevel(5);
-      map.setCenter(
-        new kakaoNs.LatLng(days[0].points[0].lat, days[0].points[0].lng),
-      );
-    } else if (!bounds.isEmpty()) {
-      map.setBounds(bounds, 40, 40, 40, 40);
-    }
+    const fitToContent = () => {
+      if (pointCount === 1) {
+        map.setLevel(5);
+        map.setCenter(
+          new kakaoNs.LatLng(days[0].points[0].lat, days[0].points[0].lng),
+        );
+      } else if (!bounds.isEmpty()) {
+        map.setBounds(bounds, 40, 40, 40, 40);
+      }
+    };
+    fitToContent();
+    fitToContentRef.current = fitToContent;
 
     // 마커: bounds 반영 후 투영으로 라벨 레이아웃을 계산한다.
     for (const day of days) {
@@ -220,11 +228,17 @@ export function ItineraryMap({
     }
   }, [days, variant, status]);
 
-  // 컨테이너가 뒤늦게 보이거나 크기가 바뀌면 재배치(회색 타일 방지)
+  // 컨테이너가 뒤늦게 보이거나 크기가 바뀌면 재배치(회색 타일 방지)하고, 같은
+  // 중심·bounds로 다시 맞춘다 — relayout()만 하면 줌 레벨이 그대로라 박스가
+  // 커진 만큼 주변 지역만 더 드러나, 접힌 상태와 완전히 다른 그림처럼 보인다
+  // (저장한 일정 지도 확대 때 확인됨).
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
-    const ro = new ResizeObserver(() => mapRef.current?.relayout());
+    const ro = new ResizeObserver(() => {
+      mapRef.current?.relayout();
+      fitToContentRef.current();
+    });
     ro.observe(box);
     return () => ro.disconnect();
   }, []);

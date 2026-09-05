@@ -53,10 +53,14 @@ export function DayMapPanel({
         <ItineraryMap
           variant="day"
           days={[mapDay]}
-          // expandable일 땐 바깥(SavedItineraryDetail)이 패널 너비를 애니메이션
-          // 시키므로, aspect-ratio로 높이가 폭에 비례해 따라오게 한다(380x300과
-          // 같은 19:15 비율이라 접힌 상태에선 h-[300px]와 결과가 같다).
-          heightClassName={expandable ? "aspect-[19/15]" : "h-[300px]"}
+          // 접힌(사이드바) 상태는 고정 h-[300px] 그대로. 확대 상태는 폭에
+          // 비례해 자라되, 380x300(19:15) 그대로면 너무 커서(폭 1200이면
+          // 950 안팎) 그 2/3 높이(19:10 = 15/19 * 2/3)로 낮춘다. ItineraryMap이
+          // 리사이즈마다 같은 bounds로 재조정(fitToContent)하니, 폭·비율이
+          // 바뀌어도 접힌 상태와 같은 구도(중심)를 유지한다.
+          heightClassName={
+            expandable?.expanded ? "aspect-[19/10]" : "h-[300px]"
+          }
           bare
         />
 
