@@ -4,24 +4,32 @@ import { describe, expect, it } from "vitest";
 import { HowItWorksSection } from "./HowItWorksSection";
 
 describe("HowItWorksSection", () => {
-  it("AI가 보는 기준 3행을 보여준다", () => {
+  it("HOW? 라벨과 4단계 제목을 보여준다", () => {
+    render(<HowItWorksSection />);
+
+    expect(screen.getByText("HOW?")).toBeInTheDocument();
+    for (const label of [
+      "여행 조건",
+      "콘텐츠 담기",
+      "AI 일정 생성",
+      "AI 일정 결과",
+    ]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  });
+
+  it("각 단계의 보조 라벨과 화면 캡쳐 alt를 보여준다", () => {
+    render(<HowItWorksSection />);
+
+    expect(screen.getByText("평균 30초")).toBeInTheDocument();
+    expect(screen.getByAltText("AI 일정 결과 화면")).toBeInTheDocument();
+  });
+
+  it("판단 기준 3가지(이동 거리·운영 시간·식사 시간)를 헤더 아래에 보여준다", () => {
     render(<HowItWorksSection />);
 
     for (const title of ["이동 거리", "운영 시간", "식사 시간"]) {
       expect(screen.getByText(title)).toBeInTheDocument();
     }
-    expect(
-      screen.getByText("가까운 곳끼리 묶어 하루 동선을 짧게 만듭니다"),
-    ).toBeInTheDocument();
-  });
-
-  it("정적 일정 예시 타임라인 3곳과 '예시' 배지를 보여준다", () => {
-    render(<HowItWorksSection />);
-
-    expect(screen.getByText("예시")).toBeInTheDocument();
-    for (const name of ["최참판댁", "고하버거 하동본점", "십리벚꽃길"]) {
-      expect(screen.getByText(name)).toBeInTheDocument();
-    }
-    expect(screen.getByText("차로 12분")).toBeInTheDocument();
   });
 });
