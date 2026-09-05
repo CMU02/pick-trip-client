@@ -36,7 +36,13 @@ class MockLatLngBounds {
 
 class MockMap {
   setBounds = vi.fn();
-  setCenter = vi.fn();
+  // 실제 SDK처럼 중심을 보관해 setCenter/getCenter 가 짝을 이루게 한다
+  // (ItineraryMap의 "고정 구도로 되돌리기"가 getCenter를 읽어서 저장한다).
+  center: MockLatLng = new MockLatLng(36.5, 127.9);
+  setCenter = vi.fn((ll: MockLatLng) => {
+    this.center = ll;
+  });
+  getCenter = vi.fn(() => this.center);
   // 실제 SDK처럼 레벨을 보관해 setLevel/getLevel 이 짝을 이루게 한다.
   level: number;
   setLevel = vi.fn((level: number) => {

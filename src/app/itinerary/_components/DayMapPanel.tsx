@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import { Icon } from "@/components/ui/icon";
 import { dayTravelLabel } from "@/lib/itinerary";
 import type { Day } from "@/types/itinerary";
@@ -34,6 +36,12 @@ export function DayMapPanel({
   const mapDay = day
     ? mapData.days.find((d) => d.dayIndex === day.dayIndex)
     : undefined;
+  // ItineraryMap에 넘기는 배열 리터럴을 mapDay가 실제로 바뀔 때만 새로
+  // 만든다. 그냥 [mapDay]로 넘기면 expandable.expanded 토글처럼 mapDay와
+  // 무관한 리렌더에도 매번 새 배열이 생겨, ItineraryMap의 데이터 이펙트가
+  // 다시 돌면서 "고정 구도"가 그 순간(전환 중일 수도 있는) 박스 크기로
+  // 덮어써져 버린다.
+  const mapDays = useMemo(() => (mapDay ? [mapDay] : []), [mapDay]);
 
   if (!day || !mapDay || mapDay.points.length === 0) return null;
 
@@ -52,15 +60,17 @@ export function DayMapPanel({
       <div className="relative">
         <ItineraryMap
           variant="day"
-          days={[mapDay]}
+          days={mapDays}
           // 접힌(사이드바) 상태는 고정 h-[300px] 그대로. 확대 상태는 폭에
           // 비례해 자라되, 380x300(19:15) 그대로면 너무 커서(폭 1200이면
-          // 950 안팎) 그 2/3 높이(19:10 = 15/19 * 2/3)로 낮춘다. ItineraryMap이
-          // 리사이즈마다 같은 bounds로 재조정(fitToContent)하니, 폭·비율이
-          // 바뀌어도 접힌 상태와 같은 구도(중심)를 유지한다.
+          // 950 안팎) 그 2/3 높이(19:10 = 15/19 * 2/3)로 낮춘다.
           heightClassName={
             expandable?.expanded ? "aspect-[19/10]" : "h-[300px]"
           }
+          // 확대/축소 토글마다(expanded가 바뀔 때) 지도를 고정 구도로
+          // 되돌린다 — 박스 모양이 바뀌어도 배율이 흔들리지 않고, 사용자가
+          // 지도를 움직여놨어도 항상 같은 화면으로 복귀한다.
+          resetViewKey={expandable?.expanded}
           bare
         />
 
