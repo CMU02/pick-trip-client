@@ -117,6 +117,17 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* 홈 HOW? 섹션 캐러셀: 현재 슬라이드의 하단 진행 바가 INTERVAL(3초) 동안
+   왼쪽에서 오른쪽으로 채워지며 다음 전환까지 남은 시간을 보여준다. */
+@keyframes how-bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
