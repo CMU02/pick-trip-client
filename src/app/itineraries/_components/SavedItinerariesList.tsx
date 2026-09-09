@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ShareButton } from "@/app/itinerary/_components/ShareButton";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/hooks/useAuth";
 import { useItineraryMapSnapshots } from "@/hooks/useItineraryMapSnapshots";
@@ -138,7 +139,7 @@ export function SavedItinerariesList() {
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -149,6 +150,12 @@ export function SavedItinerariesList() {
                 >
                   목록에서 지우기
                 </button>
+                {/* 펼치지 않아도(보기 클릭 전에도) 바로 공유할 수 있게, 상세를
+                    기다리지 않고 요약에 있는 itineraryId로 곧장 만든다. */}
+                <ShareButton
+                  itineraryId={item.itineraryId}
+                  linkBoxClassName="w-56"
+                />
                 <button
                   type="button"
                   onClick={() => handleToggle(item.itineraryId)}
@@ -190,7 +197,6 @@ export function SavedItinerariesList() {
                       fromSnapshot(snapshots[detail.data.itineraryId]) ??
                       undefined
                     }
-                    itineraryId={detail.data.itineraryId}
                   />
                 )}
               </div>

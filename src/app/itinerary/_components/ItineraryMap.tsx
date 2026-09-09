@@ -36,6 +36,11 @@ interface ItineraryMapProps {
   heightClassName?: string;
   // 카드 안에 flush로 박아 넣을 때(DayMapPanel): 박스 자체의 테두리·라운드를 뺀다.
   bare?: boolean;
+  // 값이 바뀔 때마다(예: 확대/축소 토글의 boolean) 지도를 "고정 구도"(최초
+  // 자동 맞춤 당시의 중심·레벨)로 되돌린다. 사용자가 드래그·휠로 지도를
+  // 움직여놨어도, 이 값이 바뀌면 항상 같은 화면으로 복귀한다. 지정하지
+  // 않으면(대부분의 호출부) 아무 효과 없다.
+  resetViewKey?: boolean;
 }
 
 function dayColor(dayIndex: number): string {
@@ -132,6 +137,7 @@ export function ItineraryMap({
   className,
   heightClassName,
   bare = false,
+  resetViewKey,
 }: ItineraryMapProps) {
   const { status } = useKakaoMap();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -139,6 +145,18 @@ export function ItineraryMap({
   const overlaysRef = useRef<{ setMap: (m: kakao.maps.Map | null) => void }[]>(
     [],
   );
+  // 데이터가 로드될 때 자동으로 맞춘 중심·레벨을 "고정 구도"로 저장해둔다.
+  // resetViewKey 이펙트가 이 값으로 되돌린다.
+  const fixedViewRef = useRef<{
+    center: kakao.maps.LatLng;
+    level: number;
+  } | null>(null);
+  // days가 실제로 같은 장소들이어도(호출부가 매번 새 배열/객체를 넘기는
+  // 경우가 있다 — 예: 스냅샷 없이 라이브로 좌표를 해석하는 useItineraryMapData)
+  // 참조만 바뀐 리렌더로 메인 이펙트가 다시 돌 때마다 "고정 구도"가 그
+  // 순간의 박스 크기 기준으로 덮어써지는 걸 막는다. 좌표 내용을 직렬화해
+  // 실제로 달라졌을 때만(예: 다른 일차 선택) 새로 캡처한다.
+  const fixedViewContentRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (status !== "ready" || !boxRef.current) return;
@@ -182,13 +200,30 @@ export function ItineraryMap({
       pointCount += day.points.length;
     }
 
-    if (pointCount === 1) {
-      map.setLevel(5);
-      map.setCenter(
-        new kakaoNs.LatLng(days[0].points[0].lat, days[0].points[0].lng),
-      );
-    } else if (!bounds.isEmpty()) {
-      map.setBounds(bounds, 40, 40, 40, 40);
+    // 지도 프레이밍(bounds)에 실제로 영향을 주는 내용만 시그니처로 삼는다
+    // (points의 dayIndex·좌표 — route는 선 모양만 바꾸고 bounds.extend에는
+    // 안 쓰인다). 호출부가 매번 새 배열/객체를 넘겨도(스냅샷 없이 라이브로
+    // 좌표를 해석하는 useItineraryMapData처럼) 내용이 같으면 지도 자동
+    // fit·"고정 구도" 재캡처를 건너뛴다 — 안 그러면 사용자가 지도를 보고
+    // 있는 동안에도 매 리렌더마다 뷰가 다시 스냅되거나, 확대/축소 토글이
+    // 그 순간의 박스 크기 기준 배율로 "고정 구도"를 덮어써 버린다.
+    const contentSignature = JSON.stringify(
+      days.map((d) => [d.dayIndex, d.points.map((p) => [p.lat, p.lng])]),
+    );
+    if (fixedViewContentRef.current !== contentSignature) {
+      fixedViewContentRef.current = contentSignature;
+
+      if (pointCount === 1) {
+        map.setLevel(5);
+        map.setCenter(
+          new kakaoNs.LatLng(days[0].points[0].lat, days[0].points[0].lng),
+        );
+      } else if (!bounds.isEmpty()) {
+        map.setBounds(bounds, 40, 40, 40, 40);
+      }
+      // 이번 데이터로 자동 맞춘 화면을 "고정 구도"로 저장 — 보통 접힌(기본)
+      // 크기일 때 잡힌다. resetViewKey 이펙트가 나중에 이 값으로 되돌린다.
+      fixedViewRef.current = { center: map.getCenter(), level: map.getLevel() };
     }
 
     // 마커: bounds 반영 후 투영으로 라벨 레이아웃을 계산한다.
@@ -220,7 +255,12 @@ export function ItineraryMap({
     }
   }, [days, variant, status]);
 
-  // 컨테이너가 뒤늦게 보이거나 크기가 바뀌면 재배치(회색 타일 방지)
+  // 컨테이너가 뒤늦게 보이거나 크기가 바뀌면 재배치한다(회색 타일 방지).
+  // 중심·레벨은 여기서 다시 맞추지 않는다 — 리사이즈 중(예: 확대/축소 CSS
+  // 전환) 매 틱마다 bounds를 다시 맞추면, 박스 모양이 바뀔 때마다 카카오가
+  // 고르는 줌 레벨도 같이 바뀌어 접힌 상태와 확대 상태의 배율이 서로 달라
+  // 보이는 문제가 있었다. 대신 아래 resetViewKey 이펙트가 토글 시점에 한
+  // 번, 고정된 값으로 되돌린다.
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
@@ -228,6 +268,24 @@ export function ItineraryMap({
     ro.observe(box);
     return () => ro.disconnect();
   }, []);
+
+  // 확대/축소 토글마다(resetViewKey가 바뀔 때) 지도를 고정 구도로 되돌린다.
+  // 사용자가 그 사이 드래그·휠로 지도를 움직여놨어도 항상 같은 화면으로
+  // 복귀한다 — bounds를 다시 계산하지 않고 저장해둔 중심·레벨 값 그대로
+  // 쓰므로, 박스 크기와 무관하게 배율이 흔들리지 않는다.
+  useEffect(() => {
+    if (resetViewKey === undefined) return;
+    const map = mapRef.current;
+    const fixed = fixedViewRef.current;
+    if (!map || !fixed) return;
+    // relayout()을 먼저 불러 컨테이너의 "지금" 크기를 반영시킨 다음
+    // center/level을 맞춘다 — 순서를 반대로 하면(setCenter 먼저) relayout이
+    // 그 직후 옛 컨테이너 크기·팬 위치 기준으로 다시 계산해버려, 사용자가
+    // 드래그해놨던 위치로 되돌아가 버리는 경우가 있었다.
+    map.relayout();
+    map.setCenter(fixed.center);
+    map.setLevel(fixed.level);
+  }, [resetViewKey]);
 
   useEffect(() => {
     return () => {
