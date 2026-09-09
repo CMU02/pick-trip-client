@@ -53,8 +53,10 @@ const shouldRun = (n) => wanted.length === 0 || wanted.includes(n);
 
 const log = (...a) => console.log("[capture-how]", ...a);
 
-// 뷰포트(1440x900 CSS = dSF2 로 2880x1800 device)를 그대로 찍어
-// 1920x1200(16:10) Lanczos 다운스케일. 사이트 헤더/푸터는 숨겨 화면 본문만 담는다.
+// 뷰포트(1440x900 CSS = dSF2 로 2880x1800 device)를 그대로 찍어 1920x1200(16:10)
+// Lanczos 다운스케일 → **무손실 WebP**. 사이트 헤더/푸터는 숨겨 본문만 담는다.
+// WebP 무손실이라 next/image 최적화(q75 재인코딩)를 거치지 않고 컴포넌트에서
+// `unoptimized` 로 원본을 그대로 내려도 용량이 감당된다(PNG 대비 ~1/3).
 async function shot(page, name) {
   fs.mkdirSync(RAW_DIR, { recursive: true });
   const raw = path.join(RAW_DIR, `${name}.png`);
@@ -73,10 +75,10 @@ async function shot(page, name) {
     path: raw,
     clip: { x: 0, y: 0, width: 1440, height: 900 },
   });
-  const out = path.join(OUT_DIR, `${name}.png`);
+  const out = path.join(OUT_DIR, `${name}.webp`);
   await sharp(raw)
     .resize(OUT_W, OUT_H, { kernel: "lanczos3" })
-    .png({ compressionLevel: 9 })
+    .webp({ lossless: true, effort: 6 })
     .toFile(out);
   log(`saved ${path.relative(ROOT, out)}`);
 }
