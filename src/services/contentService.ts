@@ -13,6 +13,7 @@ import type {
   NearbyContentsResponse,
   NearbyDistanceBasis,
   NearbySource,
+  VisitorStats,
 } from "@/types/content";
 import type { Region } from "@/types/region";
 
@@ -37,6 +38,8 @@ interface RawContentItem {
   category?: ContentCategory;
   summary?: string | null;
   indoor?: boolean;
+  // v2: 없으면 null(지표 조회 실패 또는 지역 통계·프록시 모두 없음).
+  visitorStats?: VisitorStats | null;
 }
 
 interface RawContentsResponse {
@@ -54,6 +57,7 @@ function toContent(item: RawContentItem, region: Region): Content {
     address: item.address,
     summary: item.summary ?? undefined,
     indoor: item.indoor,
+    visitorStats: item.visitorStats,
   };
 }
 
@@ -114,6 +118,8 @@ interface RawContentDetail {
   region: Region;
   latitude: number;
   longitude: number;
+  // v2: 없으면 null(지표 조회 실패 또는 지역 통계·프록시 모두 없음).
+  visitorStats?: VisitorStats | null;
 }
 
 function toParkingAvailable(parking: string | null): boolean | null {
@@ -149,6 +155,7 @@ function toContentDetail(raw: RawContentDetail): ContentDetail {
     // 좌표는 계약 그대로 통과시킨다. 0/무효 판정은 지도 레이어(geo.ts)에서 한다.
     latitude: raw.latitude,
     longitude: raw.longitude,
+    visitorStats: raw.visitorStats,
   };
 }
 
