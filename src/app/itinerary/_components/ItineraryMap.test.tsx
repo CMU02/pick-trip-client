@@ -132,6 +132,36 @@ describe("ItineraryMap", () => {
     expect(instances.overlays).toHaveLength(0);
   });
 
+  it("확대 상태에서 day를 바꾸고 축소하면 옛 day의 구도가 아니라 현재 day 기준으로 다시 맞춘다", async () => {
+    const day1 = mapDay(1, 2);
+    const day2 = mapDay(2, 3);
+
+    const { rerender } = render(
+      <ItineraryMap variant="day" days={[day1]} resetViewKey={false} />,
+    );
+    await waitFor(() => expect(instances.maps).toHaveLength(1));
+    const map = instances.maps[0];
+
+    // 확대: day1 그대로, resetViewKey만 켠다.
+    rerender(<ItineraryMap variant="day" days={[day1]} resetViewKey={true} />);
+    await waitFor(() => expect(map.relayout).toHaveBeenCalledTimes(1));
+
+    // 확대 상태에서 다른 day로 전환 — 넓은 박스 기준으로 fit된다.
+    rerender(<ItineraryMap variant="day" days={[day2]} resetViewKey={true} />);
+    await waitFor(() => expect(map.setBounds).toHaveBeenCalled());
+    map.setBounds.mockClear();
+
+    // 축소: resetViewKey를 끈다. day1 시절 스냅샷이 아니라 지금 선택된
+    // day2 기준으로 다시 맞춰야 한다.
+    rerender(<ItineraryMap variant="day" days={[day2]} resetViewKey={false} />);
+    await waitFor(() => expect(map.relayout).toHaveBeenCalledTimes(2));
+
+    expect(map.setBounds).toHaveBeenCalledTimes(1);
+    const bounds = map.setBounds.mock.calls[0][0] as { points: unknown[] };
+    // day1은 점이 2개, day2는 3개 — day2 기준으로 다시 fit됐는지 구분한다.
+    expect(bounds.points).toHaveLength(3);
+  });
+
   it("SDK 로드에 실패하면 에러 문구를 보인다", async () => {
     loadKakaoMaps.mockReturnValue(Promise.reject(new Error("fail")));
     render(<ItineraryMap variant="day" days={[mapDay(1, 2)]} />);
