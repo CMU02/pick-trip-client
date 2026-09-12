@@ -8,6 +8,7 @@
 // 백엔드가 함께 내려준 값 — 요약 화면 배지에만 쓰이고 없어도 폴백 렌더된다.
 // TourAPI 카탈로그 변동으로 빠지면 같은 지역·카테고리의 다른 장소로 교체한다.
 
+import { dateToKey } from "@/lib/date";
 import type { ContentCategory } from "@/types/content";
 import type { Region } from "@/types/region";
 import type { CompanionCondition } from "@/types/travel-condition";
@@ -105,10 +106,8 @@ export const TRIP_COURSES: TripCourse[] = [
 ];
 
 // 코스 클릭 시 요약 화면 URL에 넣을 기본 출발일: 오늘 + 14일을 "YYYY-MM-DD"로.
-// toISOString()은 UTC 기준이라 시간대에 따라 하루 밀릴 수 있어 로컬 연/월/일을
-// 각각 읽는다(TravelDateForm.todayDateKey와 같은 방식). 사용자는 요약 화면의
-// "조건 수정"에서 바꿀 수 있다.
+// 사용자는 요약 화면의 "조건 수정"에서 바꿀 수 있다.
 export function defaultTripStartDate(from: Date = new Date()): string {
   const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 14);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return dateToKey(d);
 }
