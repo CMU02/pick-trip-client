@@ -470,6 +470,172 @@ describe("ItineraryClient", () => {
     });
   });
 
+  it("혼잡 기반 순서변경 제안을 수락하면 순서를 바꾸고, 저장 요청에도 바뀐 순서가 실린다", async () => {
+    const emptyMetrics = {
+      totalTravelMinutes: null,
+      totalWalkingMinutes: null,
+      totalTransitCost: null,
+      placeCount: null,
+      unavailableReasons: {},
+    };
+    const daysWithSuggestion: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-1",
+        dayIndex: 1,
+        items: [
+          {
+            itemId: "item-1",
+            contentId: "content-1",
+            title: "쌍계사",
+            order: 0,
+            reason: "",
+            pinned: false,
+          },
+          {
+            itemId: "item-2",
+            contentId: "content-2",
+            title: "화개장터",
+            order: 1,
+            reason: "",
+            pinned: false,
+          },
+        ],
+      },
+    ];
+    const responseWithSuggestion: ItineraryGenerateResponse = {
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      adjustments: [],
+      days: daysWithSuggestion,
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 1박 2일 여행",
+          days: daysWithSuggestion,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+      ],
+      suggestions: [
+        {
+          type: "CONGESTION_REORDER",
+          message:
+            "'화개장터'는 지금 시간대가 붐벼요. '쌍계사'를 먼저 가보세요.",
+          dayIndex: 1,
+          contentId: "content-2",
+          swapWithContentId: "content-1",
+        },
+      ],
+    };
+
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(responseWithSuggestion);
+    mockSaveItinerary.mockResolvedValue(mockSavedResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "'화개장터'는 지금 시간대가 붐벼요. '쌍계사'를 먼저 가보세요.",
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "순서 바꾸기" }));
+
+    // 수락한 제안은 배너에서 사라진다.
+    expect(
+      screen.queryByRole("button", { name: "순서 바꾸기" }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockSaveItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          days: [
+            expect.objectContaining({
+              items: [
+                expect.objectContaining({ contentId: "content-2", order: 0 }),
+                expect.objectContaining({ contentId: "content-1", order: 1 }),
+              ],
+            }),
+          ],
+        }),
+        undefined,
+      );
+    });
+  });
+
+  it("제안이 없으면(suggestions 빈 배열) 혼잡 순서변경 배너를 보여주지 않는다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    await screen.findByText("쌍계사");
+    expect(
+      screen.queryByRole("button", { name: "순서 바꾸기" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("미리보기 사이드바에 Kakao 길찾기 실도로 거리로 '이동 거리 합계' 카드를 표시한다", async () => {
     mockUseItineraryMapData.mockReturnValue({
       status: "ready",

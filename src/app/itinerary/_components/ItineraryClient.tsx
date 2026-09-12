@@ -14,6 +14,7 @@ import { useItineraryMapData } from "@/hooks/useItineraryMapData";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
 import {
+  clearDaySchedule,
   formatDistanceKm,
   formatDuration,
   formatTravelMinutes,
@@ -38,6 +39,7 @@ import type {
   ItineraryGenerateRequest,
   ItineraryGenerateResponse,
   ItineraryResponse,
+  ItinerarySuggestion,
   ItineraryVariant,
   SaveItineraryRequest,
 } from "@/types/itinerary";
@@ -48,6 +50,7 @@ import {
   type CompanionCondition,
 } from "@/types/travel-condition";
 import { AdjustmentsNotice } from "./AdjustmentsNotice";
+import { CongestionSuggestions, suggestionKey } from "./CongestionSuggestions";
 import { DayMapPanel } from "./DayMapPanel";
 import { DayTabs } from "./DayTabs";
 import { GeneratingState } from "./GeneratingState";
@@ -239,6 +242,46 @@ function withAiItemsDismissed(days: Day[], dismissed: Set<string>): Day[] {
   });
 }
 
+// 혼잡 기반 순서변경 제안(suggestions)은 variants[0] 기준으로 계산돼 최상위에만
+// 온다 — 다른 안(탭) 화면에는 적용하지 않는다. 수락한 제안만 실제로 순서를
+// 바꾼다: 지정된 일차에서 붐비는 장소(contentId)와 대신 먼저 갈 장소
+// (swapWithContentId)의 위치를 맞바꾸고, 순서가 달라졌으니 서버가 계산한
+// 방문 시각·이동 요약은 지운다(clearDaySchedule). 서버는 재정렬하지 않으므로
+// 이 처리는 전적으로 클라이언트 책임이다.
+function applyAcceptedSuggestions(
+  days: Day[],
+  suggestions: ItinerarySuggestion[],
+  acceptedKeys: Set<string>,
+): Day[] {
+  let result = days;
+  for (const suggestion of suggestions) {
+    if (!suggestion.swapWithContentId) continue;
+    if (!acceptedKeys.has(suggestionKey(suggestion))) continue;
+    const swapWithContentId = suggestion.swapWithContentId;
+    result = result.map((day) => {
+      if (day.dayIndex !== suggestion.dayIndex) return day;
+      const busyIndex = day.items.findIndex(
+        (item) => item.contentId === suggestion.contentId,
+      );
+      const swapIndex = day.items.findIndex(
+        (item) => item.contentId === swapWithContentId,
+      );
+      if (busyIndex === -1 || swapIndex === -1) return day;
+
+      const nextItems = [...day.items];
+      [nextItems[busyIndex], nextItems[swapIndex]] = [
+        nextItems[swapIndex],
+        nextItems[busyIndex],
+      ];
+      return clearDaySchedule({
+        ...day,
+        items: nextItems.map((item, i) => ({ ...item, order: i })),
+      });
+    });
+  }
+  return result;
+}
+
 // 로그인 기능이 아직 구현되지 않아 generate가 401 AUTH_REQUIRED를 반환하는 동안,
 // 결과 화면 UX를 확인할 수 있도록 바구니 콘텐츠로 로컬 미리보기 데이터를 만든다.
 function buildLoginPreviewItinerary(
@@ -416,6 +459,11 @@ export function ItineraryClient({
   const [dismissedAiItemIds, setDismissedAiItemIds] = useState<Set<string>>(
     new Set(),
   );
+  // 혼잡 기반 순서변경 제안(suggestions) 중 사용자가 수락한 것들의 key
+  // (suggestionKey). 새로 생성하면 비운다.
+  const [acceptedSuggestionKeys, setAcceptedSuggestionKeys] = useState<
+    Set<string>
+  >(new Set());
   const { items, clear: clearBasket, save: saveBasket } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const setMapSnapshot = useItineraryMapSnapshotStore((s) => s.set);
@@ -428,7 +476,11 @@ export function ItineraryClient({
     phase.status === "saving" ||
     phase.status === "loginPreview"
       ? withAiItemsDismissed(
-          activeVariantOf(phase.data, selectedVariantIndex).days,
+          applyAcceptedSuggestions(
+            activeVariantOf(phase.data, selectedVariantIndex).days,
+            phase.data.suggestions,
+            acceptedSuggestionKeys,
+          ),
           dismissedAiItemIds,
         )
       : EMPTY_DAYS;
@@ -529,6 +581,7 @@ export function ItineraryClient({
         clearBasket();
         setSelectedVariantIndex(0);
         setDismissedAiItemIds(new Set());
+        setAcceptedSuggestionKeys(new Set());
         setPhase({ status: "preview", data });
       },
       onError: (err) => {
@@ -548,6 +601,7 @@ export function ItineraryClient({
           clearBasket();
           setSelectedVariantIndex(0);
           setDismissedAiItemIds(new Set());
+          setAcceptedSuggestionKeys(new Set());
           setPhase({ status: "loginPreview", data });
           return;
         }
@@ -572,13 +626,26 @@ export function ItineraryClient({
     setDismissedAiItemIds((prev) => new Set(prev).add(itemId));
   }
 
+  // 혼잡 기반 순서변경 제안을 수락한다 — 서버는 재정렬하지 않으므로 여기서
+  // 직접 순서를 바꾼다(applyAcceptedSuggestions). 저장 전 미리보기 단계라
+  // PATCH를 호출하지 않고, 바뀐 순서가 그대로 저장 요청에 실린다.
+  function handleAcceptSuggestion(suggestion: ItinerarySuggestion) {
+    setAcceptedSuggestionKeys((prev) =>
+      new Set(prev).add(suggestionKey(suggestion)),
+    );
+  }
+
   function handleSave(title: string) {
     if (phase.status !== "preview") return;
     const previewData = phase.data;
-    // 탭으로 고른 안에서 AI 추천을 지운 뒤 저장한다 — variants가 1개뿐이고
-    // 지운 것도 없으면 지금까지와 동일하다.
+    // 탭으로 고른 안에서 수락한 순서변경을 반영하고 AI 추천을 지운 뒤
+    // 저장한다 — 아무것도 안 바꿨으면 지금까지와 동일하다.
     const activeDays = withAiItemsDismissed(
-      activeVariantOf(previewData, selectedVariantIndex).days,
+      applyAcceptedSuggestions(
+        activeVariantOf(previewData, selectedVariantIndex).days,
+        previewData.suggestions,
+        acceptedSuggestionKeys,
+      ),
       dismissedAiItemIds,
     );
     // 장소가 없는 날이 있으면 백엔드가 저장을 거부한다(저장 버튼도 이미 막혀 있음).
@@ -629,7 +696,11 @@ export function ItineraryClient({
     // TripSummary, "예시" 안내는 일차 카드 위 작은 배너로 둔다.
     const activeVariant = activeVariantOf(phase.data, selectedVariantIndex);
     const activeDays = withAiItemsDismissed(
-      activeVariant.days,
+      applyAcceptedSuggestions(
+        activeVariant.days,
+        phase.data.suggestions,
+        acceptedSuggestionKeys,
+      ),
       dismissedAiItemIds,
     );
     const previewItemCount = activeDays.reduce(
@@ -670,6 +741,14 @@ export function ItineraryClient({
               selectedIndex={selectedVariantIndex}
               onSelect={setSelectedVariantIndex}
             />
+            {/* 제안은 variants[0] 기준으로 계산되므로 그 탭을 보고 있을 때만. */}
+            {selectedVariantIndex === 0 && (
+              <CongestionSuggestions
+                suggestions={phase.data.suggestions}
+                acceptedKeys={acceptedSuggestionKeys}
+                onAccept={handleAcceptSuggestion}
+              />
+            )}
             <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
               이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로
               저장할 수 있어요.
@@ -716,7 +795,11 @@ export function ItineraryClient({
     const isSaving = phase.status === "saving";
     const activeVariant = activeVariantOf(phase.data, selectedVariantIndex);
     const activeDays = withAiItemsDismissed(
-      activeVariant.days,
+      applyAcceptedSuggestions(
+        activeVariant.days,
+        phase.data.suggestions,
+        acceptedSuggestionKeys,
+      ),
       dismissedAiItemIds,
     );
     const blockedByEmptyDay = hasEmptyDay(activeDays);
@@ -793,6 +876,14 @@ export function ItineraryClient({
               selectedIndex={selectedVariantIndex}
               onSelect={setSelectedVariantIndex}
             />
+            {/* 제안은 variants[0] 기준으로 계산되므로 그 탭을 보고 있을 때만. */}
+            {selectedVariantIndex === 0 && (
+              <CongestionSuggestions
+                suggestions={phase.data.suggestions}
+                acceptedKeys={acceptedSuggestionKeys}
+                onAccept={handleAcceptSuggestion}
+              />
+            )}
             <AdjustmentsNotice adjustments={activeVariant.adjustments} />
             {phase.status === "preview" && phase.error && (
               <p className="text-sm text-destructive">
