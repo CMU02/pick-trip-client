@@ -35,6 +35,7 @@ import type { BasketItem } from "@/types/basket";
 import { BASKET_PRIORITY_TO_SERVER } from "@/types/basket";
 import type {
   Day,
+  ItineraryGenerateRequest,
   ItineraryGenerateResponse,
   ItineraryResponse,
   SaveItineraryRequest,
@@ -412,10 +413,11 @@ export function ItineraryClient({
   // 생성 시퀀스(조건 동기화 → 바구니 반영 → generate)를 runAuthed로 감싸,
   // AUTH_REQUIRED가 나면 내부에서 토큰 재발급 후 1회 재시도한다.
   const generateMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (options: ItineraryGenerateRequest | undefined) =>
       runAuthed(async (token) => {
-        // generate는 요청 바디를 받지 않고 서버에 저장된 바구니/조건을 읽어 생성하므로,
-        // 호출 전에 현재 바구니/조건을 서버에 반영한다.
+        // generate는 서버에 저장된 바구니/조건을 읽어 생성하므로, 호출 전에
+        // 현재 바구니/조건을 서버에 반영한다. options는 선택 값이라 undefined면
+        // 기존과 완전히 같은 요청(자동차 단일안)이 된다.
         await updateBasketConditions(
           {
             region: parsedRegions[0],
@@ -467,7 +469,7 @@ export function ItineraryClient({
           }
         }
 
-        return generateItinerary(undefined, token);
+        return generateItinerary(options, token);
       }),
   });
 
@@ -477,12 +479,12 @@ export function ItineraryClient({
       runAuthed((token) => saveItinerary(request, token)),
   });
 
-  function handleGenerate() {
+  function handleGenerate(options?: ItineraryGenerateRequest) {
     if (phase.status === "loading") return;
 
     setPhase({ status: "loading" });
 
-    generateMutation.mutate(undefined, {
+    generateMutation.mutate(options, {
       // 이 시점 바구니 내용은 이미 서버 바구니로 반영돼 AI 생성에 쓰였으니
       // 로컬 바구니(장바구니)는 비운다 — 담아둔 콘텐츠가 생성 후에도 그대로
       // 남아있던 문제를 해결한다.

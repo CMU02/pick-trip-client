@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { Icon, type IconName } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
 import { formatDuration } from "@/lib/itinerary";
 import { JOURNEY_STEPS } from "@/lib/journey";
+import { cn } from "@/lib/utils";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
+import type {
+  ItineraryGenerateMode,
+  ItineraryGenerateRequest,
+  TravelMode,
+} from "@/types/itinerary";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
   COMPANION_CONDITION_LABELS,
@@ -22,11 +29,57 @@ interface PreGenerateViewProps {
   startDate: string;
   nights: string;
   companions: string;
-  onGenerate: () => void;
+  // 옵션을 하나도 안 바꿨으면 undefined — 기존과 완전히 같은 요청(자동차
+  // 단일안)을 보낸다.
+  onGenerate: (options?: ItineraryGenerateRequest) => void;
   error?: { message: string; traceId?: string } | null;
 }
 
 const MISSING = "미선택";
+
+const MODE_OPTIONS: {
+  value: ItineraryGenerateMode;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    value: "STRICT",
+    label: "담은 콘텐츠만",
+    desc: "바구니에 담은 장소만으로 일정을 만듭니다",
+  },
+  {
+    value: "AUGMENT",
+    label: "AI 추천 장소도 추가",
+    desc: "같은 지역의 다른 콘텐츠를 AI가 더 제안할 수 있어요",
+  },
+];
+
+const TRAVEL_MODE_OPTIONS: { value: TravelMode; label: string }[] = [
+  { value: "CAR", label: "자동차" },
+  { value: "TRANSIT", label: "대중교통" },
+];
+
+const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
+const DEFAULT_TRAVEL_MODES: TravelMode[] = ["CAR"];
+
+// 기본값과 다른 필드만 실어 보낸다 — 아무것도 안 바꾸면 undefined를 돌려줘
+// generateItinerary가 요청 바디 없이 호출한 것과 완전히 같게 동작한다.
+function buildGenerateOptions(
+  mode: ItineraryGenerateMode,
+  travelModes: TravelMode[],
+  startContentId: string,
+): ItineraryGenerateRequest | undefined {
+  const options: ItineraryGenerateRequest = {};
+  if (mode !== DEFAULT_MODE) options.mode = mode;
+  if (
+    travelModes.length !== DEFAULT_TRAVEL_MODES.length ||
+    !travelModes.every((m) => DEFAULT_TRAVEL_MODES.includes(m))
+  ) {
+    options.travelModes = travelModes;
+  }
+  if (startContentId) options.startContentId = startContentId;
+  return Object.keys(options).length > 0 ? options : undefined;
+}
 
 // 스펙 §8: 쿼리가 비었을 때 `NaN월 NaN일`이 나오던 문제를 막는다.
 function formatStartDate(value: string): string | null {
@@ -111,6 +164,28 @@ export function PreGenerateView({
 }: PreGenerateViewProps) {
   const { items, remove } = useBasket();
 
+  // 일정 생성 옵션. 서버 기본값과 동일하게 시작한다 — 아무것도 안 바꾸면
+  // buildGenerateOptions가 undefined를 돌려줘 기존과 완전히 같은 요청이 된다.
+  const [mode, setMode] = useState<ItineraryGenerateMode>(DEFAULT_MODE);
+  const [travelModes, setTravelModes] =
+    useState<TravelMode[]>(DEFAULT_TRAVEL_MODES);
+  const [startContentId, setStartContentId] = useState("");
+
+  function toggleTravelMode(value: TravelMode) {
+    setTravelModes((prev) => {
+      if (prev.includes(value)) {
+        // 최소 1개는 항상 선택돼 있어야 한다 — 마지막 하나는 끌 수 없다.
+        if (prev.length === 1) return prev;
+        return prev.filter((m) => m !== value);
+      }
+      return [...prev, value];
+    });
+  }
+
+  function handleGenerateClick() {
+    onGenerate(buildGenerateOptions(mode, travelModes, startContentId));
+  }
+
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
   const parsedNights = Number(nights) || 0;
   const parsedCompanions = companions
@@ -186,7 +261,7 @@ export function PreGenerateView({
           <ErrorState
             message={error.message}
             traceId={error.traceId}
-            onRetry={onGenerate}
+            onRetry={handleGenerateClick}
           />
         </div>
       )}
@@ -276,6 +351,95 @@ export function PreGenerateView({
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* 2.5 일정 만들기 옵션 */}
+          <section className="rounded-[22px] border border-border bg-white p-6">
+            <SectionHeading>
+              <h2 className="text-[18px] font-bold tracking-[-0.03em]">
+                일정 만들기 옵션
+              </h2>
+            </SectionHeading>
+
+            <div className="mt-4">
+              <span className="text-[13px] font-bold text-foreground">
+                구성 방식
+              </span>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {MODE_OPTIONS.map((option) => {
+                  const selected = mode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setMode(option.value)}
+                      className={cn(
+                        "rounded-[13px] border-[1.5px] px-3.5 py-3 text-left transition-colors",
+                        selected
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/40",
+                      )}
+                    >
+                      <p className="text-[13.5px] font-bold">{option.label}</p>
+                      <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                        {option.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <span className="text-[13px] font-bold text-foreground">
+                이동수단 (선택한 수만큼 비교할 안이 나옵니다)
+              </span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {TRAVEL_MODE_OPTIONS.map((option) => {
+                  const selected = travelModes.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => toggleTravelMode(option.value)}
+                      className={
+                        selected
+                          ? "rounded-full border-[1.5px] border-primary bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
+                          : "rounded-full border-[1.5px] border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-muted-foreground hover:border-primary/40"
+                      }
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {items.length > 0 && (
+              <div className="mt-4">
+                <label
+                  htmlFor="start-content-id"
+                  className="text-[13px] font-bold text-foreground"
+                >
+                  시작 장소
+                </label>
+                <select
+                  id="start-content-id"
+                  value={startContentId}
+                  onChange={(e) => setStartContentId(e.target.value)}
+                  className="mt-2 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
+                >
+                  <option value="">AI가 자동으로 정함</option>
+                  {items.map((item) => (
+                    <option key={item.content.id} value={item.content.id}>
+                      {item.content.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </section>
 
           {/* 3. 담은 콘텐츠 */}
@@ -424,7 +588,7 @@ export function PreGenerateView({
             <button
               type="button"
               disabled={!canGenerate}
-              onClick={onGenerate}
+              onClick={handleGenerateClick}
               className="mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-[13px] px-4 py-3.5 text-[15px] font-bold transition-transform enabled:cursor-pointer enabled:bg-white enabled:text-[oklch(0.52_0.19_28)] enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/70"
             >
               <Icon name="wand" size={16} />

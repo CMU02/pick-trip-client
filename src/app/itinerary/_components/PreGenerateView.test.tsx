@@ -95,6 +95,9 @@ describe("PreGenerateView — 생성 버튼 활성 조건", () => {
 
     await userEvent.click(button);
     expect(baseProps.onGenerate).toHaveBeenCalledTimes(1);
+    // 옵션을 하나도 안 바꿨으면 undefined — generateItinerary가 요청 바디
+    // 없이 호출한 것과 완전히 같은 결과가 나와야 한다.
+    expect(baseProps.onGenerate).toHaveBeenCalledWith(undefined);
   });
 
   it("담은 콘텐츠가 1개면 비활성화된다", () => {
@@ -105,6 +108,87 @@ describe("PreGenerateView — 생성 버튼 활성 조건", () => {
     expect(
       screen.getByRole("button", { name: "일정 생성하기" }),
     ).toBeDisabled();
+  });
+});
+
+describe("PreGenerateView — 일정 생성 옵션", () => {
+  beforeEach(() => {
+    setBasket([
+      { content: content("1", "쌍계사"), priority: "MUST" },
+      { content: content("2", "화개장터"), priority: null },
+    ]);
+  });
+
+  it("아무것도 바꾸지 않으면 옵션 없이(undefined) onGenerate를 호출한다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith(undefined);
+  });
+
+  it("AI 추천 장소도 추가를 선택하면 mode: AUGMENT를 실어 보낸다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /AI 추천 장소도 추가/ }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({ mode: "AUGMENT" });
+  });
+
+  it("대중교통을 추가로 선택하면 travelModes에 CAR·TRANSIT을 모두 실어 보낸다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "대중교통" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+    });
+  });
+
+  it("이동수단은 최소 1개를 유지한다 — 마지막 하나는 끌 수 없다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    const carButton = screen.getByRole("button", { name: "자동차" });
+    expect(carButton).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(carButton);
+    expect(carButton).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+    expect(baseProps.onGenerate).toHaveBeenCalledWith(undefined);
+  });
+
+  it("시작 장소를 고르면 startContentId를 실어 보낸다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    await userEvent.selectOptions(screen.getByLabelText("시작 장소"), "쌍계사");
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      startContentId: "1",
+    });
+  });
+
+  it("담은 콘텐츠가 없으면 시작 장소 선택을 보여주지 않는다", () => {
+    setBasket([]);
+
+    render(<PreGenerateView {...baseProps} />);
+
+    expect(screen.queryByLabelText("시작 장소")).not.toBeInTheDocument();
   });
 });
 
@@ -120,8 +204,9 @@ describe("PreGenerateView — 담은 콘텐츠", () => {
     expect(screen.getByText("꼭 가기")).toBeInTheDocument();
     expect(screen.getByText("선택")).toBeInTheDocument();
     expect(screen.queryByText("가면 좋음")).not.toBeInTheDocument();
-    expect(screen.getByText("쌍계사")).toBeInTheDocument();
-    expect(screen.getByText("화개장터")).toBeInTheDocument();
+    // 시작 장소 select의 option에도 같은 이름이 나오므로 getAllByText로 확인한다.
+    expect(screen.getAllByText("쌍계사").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("화개장터").length).toBeGreaterThan(0);
   });
 
   it("항목 삭제 버튼을 누르면 바구니에서 제거된다", async () => {
