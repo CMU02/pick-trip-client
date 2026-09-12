@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useBasket } from "@/hooks/useBasket";
+import { formatDuration } from "@/lib/itinerary";
 import {
   defaultTripStartDate,
   TRIP_COURSES,
@@ -46,10 +47,6 @@ function itineraryHref(course: TripCourse): string {
     params.set("companions", course.companions.join(","));
   }
   return `/itinerary?${params.toString()}`;
-}
-
-function durationLabel(nights: number): string {
-  return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
 }
 
 const META_BADGE_CLASS =
@@ -110,7 +107,7 @@ export function TripCourseList() {
                 {REGION_LABELS[course.region]}
               </span>
               <span className={`hidden sm:inline ${META_BADGE_CLASS}`}>
-                {durationLabel(course.nights)}
+                {formatDuration(course.nights)}
               </span>
               <span className={META_BADGE_CLASS}>{course.spots.length}곳</span>
               <span
