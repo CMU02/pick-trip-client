@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { dateToKey } from "@/lib/date";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
   COMPANION_CONDITION_LABELS,
@@ -31,14 +32,6 @@ function formatDuration(nights: number) {
   return nights === 0 ? "당일치기" : `${nights}박 ${nights + 1}일`;
 }
 
-// 로컬 자정 기준 오늘 날짜를 "YYYY-MM-DD"로. UTC 기준인 toISOString()을
-// 쓰면 시간대에 따라 하루가 밀릴 수 있어 TravelDateCalendar와 같은 방식
-// (로컬 연/월/일 각각 읽기)으로 맞춘다.
-function todayDateKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export function TravelDateForm({ regions }: TravelDateFormProps) {
   const router = useRouter();
 
@@ -46,7 +39,7 @@ export function TravelDateForm({ regions }: TravelDateFormProps) {
   // 페이지에서 담아온 콘텐츠가 이 페이지를 거쳐 /contents까지 그대로 유지되도록
   // 한다. 일정 생성을 완료하면 ItineraryClient가 바구니를 비운다.
 
-  const [startDate, setStartDate] = useState(todayDateKey());
+  const [startDate, setStartDate] = useState(() => dateToKey(new Date()));
   const [duration, setDuration] = useState<TravelDuration | null>(null);
   const [customNights, setCustomNights] = useState(1);
   const [companions, setCompanions] = useState<CompanionCondition[]>([]);

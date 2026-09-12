@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
+import { dateToKey, formatDateKey } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
 interface TravelDateCalendarProps {
@@ -21,14 +22,6 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function toDateOnly(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function formatDateKey(y: number, m: number, d: number) {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
-
-function dateToKey(date: Date) {
-  return formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 // 핸드오프 스펙(3번 "지역·조건 선택" ★캘린더)의 달력. 출발일 클릭 시
