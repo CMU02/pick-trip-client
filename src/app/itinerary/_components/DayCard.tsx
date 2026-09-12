@@ -24,6 +24,7 @@ interface DayCardProps {
   onRemoveItem?: (dayId: string, itemId: string) => void;
   onTogglePinned?: (dayId: string, itemId: string) => void;
   onOpenReplacePicker?: (dayId: string, itemId: string) => void;
+  onDismissAiSuggestion?: (dayId: string, itemId: string) => void;
 }
 
 export function DayCard({
@@ -33,6 +34,7 @@ export function DayCard({
   onRemoveItem,
   onTogglePinned,
   onOpenReplacePicker,
+  onDismissAiSuggestion,
 }: DayCardProps) {
   // 백엔드는 dayIndex를 1부터 채번한다.
   const dayNumber = day.dayIndex;
@@ -151,6 +153,11 @@ export function DayCard({
                   onOpenReplacePicker={
                     onOpenReplacePicker
                       ? () => onOpenReplacePicker(day.dayId, item.itemId)
+                      : undefined
+                  }
+                  onDismissAiSuggestion={
+                    onDismissAiSuggestion
+                      ? () => onDismissAiSuggestion(day.dayId, item.itemId)
                       : undefined
                   }
                 />

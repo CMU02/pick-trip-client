@@ -134,6 +134,33 @@ describe("DayCard", () => {
     expect(onMoveItem).toHaveBeenCalledWith("day-9", "item-2", "down");
   });
 
+  it("AI 추천 배지 클릭 시 dayId/itemId를 바인딩해 onDismissAiSuggestion을 호출한다", async () => {
+    const onDismissAiSuggestion = vi.fn();
+    render(
+      <DayCard
+        day={makeDay({
+          dayId: "day-9",
+          items: [
+            {
+              itemId: "item-1",
+              contentId: "content-1",
+              title: "쌍계사",
+              order: 0,
+              reason: "",
+              pinned: false,
+              addedByAi: true,
+            },
+          ],
+        })}
+        onDismissAiSuggestion={onDismissAiSuggestion}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "AI 추천 삭제" }));
+
+    expect(onDismissAiSuggestion).toHaveBeenCalledWith("day-9", "item-1");
+  });
+
   it("편집 콜백이 없으면 컨트롤 버튼을 렌더하지 않는다", () => {
     render(<DayCard day={makeDay()} />);
 

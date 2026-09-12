@@ -16,6 +16,10 @@ interface PlaceItemProps {
   onRemove?: () => void;
   onTogglePinned?: () => void;
   onOpenReplacePicker?: () => void;
+  // AI 추천(addedByAi) 배지를 저장 전 바로 지우는 전용 액션. 일반 삭제
+  // (onRemove, 확인 단계 있음)와 별개로 미리보기(저장 전) 화면에서만 쓴다 —
+  // 저장 후 화면은 이미 있는 삭제 버튼을 그대로 쓴다.
+  onDismissAiSuggestion?: () => void;
 }
 
 // 시간축 타임라인의 한 행. 3열 그리드(62px 시각 / 26px 번호원·레일 / 1fr 카드)에
@@ -29,6 +33,7 @@ export function PlaceItem({
   onRemove,
   onTogglePinned,
   onOpenReplacePicker,
+  onDismissAiSuggestion,
 }: PlaceItemProps) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const editable = Boolean(
@@ -91,6 +96,31 @@ export function PlaceItem({
                   <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                     <Icon name="pin" size={11} />
                     고정
+                  </span>
+                )}
+                {/* addedByAi/addedForRest는 동시에 true가 되지 않는다(서버 계약). */}
+                {item.addedByAi &&
+                  (onDismissAiSuggestion ? (
+                    <button
+                      type="button"
+                      onClick={onDismissAiSuggestion}
+                      aria-label="AI 추천 삭제"
+                      className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 transition-colors hover:bg-violet-100"
+                    >
+                      <Icon name="wand" size={11} />
+                      AI 추천
+                      <Icon name="close" size={10} />
+                    </button>
+                  ) : (
+                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                      <Icon name="wand" size={11} />
+                      AI 추천
+                    </span>
+                  ))}
+                {item.addedForRest && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
+                    <Icon name="clock" size={11} />
+                    휴식
                   </span>
                 )}
               </div>

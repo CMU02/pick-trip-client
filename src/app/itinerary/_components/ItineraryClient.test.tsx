@@ -355,6 +355,121 @@ describe("ItineraryClient", () => {
     expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
   });
 
+  it("AI가 추가 제안한(addedByAi) 항목에 배지를 보여주고, 클릭하면 저장 전에 지운다", async () => {
+    const emptyMetrics = {
+      totalTravelMinutes: null,
+      totalWalkingMinutes: null,
+      totalTransitCost: null,
+      placeCount: null,
+      unavailableReasons: {},
+    };
+    const daysWithAiSuggestion: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-1",
+        dayIndex: 0,
+        items: [
+          {
+            itemId: "item-1",
+            contentId: "content-1",
+            title: "쌍계사",
+            order: 0,
+            reason: "지역 대표 명소",
+            pinned: false,
+          },
+          {
+            itemId: "item-2",
+            contentId: "content-2",
+            title: "화개장터",
+            order: 1,
+            reason: "같은 지역의 인기 콘텐츠예요",
+            pinned: false,
+            addedByAi: true,
+          },
+        ],
+      },
+    ];
+    const responseWithAiSuggestion: ItineraryGenerateResponse = {
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      adjustments: [],
+      days: daysWithAiSuggestion,
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 1박 2일 여행",
+          days: daysWithAiSuggestion,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+      ],
+      suggestions: [],
+    };
+
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(responseWithAiSuggestion);
+    mockSaveItinerary.mockResolvedValue(mockSavedResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(await screen.findByText("화개장터")).toBeInTheDocument();
+    expect(screen.getByText("AI 추천")).toBeInTheDocument();
+    expect(screen.getByText("같은 지역의 인기 콘텐츠예요")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "AI 추천 삭제" }));
+
+    // 확인 단계 없이 바로 지워진다.
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
+
+    // 저장 요청에도 지운 항목이 빠져 있어야 한다.
+    await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockSaveItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          days: [
+            expect.objectContaining({
+              items: [expect.objectContaining({ contentId: "content-1" })],
+            }),
+          ],
+        }),
+        undefined,
+      );
+    });
+  });
+
   it("미리보기 사이드바에 Kakao 길찾기 실도로 거리로 '이동 거리 합계' 카드를 표시한다", async () => {
     mockUseItineraryMapData.mockReturnValue({
       status: "ready",

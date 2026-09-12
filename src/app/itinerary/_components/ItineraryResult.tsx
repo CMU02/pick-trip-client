@@ -51,6 +51,9 @@ interface ItineraryResultProps {
   // 직접 렌더할 때 true — 여기서는 중복 렌더를 막는다. 단독 렌더(공유·저장 목록)는
   // false(기본)로 두고 이 컴포넌트가 그린다.
   hideAdjustments?: boolean;
+  // AI 추천(addedByAi) 배지를 저장 전 바로 지우는 전용 액션. editor와 무관하게
+  // 저장 전 미리보기 화면(editor 없음)에서도 쓸 수 있게 별도로 둔다.
+  onDismissAiSuggestion?: (dayId: string, itemId: string) => void;
 }
 
 export function ItineraryResult({
@@ -62,6 +65,7 @@ export function ItineraryResult({
   onSelectDay,
   hideMap = false,
   hideAdjustments = false,
+  onDismissAiSuggestion,
 }: ItineraryResultProps) {
   const [replaceTarget, setReplaceTarget] = useState<{
     dayId: string;
@@ -125,6 +129,7 @@ export function ItineraryResult({
                   ? (dayId, itemId) => setReplaceTarget({ dayId, itemId })
                   : undefined
               }
+              onDismissAiSuggestion={onDismissAiSuggestion}
             />
           </div>
           {hasAnyRoute && !hideMap && (
