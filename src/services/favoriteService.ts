@@ -50,6 +50,7 @@ export function favoriteToContent(favorite: FavoriteResponse): Content {
     address: favorite.address ?? "",
     summary: favorite.summary ?? undefined,
     indoor: favorite.indoor ?? undefined,
+    createdAt: favorite.createdAt,
   };
 }
 

@@ -214,12 +214,13 @@ describe("MyPageClient", () => {
         createdAt: "2026-01-15T00:00:00Z",
       },
     });
-    // add 순서대로 뒤에 쌓이므로 place-5가 가장 최근 찜이다.
+    // createdAt이 클수록(최근일수록) place-5가 가장 최근 찜이다.
     mockFavorites(
       [1, 2, 3, 4, 5].map((n) => ({
         ...stubContent,
         id: `${n}`,
         name: `place-${n}`,
+        createdAt: `2026-01-0${n}T00:00:00Z`,
       })),
     );
 

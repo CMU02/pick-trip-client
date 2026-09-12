@@ -8,6 +8,7 @@ import { BasketLayout } from "@/components/BasketLayout";
 import { RecommendedCard } from "@/components/RecommendedCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
+import { sortByRecentlyFavorited } from "@/lib/favorites";
 import { ALL_REGIONS_QUERY } from "@/types/region";
 
 // RecommendedCard와 크기 비율(썸네일 높이·텍스트 줄 수)을 맞춘 로딩 자리표시자.
@@ -98,7 +99,7 @@ export function FavoritesClient() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {[...items].reverse().map((content) => (
+            {sortByRecentlyFavorited(items).map((content) => (
               <RecommendedCard
                 key={content.id}
                 content={content}

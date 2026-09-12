@@ -115,6 +115,10 @@ export interface Content {
   address: string;
   summary?: string;
   indoor?: boolean;
+  // 찜 목록(favoriteToContent)에서만 채워지는 ISO 문자열 — 찜한 시각순
+  // 정렬(src/lib/favorites.ts)에 쓴다. 다른 출처(탐색·바구니 등)의
+  // Content에는 없다.
+  createdAt?: string;
 }
 
 export interface ContentDetail extends Content {
