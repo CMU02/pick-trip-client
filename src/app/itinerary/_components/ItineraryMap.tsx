@@ -21,7 +21,8 @@ const DAY_COLORS = [
   "#E0338A",
 ];
 // day 뷰는 한 날만 보여주므로 앱 코랄로 통일한다(oklch(0.6 0.19 28)).
-const CORAL = "#F2542D";
+// DayMapPanel의 지도 위 배지 점(dayColor)도 이 값을 그대로 쓴다.
+export const CORAL = "#F2542D";
 
 // 라벨을 앞 마커와 겹치지 않게 숨길 화면 거리(px). 시안과 동일.
 const LABEL_COLLIDE_PX = 96;
