@@ -150,6 +150,25 @@ export function hasEmptyDay(days: Day[]): boolean {
 }
 
 /**
+ * 서버는 저장(PATCH) 시 스케줄러를 다시 돌리지 않는다. 사용자가 순서를 바꾸거나
+ * 장소를 빼면 서버가 계산해준 방문 시각·이동 요약이 어긋나므로, 편집한 날의
+ * 그 값들을 지워 화면에서 잘못된 시각이 보이지 않게 한다. 재계산은 "다시 생성" 몫.
+ * useItineraryEditor(순서 이동)와 혼잡 기반 순서변경 제안 수락이 함께 쓴다.
+ */
+export function clearDaySchedule(day: Day): Day {
+  return {
+    ...day,
+    totalTravelMinutes: null,
+    totalTravelKm: null,
+    items: day.items.map((item) => ({
+      ...item,
+      startTime: null,
+      endTime: null,
+    })),
+  };
+}
+
+/**
  * 저장/수정 요청 body의 days 프로젝션. 미리보기에서 받은 방문 시각·이동 요약을
  * 그대로 왕복시킨다(서버는 저장 시 스케줄러를 다시 돌리지 않는다). null은
  * ?? undefined로 바꿔 JSON에서 생략한다. 빈 날은 거르지 않는다(저장 버튼에서 차단).

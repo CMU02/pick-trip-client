@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Day } from "@/types/itinerary";
 
 import {
+  clearDaySchedule,
   dayTravelLabel,
   formatDayDate,
   formatDistanceKm,
@@ -253,6 +254,37 @@ describe("hasEmptyDay", () => {
 
   it("모든 날에 장소가 있으면 false", () => {
     expect(hasEmptyDay([makeDay(), makeDay()])).toBe(false);
+  });
+});
+
+describe("clearDaySchedule", () => {
+  it("이동 요약과 각 항목의 방문 시각을 지운다", () => {
+    const day = makeDay({
+      totalTravelMinutes: 20,
+      totalTravelKm: 3.5,
+      items: [
+        makeItem({ startTime: "09:00", endTime: "10:30" }),
+        makeItem({ itemId: "item-2", startTime: "11:00", endTime: "12:00" }),
+      ],
+    });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.totalTravelMinutes).toBeNull();
+    expect(cleared.totalTravelKm).toBeNull();
+    expect(
+      cleared.items.every((i) => i.startTime === null && i.endTime === null),
+    ).toBe(true);
+  });
+
+  it("dayIndex·items 순서 등 나머지 필드는 그대로 둔다", () => {
+    const day = makeDay({ dayIndex: 3 });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.dayIndex).toBe(3);
+    expect(cleared.items).toHaveLength(1);
+    expect(cleared.items[0].contentId).toBe("c-1");
   });
 });
 
