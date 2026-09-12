@@ -184,6 +184,12 @@ function ItineraryResultLayout({
               mapData={mapData}
               selectedDayIndex={safeIndex}
             />
+            {mapData.days.some((d) => d.route) && (
+              <p className="px-0.5 text-[12px] leading-relaxed text-muted-foreground">
+                이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로
+                기준입니다. 순서를 바꾸면 다시 계산돼요.
+              </p>
+            )}
             {sidebar}
           </div>
         </aside>
@@ -265,10 +271,15 @@ function SavedItineraryPanel({ data }: { data: ItineraryResponse }) {
       days={editor.days}
       mapData={mapData}
       actions={
-        <ShareButton
-          itineraryId={data.itineraryId}
-          linkBoxClassName="w-full sm:w-[28rem]"
-        />
+        <>
+          <ShareButton
+            itineraryId={data.itineraryId}
+            linkBoxClassName="w-full sm:w-[28rem]"
+          />
+          <Button variant="outline" asChild>
+            <Link href="/dashboard">대시보드로 가기</Link>
+          </Button>
+        </>
       }
       banner={
         <p className="text-sm font-semibold text-primary">
@@ -622,58 +633,63 @@ export function ItineraryClient({
         days={phase.data.days}
         mapData={mapData}
         actions={
-          titleDraft === null ? (
-            <>
-              <Button
-                disabled={isSaving || blockedByEmptyDay}
-                onClick={() => setTitleDraft(phase.data.title)}
+          <>
+            {titleDraft === null ? (
+              <>
+                <Button
+                  disabled={isSaving || blockedByEmptyDay}
+                  onClick={() => setTitleDraft(phase.data.title)}
+                >
+                  저장
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={isSaving}
+                  onClick={() => setPhase({ status: "idle" })}
+                >
+                  다시 생성
+                </Button>
+              </>
+            ) : (
+              <form
+                className="flex flex-wrap gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const trimmed = titleDraft.trim();
+                  if (!trimmed) return;
+                  handleSave(trimmed);
+                }}
               >
-                저장
-              </Button>
-              <Button
-                variant="outline"
-                disabled={isSaving}
-                onClick={() => setPhase({ status: "idle" })}
-              >
-                다시 생성
-              </Button>
-            </>
-          ) : (
-            <form
-              className="flex flex-wrap gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const trimmed = titleDraft.trim();
-                if (!trimmed) return;
-                handleSave(trimmed);
-              }}
-            >
-              <label htmlFor="itinerary-title" className="sr-only">
-                일정명
-              </label>
-              <input
-                id="itinerary-title"
-                className="w-80 rounded-md border border-input px-3 py-2 text-sm sm:w-[28rem]"
-                value={titleDraft}
-                disabled={isSaving}
-                onChange={(e) => setTitleDraft(e.target.value)}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSaving}
-                onClick={() => setTitleDraft(null)}
-              >
-                취소
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSaving || titleDraft.trim() === ""}
-              >
-                {isSaving ? "저장 중..." : "저장하기"}
-              </Button>
-            </form>
-          )
+                <label htmlFor="itinerary-title" className="sr-only">
+                  일정명
+                </label>
+                <input
+                  id="itinerary-title"
+                  className="w-80 rounded-md border border-input px-3 py-2 text-sm sm:w-[28rem]"
+                  value={titleDraft}
+                  disabled={isSaving}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSaving}
+                  onClick={() => setTitleDraft(null)}
+                >
+                  취소
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSaving || titleDraft.trim() === ""}
+                >
+                  {isSaving ? "저장 중..." : "저장하기"}
+                </Button>
+              </form>
+            )}
+            <Button variant="outline" asChild>
+              <Link href="/dashboard">대시보드로 가기</Link>
+            </Button>
+          </>
         }
         banner={
           <>

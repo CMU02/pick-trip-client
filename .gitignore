@@ -45,3 +45,6 @@ coverage/*
 
 
 .claude/worktrees
+# HOW? 캐러셀 캡쳐 스크립트 (scripts/capture-how.mjs) 산출물·세션
+/.tmp-how-raw
+/.pw-how-profile

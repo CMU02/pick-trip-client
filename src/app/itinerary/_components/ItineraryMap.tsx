@@ -4,7 +4,11 @@ import { useEffect, useRef } from "react";
 
 import { useKakaoMap } from "@/hooks/useKakaoMap";
 import { haversineKm } from "@/lib/geo";
-import { formatDistanceKm, formatTravelMinutes } from "@/lib/itinerary";
+import {
+  formatDistanceKm,
+  formatTravelMinutes,
+  sumRouteTravel,
+} from "@/lib/itinerary";
 import type { ItineraryMapDay } from "@/types/map";
 
 // 일차별 마커/경로 색. overview(여러 날)에서 dayIndex(1-base) 기준으로 순환한다.
@@ -17,7 +21,8 @@ const DAY_COLORS = [
   "#E0338A",
 ];
 // day 뷰는 한 날만 보여주므로 앱 코랄로 통일한다(oklch(0.6 0.19 28)).
-const CORAL = "#F2542D";
+// DayMapPanel의 지도 위 배지 점(dayColor)도 이 값을 그대로 쓴다.
+export const CORAL = "#F2542D";
 
 // 라벨을 앞 마커와 겹치지 않게 숨길 화면 거리(px). 시안과 동일.
 const LABEL_COLLIDE_PX = 96;
@@ -32,6 +37,11 @@ interface ItineraryMapProps {
   heightClassName?: string;
   // 카드 안에 flush로 박아 넣을 때(DayMapPanel): 박스 자체의 테두리·라운드를 뺀다.
   bare?: boolean;
+  // 값이 바뀔 때마다(예: 확대/축소 토글의 boolean) 지도를 그 시점의 박스
+  // 크기·현재 days에 맞춰 다시 자동 맞춤한다. 사용자가 드래그·휠로 지도를
+  // 움직여놨어도, 이 값이 바뀌면 항상 "지금 보여줄 내용에 맞는" 화면으로
+  // 복귀한다. 지정하지 않으면(대부분의 호출부) 아무 효과 없다.
+  resetViewKey?: boolean;
 }
 
 function dayColor(dayIndex: number): string {
@@ -63,6 +73,32 @@ function markerHtml(
   return `<div title="${escapeHtml(title)}" style="position:relative;width:0;height:0">${dot}${labelHtml}</div>`;
 }
 
+// days의 모든 지점이 들어오도록 지도를 맞춘다. 점이 하나뿐이면 bounds 대신
+// 고정 레벨로 그 지점을 중심에 둔다. 호출 시점의 map 컨테이너 크기를
+// 기준으로 매번 새로 계산하므로, 컨테이너 크기가 바뀐 뒤(예: 확대/축소
+// 토글) 호출하면 그 크기에 맞는 구도가 나온다 — 이전에 다른 크기에서
+// 계산해둔 값을 재사용하지 않는다.
+function fitMapToDays(
+  kakaoNs: typeof kakao.maps,
+  map: kakao.maps.Map,
+  days: ItineraryMapDay[],
+): void {
+  const bounds = new kakaoNs.LatLngBounds();
+  let pointCount = 0;
+  for (const day of days) {
+    for (const p of day.points) bounds.extend(new kakaoNs.LatLng(p.lat, p.lng));
+    pointCount += day.points.length;
+  }
+  if (pointCount === 1) {
+    map.setLevel(5);
+    map.setCenter(
+      new kakaoNs.LatLng(days[0].points[0].lat, days[0].points[0].lng),
+    );
+  } else if (!bounds.isEmpty()) {
+    map.setBounds(bounds, 40, 40, 40, 40);
+  }
+}
+
 // 길찾기 결과가 없을 때 마커 사이 직선거리 합.
 function straightLineKm(day: ItineraryMapDay): number {
   let sum = 0;
@@ -73,19 +109,12 @@ function straightLineKm(day: ItineraryMapDay): number {
 }
 
 function caption(days: ItineraryMapDay[]): string | null {
-  const withRoute = days.filter((d) => d.route);
-  if (withRoute.length > 0) {
-    const km = withRoute.reduce(
-      (s, d) => s + (d.route?.totalDistanceMeters ?? 0) / 1000,
-      0,
-    );
-    const min = withRoute.reduce(
-      (s, d) => s + Math.round((d.route?.totalDurationSeconds ?? 0) / 60),
-      0,
-    );
-    const parts = [formatDistanceKm(km), formatTravelMinutes(min)].filter(
-      Boolean,
-    );
+  const routeTravel = sumRouteTravel(days);
+  if (routeTravel) {
+    const parts = [
+      formatDistanceKm(routeTravel.km),
+      formatTravelMinutes(routeTravel.minutes),
+    ].filter(Boolean);
     return parts.length > 0 ? `이동 ${parts.join(" · ")}` : null;
   }
   const km = days.reduce((s, d) => s + straightLineKm(d), 0);
@@ -135,6 +164,7 @@ export function ItineraryMap({
   className,
   heightClassName,
   bare = false,
+  resetViewKey,
 }: ItineraryMapProps) {
   const { status } = useKakaoMap();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -142,6 +172,12 @@ export function ItineraryMap({
   const overlaysRef = useRef<{ setMap: (m: kakao.maps.Map | null) => void }[]>(
     [],
   );
+  // days가 실제로 같은 장소들이어도(호출부가 매번 새 배열/객체를 넘기는
+  // 경우가 있다 — 예: 스냅샷 없이 라이브로 좌표를 해석하는 useItineraryMapData)
+  // 참조만 바뀐 리렌더로 메인 이펙트가 다시 돌 때마다 "고정 구도"가 그
+  // 순간의 박스 크기 기준으로 덮어써지는 걸 막는다. 좌표 내용을 직렬화해
+  // 실제로 달라졌을 때만(예: 다른 일차 선택) 새로 캡처한다.
+  const fixedViewContentRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (status !== "ready" || !boxRef.current) return;
@@ -158,9 +194,6 @@ export function ItineraryMap({
 
     for (const o of overlaysRef.current) o.setMap(null);
     overlaysRef.current = [];
-
-    const bounds = new kakaoNs.LatLngBounds();
-    let pointCount = 0;
 
     // 폴리라인 먼저 그린다(마커가 위로 오도록).
     for (const day of days) {
@@ -180,18 +213,20 @@ export function ItineraryMap({
         line.setMap(map);
         overlaysRef.current.push(line);
       }
-      for (const p of day.points)
-        bounds.extend(new kakaoNs.LatLng(p.lat, p.lng));
-      pointCount += day.points.length;
     }
 
-    if (pointCount === 1) {
-      map.setLevel(5);
-      map.setCenter(
-        new kakaoNs.LatLng(days[0].points[0].lat, days[0].points[0].lng),
-      );
-    } else if (!bounds.isEmpty()) {
-      map.setBounds(bounds, 40, 40, 40, 40);
+    // 지도 프레이밍(bounds)에 실제로 영향을 주는 내용만 시그니처로 삼는다
+    // (points의 dayIndex·좌표 — route는 선 모양만 바꾸고 fit에는 안 쓰인다).
+    // 호출부가 매번 새 배열/객체를 넘겨도(스냅샷 없이 라이브로 좌표를
+    // 해석하는 useItineraryMapData처럼) 내용이 같으면 지도 자동 fit을
+    // 건너뛴다 — 안 그러면 사용자가 지도를 보고 있는 동안에도 매
+    // 리렌더마다 뷰가 다시 스냅돼 버린다.
+    const contentSignature = JSON.stringify(
+      days.map((d) => [d.dayIndex, d.points.map((p) => [p.lat, p.lng])]),
+    );
+    if (fixedViewContentRef.current !== contentSignature) {
+      fixedViewContentRef.current = contentSignature;
+      fitMapToDays(kakaoNs, map, days);
     }
 
     // 마커: bounds 반영 후 투영으로 라벨 레이아웃을 계산한다.
@@ -223,7 +258,12 @@ export function ItineraryMap({
     }
   }, [days, variant, status]);
 
-  // 컨테이너가 뒤늦게 보이거나 크기가 바뀌면 재배치(회색 타일 방지)
+  // 컨테이너가 뒤늦게 보이거나 크기가 바뀌면 재배치한다(회색 타일 방지).
+  // 중심·레벨은 여기서 다시 맞추지 않는다 — 리사이즈 중(예: 확대/축소 CSS
+  // 전환) 매 틱마다 bounds를 다시 맞추면, 박스 모양이 바뀔 때마다 카카오가
+  // 고르는 줌 레벨도 같이 바뀌어 접힌 상태와 확대 상태의 배율이 서로 달라
+  // 보이는 문제가 있었다. 대신 아래 resetViewKey 이펙트가 토글 시점에 한
+  // 번, 고정된 값으로 되돌린다.
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
@@ -231,6 +271,30 @@ export function ItineraryMap({
     ro.observe(box);
     return () => ro.disconnect();
   }, []);
+
+  // 확대/축소 토글마다(resetViewKey가 바뀔 때) 지도를 그 순간의 박스
+  // 크기·현재 선택된 days 기준으로 다시 자동 맞춤한다. 사용자가 그 사이
+  // 드래그·휠로 지도를 움직여놨어도, 또는 확대 상태에서 다른 일차로
+  // 바꾼 뒤 축소했어도 항상 "지금 보여줄 내용에 맞는" 화면으로 복귀한다.
+  // 예전에는 최초 자동 맞춤 당시의 중심·레벨을 스냅샷으로 저장해뒀다가
+  // 그대로 재생했는데, 확대 상태에서 day를 바꾸면 그 스냅샷이 넓은 박스
+  // 기준으로 덮어써져 축소 시 좁은 박스에 잘못 적용되는 문제가 있었다.
+  // days는 의존성에 넣지 않는다 — day 전환만으로는 재실행하지 않고
+  // resetViewKey 값 자체가 바뀔 때만(토글 시점) 동작해야 한다. 실행될
+  // 때는 그 렌더의 클로저가 잡고 있는 최신 days를 그대로 쓰므로, 그
+  // 사이 day가 바뀌었어도 항상 지금 선택된 day 기준으로 다시 맞춘다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: days는 의도적으로 제외 — 위 주석 참고
+  useEffect(() => {
+    if (resetViewKey === undefined) return;
+    const map = mapRef.current;
+    const kakaoNs = window.kakao?.maps;
+    if (!map || !kakaoNs) return;
+    // relayout()을 먼저 불러 컨테이너의 "지금" 크기를 반영시킨 다음
+    // fit해야 한다 — 순서를 반대로 하면 relayout이 그 직후 옛 컨테이너
+    // 크기 기준으로 다시 계산해버린다.
+    map.relayout();
+    fitMapToDays(kakaoNs, map, days);
+  }, [resetViewKey]);
 
   useEffect(() => {
     return () => {

@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useSavedItineraries } from "@/hooks/useSavedItineraries";
+import { sortByRecentlyFavorited } from "@/lib/favorites";
 import { WithdrawSection } from "./WithdrawSection";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -66,11 +67,11 @@ export function MyPageClient() {
     },
   ];
 
-  // favoriteStore.add가 배열 뒤에 append하므로 최신 찜이 마지막에 온다.
   // /favorites 페이지와 동일하게 최근 찜한 순으로 보여준다.
-  const favoritesPreview = [...favoriteItems]
-    .reverse()
-    .slice(0, FAVORITES_PREVIEW_COUNT);
+  const favoritesPreview = sortByRecentlyFavorited(favoriteItems).slice(
+    0,
+    FAVORITES_PREVIEW_COUNT,
+  );
 
   return (
     <div className="flex flex-col gap-4">

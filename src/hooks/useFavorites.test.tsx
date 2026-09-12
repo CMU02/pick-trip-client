@@ -1,0 +1,405 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/errors";
+import { FAVORITES_QUERY_KEY } from "@/lib/queryKeys";
+import type { Content } from "@/types/content";
+import type { FavoriteResponse } from "@/types/favorite";
+import { useFavorites } from "./useFavorites";
+
+const mockUseAuth = vi.fn();
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+vi.mock("@/services/favoriteService", () => ({
+  getFavorites: vi.fn(),
+  addFavorite: vi.fn(),
+  removeFavorite: vi.fn(),
+  favoriteToContent: vi.fn(),
+  contentToAddFavoriteRequest: vi.fn(),
+}));
+
+import {
+  addFavorite,
+  contentToAddFavoriteRequest,
+  favoriteToContent,
+  getFavorites,
+  removeFavorite,
+} from "@/services/favoriteService";
+
+const mockGetFavorites = vi.mocked(getFavorites);
+const mockAddFavorite = vi.mocked(addFavorite);
+const mockRemoveFavorite = vi.mocked(removeFavorite);
+const mockFavoriteToContent = vi.mocked(favoriteToContent);
+const mockContentToAddFavoriteRequest = vi.mocked(contentToAddFavoriteRequest);
+
+const stub: Content = {
+  id: "content-1",
+  name: "쌍계사",
+  region: "HADONG",
+  category: "CULTURE",
+  imageUrl: null,
+  address: "경남 하동군",
+  summary: "천년 고찰",
+  indoor: false,
+};
+
+const stubFavorite: FavoriteResponse = {
+  id: "fav-1",
+  contentId: "content-1",
+  title: "쌍계사",
+  address: "경남 하동군",
+  firstImage: null,
+  category: "CULTURE",
+  summary: "천년 고찰",
+  indoor: false,
+  region: "HADONG",
+  createdAt: "2026-01-01T00:00:00Z",
+};
+
+function createWrapper() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+}
+
+// 로그아웃 시나리오 재현용: 훅 바깥에서도 같은 QueryClient를 조작할 수 있게
+// wrapper와 client를 함께 반환한다.
+function createWrapperWithClient() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  return { wrapper, client };
+}
+
+describe("useFavorites", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFavoriteToContent.mockImplementation((fav) => ({
+      id: fav.contentId,
+      name: fav.title,
+      region: fav.region,
+      category: fav.category ?? undefined,
+      imageUrl: fav.firstImage ?? null,
+      address: fav.address ?? "",
+      summary: fav.summary ?? undefined,
+      indoor: fav.indoor ?? undefined,
+    }));
+    mockContentToAddFavoriteRequest.mockImplementation((content) => ({
+      contentId: content.id,
+      title: content.name,
+      address: content.address,
+      firstImage: content.imageUrl ?? undefined,
+      category: content.category,
+      summary: content.summary,
+      indoor: content.indoor,
+      region: content.region,
+    }));
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      runAuthed: (fn: (token?: string) => unknown) => fn(undefined),
+    });
+  });
+
+  it("unauthenticated면 조회하지 않고 items는 빈 배열이다", () => {
+    mockUseAuth.mockReturnValue({
+      status: "unauthenticated",
+      runAuthed: (fn: (token?: string) => unknown) => fn(undefined),
+    });
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.items).toEqual([]);
+    expect(mockGetFavorites).not.toHaveBeenCalled();
+  });
+
+  it("authenticated면 찜 목록을 조회해 Content 배열로 변환한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [stubFavorite] });
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.items[0]).toEqual(stub);
+    expect(mockGetFavorites).toHaveBeenCalledWith(undefined);
+  });
+
+  it("isFavorited은 items에 있는 id에 true를 반환한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [stubFavorite] });
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.isFavorited("content-1")).toBe(true);
+    expect(result.current.isFavorited("other")).toBe(false);
+  });
+
+  it("add는 낙관적으로 items에 추가하고 서버 응답으로 갱신한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [] });
+    mockAddFavorite.mockResolvedValueOnce(stubFavorite);
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    act(() => {
+      result.current.add(stub);
+    });
+
+    // 낙관적 업데이트: 응답을 기다리지 않고 즉시 반영된다.
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    await waitFor(() => expect(mockAddFavorite).toHaveBeenCalled());
+    expect(mockAddFavorite).toHaveBeenCalledWith(
+      mockContentToAddFavoriteRequest(stub),
+      undefined,
+    );
+  });
+
+  it("add 실패(FAVORITE_DUPLICATE 아님) 시 낙관적 업데이트를 롤백한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [] });
+    mockAddFavorite.mockRejectedValueOnce(
+      new ApiError(500, "서버 오류", "INTERNAL_ERROR"),
+    );
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    act(() => {
+      result.current.add(stub);
+    });
+
+    // 즉시 실패하는 요청이라 낙관적으로 반영된 중간 상태를 안정적으로
+    // 관찰하기 어려워, 최종적으로 롤백됐는지만 확인한다.
+    await waitFor(() => expect(result.current.items).toHaveLength(0));
+    expect(mockAddFavorite).toHaveBeenCalled();
+  });
+
+  it("add 실패가 FAVORITE_DUPLICATE면 낙관적 업데이트를 유지한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [] });
+    mockAddFavorite.mockRejectedValueOnce(
+      new ApiError(409, "이미 찜한 콘텐츠입니다", "FAVORITE_DUPLICATE"),
+    );
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    act(() => {
+      result.current.add(stub);
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await waitFor(() => expect(mockAddFavorite).toHaveBeenCalled());
+    expect(result.current.items).toHaveLength(1);
+  });
+
+  it("remove는 낙관적으로 items에서 제거한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [stubFavorite] });
+    mockRemoveFavorite.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => {
+      result.current.remove("content-1");
+    });
+
+    await waitFor(() => expect(result.current.items).toHaveLength(0));
+    await waitFor(() =>
+      expect(mockRemoveFavorite).toHaveBeenCalledWith("content-1", undefined),
+    );
+  });
+
+  it("remove 실패(FAVORITE_NOT_FOUND 아님) 시 낙관적 업데이트를 롤백한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [stubFavorite] });
+    mockRemoveFavorite.mockRejectedValueOnce(
+      new ApiError(500, "서버 오류", "INTERNAL_ERROR"),
+    );
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => {
+      result.current.remove("content-1");
+    });
+
+    // 즉시 실패하는 요청이라 낙관적으로 반영된 중간 상태를 안정적으로
+    // 관찰하기 어려워, 최종적으로 롤백됐는지만 확인한다.
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(mockRemoveFavorite).toHaveBeenCalled();
+  });
+
+  it("remove 실패가 FAVORITE_NOT_FOUND면 낙관적 업데이트를 유지한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [stubFavorite] });
+    mockRemoveFavorite.mockRejectedValueOnce(
+      new ApiError(404, "찜을 찾을 수 없습니다", "FAVORITE_NOT_FOUND"),
+    );
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => {
+      result.current.remove("content-1");
+    });
+
+    await waitFor(() => expect(mockRemoveFavorite).toHaveBeenCalled());
+    expect(result.current.items).toHaveLength(0);
+  });
+
+  it("isAdding/isRemoving은 mutation 진행 상태를 반영한다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [] });
+    let resolveAdd: (value: FavoriteResponse) => void = () => {};
+    mockAddFavorite.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAdd = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    act(() => {
+      result.current.add(stub);
+    });
+
+    await waitFor(() => expect(result.current.isAdding).toBe(true));
+
+    await act(async () => {
+      resolveAdd(stubFavorite);
+    });
+
+    await waitFor(() => expect(result.current.isAdding).toBe(false));
+  });
+
+  it("add 진행 중 로그아웃으로 캐시가 제거되면 늦게 도착한 응답이 캐시를 되살리지 않는다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [] });
+    let resolveAdd: (value: FavoriteResponse) => void = () => {};
+    mockAddFavorite.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAdd = resolve;
+      }),
+    );
+
+    const { wrapper, client } = createWrapperWithClient();
+    const { result } = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    act(() => {
+      result.current.add(stub);
+    });
+    await waitFor(() => expect(result.current.isAdding).toBe(true));
+
+    // 로그아웃 시 useAuth가 하는 것과 동일하게 캐시를 통째로 제거한다.
+    act(() => {
+      client.removeQueries({ queryKey: FAVORITES_QUERY_KEY });
+    });
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
+
+    // 로그아웃 이후에야 add 응답이 도착해도 제거된 캐시를 되살리면 안 된다.
+    await act(async () => {
+      resolveAdd(stubFavorite);
+    });
+
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
+  });
+
+  it("remove 진행 중 로그아웃으로 캐시가 제거되면 늦게 도착한 실패 응답이 캐시를 되살리지 않는다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [stubFavorite] });
+    let rejectRemove: (reason: unknown) => void = () => {};
+    mockRemoveFavorite.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectRemove = reject;
+      }),
+    );
+
+    const { wrapper, client } = createWrapperWithClient();
+    const { result } = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => {
+      result.current.remove("content-1");
+    });
+    await waitFor(() => expect(result.current.isRemoving).toBe(true));
+
+    act(() => {
+      client.removeQueries({ queryKey: FAVORITES_QUERY_KEY });
+    });
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
+
+    await act(async () => {
+      rejectRemove(new ApiError(500, "서버 오류", "INTERNAL_ERROR"));
+    });
+
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
+  });
+
+  it("isFavoritePending은 다른 훅 인스턴스에서 진행 중인 같은 콘텐츠의 add 요청도 감지한다", async () => {
+    mockGetFavorites.mockResolvedValue({ items: [] });
+    // 영원히 끝나지 않는 요청으로, 인스턴스 A가 언마운트된 뒤에도 "진행
+    // 중"인 상태를 유지한다(카드 언마운트·리마운트 시나리오 재현).
+    mockAddFavorite.mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = createWrapperWithClient();
+
+    const instanceA = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(instanceA.result.current.items).toEqual([]));
+
+    act(() => {
+      instanceA.result.current.add(stub);
+    });
+    await waitFor(() => expect(instanceA.result.current.isAdding).toBe(true));
+
+    // 다른 곳에서 새로 마운트된 인스턴스(예: 페이지 이동 후 복귀) — 이
+    // 인스턴스 자신의 addMutation.isPending은 false로 시작하지만,
+    // isFavoritePending은 인스턴스와 무관하게 전역 뮤테이션 캐시를 보므로
+    // 여전히 진행 중인 요청을 감지해야 한다.
+    const instanceB = renderHook(() => useFavorites(), { wrapper });
+    expect(instanceB.result.current.isAdding).toBe(false);
+    expect(instanceB.result.current.isFavoritePending(stub.id)).toBe(true);
+    expect(instanceB.result.current.isFavoritePending("다른-id")).toBe(false);
+  });
+
+  it("isFavoritePending은 다른 훅 인스턴스에서 진행 중인 같은 콘텐츠의 remove 요청도 감지한다", async () => {
+    mockGetFavorites.mockResolvedValue({ items: [stubFavorite] });
+    mockRemoveFavorite.mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = createWrapperWithClient();
+
+    const instanceA = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(instanceA.result.current.items).toHaveLength(1));
+
+    act(() => {
+      instanceA.result.current.remove("content-1");
+    });
+    await waitFor(() => expect(instanceA.result.current.isRemoving).toBe(true));
+
+    const instanceB = renderHook(() => useFavorites(), { wrapper });
+    expect(instanceB.result.current.isRemoving).toBe(false);
+    expect(instanceB.result.current.isFavoritePending("content-1")).toBe(true);
+  });
+});

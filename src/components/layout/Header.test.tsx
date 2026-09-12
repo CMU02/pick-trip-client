@@ -14,8 +14,12 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+const mockUseFavorites = vi.fn();
+vi.mock("@/hooks/useFavorites", () => ({
+  useFavorites: () => mockUseFavorites(),
+}));
+
 import { useBasketStore } from "@/stores/basketStore";
-import { useFavoriteStore } from "@/stores/favoriteStore";
 import type { BasketItem } from "@/types/basket";
 import type { Content } from "@/types/content";
 
@@ -51,9 +55,19 @@ describe("Header", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/contents");
     mockPush.mockClear();
-    // 바구니/찜은 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
+    // 바구니는 전역 스토어라 테스트 간 상태가 누수되므로 초기화한다.
     useBasketStore.setState({ items: [], hydrated: true });
-    useFavoriteStore.setState({ items: [], hydrated: true });
+    mockUseFavorites.mockReturnValue({
+      items: [] as Content[],
+      add: vi.fn(),
+      remove: vi.fn(),
+      isFavorited: () => false,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+      isAdding: false,
+      isRemoving: false,
+    });
   });
 
   it("일정 공유 페이지에서는 헤더를 렌더링하지 않는다", () => {
@@ -282,7 +296,7 @@ describe("Header", () => {
     ).toHaveAttribute("href", "/mypage");
   });
 
-  it("로그인 상태에서는 홈/콘텐츠 탐색/AI일정 대신 대시보드 링크만 보여준다", () => {
+  it("로그인 상태에서도 홈/콘텐츠 탐색/AI일정 링크가 그대로 보이고 대시보드 링크가 추가로 보인다", () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",
       user: {
@@ -298,13 +312,18 @@ describe("Header", () => {
 
     render(<Header />);
 
-    expect(screen.queryByRole("link", { name: "홈" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "콘텐츠 탐색" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "AI일정" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "홈" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "콘텐츠 탐색" })).toHaveAttribute(
+      "href",
+      "/explore",
+    );
+    expect(screen.getByRole("link", { name: "AI일정" })).toHaveAttribute(
+      "href",
+      "/select/conditions?regions=HADONG,YEONGJU,YECHEON",
+    );
     expect(screen.getByRole("link", { name: "대시보드" })).toHaveAttribute(
       "href",
       "/dashboard",
@@ -456,9 +475,16 @@ describe("Header", () => {
   });
 
   it("드롭다운의 찜한 콘텐츠가 1개 이상이면 카톡 알림 스타일 개수 배지를 보여준다", async () => {
-    useFavoriteStore.setState({
+    mockUseFavorites.mockReturnValue({
       items: [makeFavoriteContent("1"), makeFavoriteContent("2")],
-      hydrated: true,
+      add: vi.fn(),
+      remove: vi.fn(),
+      isFavorited: () => false,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+      isAdding: false,
+      isRemoving: false,
     });
     mockUseAuth.mockReturnValue({
       status: "authenticated",

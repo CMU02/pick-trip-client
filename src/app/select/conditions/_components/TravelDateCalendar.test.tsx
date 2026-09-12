@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TravelDateCalendar } from "./TravelDateCalendar";
 
@@ -13,6 +13,17 @@ function drag(fromEl: HTMLElement, toEl: HTMLElement) {
 }
 
 describe("TravelDateCalendar", () => {
+  // 테스트가 2026-09 기준 하드코딩 날짜(과거 날짜 비활성화 로직에 걸림)를 쓰므로
+  // 실제 시각과 무관하게 "오늘"을 2026-09-01로 고정한다. Date만 페이크하고
+  // 타이머는 그대로 둬서 userEvent 동작에 영향이 없다.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-01T00:00:00"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("선택된 날짜의 연/월을 헤더에 보여준다", () => {
     render(
       <TravelDateCalendar
