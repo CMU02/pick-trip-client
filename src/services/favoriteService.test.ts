@@ -177,6 +177,7 @@ describe("favoriteToContent", () => {
       address: "경남 하동군",
       summary: "천년 고찰",
       indoor: false,
+      createdAt: "2026-01-01T00:00:00Z",
     });
   });
 
@@ -203,6 +204,7 @@ describe("favoriteToContent", () => {
       address: "",
       summary: undefined,
       indoor: undefined,
+      createdAt: "2026-01-01T00:00:00Z",
     });
   });
 });

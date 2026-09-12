@@ -123,12 +123,23 @@ describe("FavoritesClient", () => {
     );
   });
 
-  it("가장 최근에 찜한 콘텐츠를 목록 맨 앞에 보여준다", () => {
+  it("가장 최근에 찜한 콘텐츠를 목록 맨 앞에 보여준다(createdAt 기준, 응답 순서와 무관)", () => {
     mockUseAuth.mockReturnValue({ status: "authenticated", user: null });
+    // 응답 배열 순서(쌍계사가 먼저)와 createdAt(화개장터가 더 최근)을
+    // 일부러 어긋나게 둔다 — 배열 순서를 뒤집는 게 아니라 createdAt으로
+    // 정렬한다는 걸 확인하기 위해서다.
     mockFavorites({
       items: [
-        makeContent({ id: "1", name: "쌍계사" }),
-        makeContent({ id: "2", name: "화개장터" }),
+        makeContent({
+          id: "1",
+          name: "쌍계사",
+          createdAt: "2026-01-01T00:00:00Z",
+        }),
+        makeContent({
+          id: "2",
+          name: "화개장터",
+          createdAt: "2026-02-01T00:00:00Z",
+        }),
       ],
     });
 
