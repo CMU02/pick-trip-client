@@ -105,6 +105,26 @@ describe("TripCourseList", () => {
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
 
+  it("확인 UI가 뜬 상태에서 같은 행을 다시 누르면 확인 없이 이동하지 않는다", async () => {
+    mockItems = [{ content: stubContent, addedAt: Date.now(), priority: null }];
+    render(<TripCourseList />);
+
+    const course = TRIP_COURSES[0];
+    await userEvent.click(rowButton(course));
+    expect(
+      screen.getByText("현재 담은 1개를 이 코스로 바꿉니다."),
+    ).toBeInTheDocument();
+
+    // 확인 패널이 뜬 채로 같은 행을 재클릭 — no-op이어야 한다.
+    await userEvent.click(rowButton(course));
+
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("현재 담은 1개를 이 코스로 바꿉니다."),
+    ).toBeInTheDocument();
+  });
+
   it("확인 UI에서 취소를 누르면 이동하지 않고 확인 UI가 닫힌다", async () => {
     mockItems = [{ content: stubContent, addedAt: Date.now(), priority: null }];
     render(<TripCourseList />);

@@ -70,7 +70,12 @@ export function TripCourseList() {
   }
 
   function handleSelect(course: TripCourse) {
-    if (items.length > 0 && confirmingSlug !== course.slug) {
+    // 확인 패널이 이미 열려 있는 행이면 재클릭은 아무 효과가 없다 — 진행은
+    // "계속" 버튼으로만, 닫기는 "취소" 버튼으로만 한다. 이 가드가 없으면
+    // 패널이 뜬 상태에서 같은 행을 다시 누를 때 확인 없이 곧장 바구니가
+    // 교체돼 버렸다.
+    if (confirmingSlug === course.slug) return;
+    if (items.length > 0) {
       setConfirmingSlug(course.slug);
       return;
     }
