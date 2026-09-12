@@ -10,10 +10,11 @@ import { JOURNEY_STEPS } from "@/lib/journey";
 import { cn } from "@/lib/utils";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
-import type {
-  ItineraryGenerateMode,
-  ItineraryGenerateRequest,
-  TravelMode,
+import {
+  type ItineraryGenerateMode,
+  type ItineraryGenerateRequest,
+  TRAVEL_MODE_LABELS,
+  type TravelMode,
 } from "@/types/itinerary";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
@@ -54,10 +55,9 @@ const MODE_OPTIONS: {
   },
 ];
 
-const TRAVEL_MODE_OPTIONS: { value: TravelMode; label: string }[] = [
-  { value: "CAR", label: "자동차" },
-  { value: "TRANSIT", label: "대중교통" },
-];
+const TRAVEL_MODE_OPTIONS: { value: TravelMode; label: string }[] = (
+  Object.keys(TRAVEL_MODE_LABELS) as TravelMode[]
+).map((value) => ({ value, label: TRAVEL_MODE_LABELS[value] }));
 
 const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
 const DEFAULT_TRAVEL_MODES: TravelMode[] = ["CAR"];

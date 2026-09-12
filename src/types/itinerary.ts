@@ -6,6 +6,11 @@ import type { Region } from "@/types/region";
 export type ItineraryGenerateMode = "STRICT" | "AUGMENT";
 export type TravelMode = "CAR" | "TRANSIT";
 
+export const TRAVEL_MODE_LABELS: Record<TravelMode, string> = {
+  CAR: "자동차",
+  TRANSIT: "대중교통",
+};
+
 export interface ItineraryGenerateRequest {
   // STRICT(기본) = 바구니에 담은 장소만. AUGMENT = AI가 같은 지역 콘텐츠를
   // 추가 제안할 수 있음(추가된 항목은 addedByAi: true로 표시).
