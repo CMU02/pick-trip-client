@@ -11,7 +11,7 @@ import type { Content } from "@/types/content";
 // 클릭하면 로그인으로 유도한다.
 export function useFavoriteHeart(content: Content) {
   const { status } = useAuth();
-  const { items, add, remove, isAdding, isRemoving } = useFavorites();
+  const { items, add, remove, isFavoritePending } = useFavorites();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -22,7 +22,11 @@ export function useFavoriteHeart(content: Content) {
   const active = authed && items.some((c) => c.id === content.id);
   // 찜 추가/제거 요청이 아직 끝나지 않은 동안 중복 클릭으로 요청이 겹치지
   // 않도록 소비처(버튼)가 disabled 처리에 쓸 수 있게 노출한다.
-  const pending = isAdding || isRemoving;
+  // isFavoritePending은 이 훅을 호출하는 컴포넌트 인스턴스가 아니라
+  // 전역 뮤테이션 캐시를 기준으로 판단한다(useFavorites 참고) — 같은
+  // 콘텐츠의 하트가 언마운트·리마운트돼도(페이지 이동 후 복귀 등) 이전
+  // 요청이 서버에 여전히 진행 중이면 새 인스턴스도 pending을 true로 본다.
+  const pending = isFavoritePending(content.id);
 
   function toggle() {
     if (!authed) {

@@ -28,6 +28,7 @@ vi.mock("@/hooks/useFavorites", () => ({
       remove: (contentId: string) =>
         setItems((prev) => prev.filter((c) => c.id !== contentId)),
       isFavorited: (contentId: string) => items.some((c) => c.id === contentId),
+      isFavoritePending: () => false,
       isLoading: false,
       isError: false,
       refetch: vi.fn(),

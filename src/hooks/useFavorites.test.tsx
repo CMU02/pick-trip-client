@@ -357,4 +357,49 @@ describe("useFavorites", () => {
 
     expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
   });
+
+  it("isFavoritePending은 다른 훅 인스턴스에서 진행 중인 같은 콘텐츠의 add 요청도 감지한다", async () => {
+    mockGetFavorites.mockResolvedValue({ items: [] });
+    // 영원히 끝나지 않는 요청으로, 인스턴스 A가 언마운트된 뒤에도 "진행
+    // 중"인 상태를 유지한다(카드 언마운트·리마운트 시나리오 재현).
+    mockAddFavorite.mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = createWrapperWithClient();
+
+    const instanceA = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(instanceA.result.current.items).toEqual([]));
+
+    act(() => {
+      instanceA.result.current.add(stub);
+    });
+    await waitFor(() => expect(instanceA.result.current.isAdding).toBe(true));
+
+    // 다른 곳에서 새로 마운트된 인스턴스(예: 페이지 이동 후 복귀) — 이
+    // 인스턴스 자신의 addMutation.isPending은 false로 시작하지만,
+    // isFavoritePending은 인스턴스와 무관하게 전역 뮤테이션 캐시를 보므로
+    // 여전히 진행 중인 요청을 감지해야 한다.
+    const instanceB = renderHook(() => useFavorites(), { wrapper });
+    expect(instanceB.result.current.isAdding).toBe(false);
+    expect(instanceB.result.current.isFavoritePending(stub.id)).toBe(true);
+    expect(instanceB.result.current.isFavoritePending("다른-id")).toBe(false);
+  });
+
+  it("isFavoritePending은 다른 훅 인스턴스에서 진행 중인 같은 콘텐츠의 remove 요청도 감지한다", async () => {
+    mockGetFavorites.mockResolvedValue({ items: [stubFavorite] });
+    mockRemoveFavorite.mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = createWrapperWithClient();
+
+    const instanceA = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(instanceA.result.current.items).toHaveLength(1));
+
+    act(() => {
+      instanceA.result.current.remove("content-1");
+    });
+    await waitFor(() => expect(instanceA.result.current.isRemoving).toBe(true));
+
+    const instanceB = renderHook(() => useFavorites(), { wrapper });
+    expect(instanceB.result.current.isRemoving).toBe(false);
+    expect(instanceB.result.current.isFavoritePending("content-1")).toBe(true);
+  });
 });
