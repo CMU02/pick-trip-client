@@ -5,7 +5,7 @@ import { dayTravelLabel } from "@/lib/itinerary";
 import type { Day } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
 import { DayRouteLegs } from "./DayRouteLegs";
-import { ItineraryMap } from "./ItineraryMap";
+import { CORAL, ItineraryMap } from "./ItineraryMap";
 
 interface DayMapPanelProps {
   days: Day[];
@@ -50,10 +50,11 @@ export function DayMapPanel({
     last.title,
   )},${last.lat},${last.lng}`;
   const travelLabel = dayTravelLabel(day, mapDay);
-  // DayMapPanel/day 뷰는 항상 코랄로 그린다(ItineraryMap의 CORAL 상수와 동일).
-  // dayIndex별 색으로 바꾸면 AI 일정 생성 결과·공유 페이지의 지도 색까지 함께
-  // 바뀌므로 이번 범위에서는 하지 않는다.
-  const dayColor = "#F2542D";
+  // DayMapPanel/day 뷰는 항상 코랄로 그린다(ItineraryMap이 day 뷰에 쓰는
+  // CORAL 상수를 그대로 가져와 값이 어긋나지 않게 한다). dayIndex별 색으로
+  // 바꾸면 AI 일정 생성 결과·공유 페이지의 지도 색까지 함께 바뀌므로 이번
+  // 범위에서는 하지 않는다.
+  const dayColor = CORAL;
 
   return (
     <section className="overflow-hidden rounded-[20px] border border-border bg-card">
