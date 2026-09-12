@@ -223,6 +223,12 @@ export function HowItWorksSection() {
           aria-label="일정 만드는 4단계"
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
+          // 키보드/스크린리더로 '이전 단계'나 step 버튼에 포커스가 들어와
+          // 있는 동안에도 자동 전환을 멈춘다(WAI-ARIA 캐러셀 패턴의 focus
+          // 시 pause 요구사항). onFocus/onBlur는 버블링하므로 하위 버튼의
+          // 포커스 변화도 이 섹션에서 잡힌다 — focus-within과 동일한 효과.
+          onFocus={() => setHover(true)}
+          onBlur={() => setHover(false)}
           onKeyDown={onKeyDown}
           className="mt-9 overflow-hidden rounded-[32px] border border-border bg-white shadow-[0_2px_6px_oklch(0.4_0.03_30_/_0.04),0_28px_60px_oklch(0.4_0.03_30_/_0.09)]"
         >
