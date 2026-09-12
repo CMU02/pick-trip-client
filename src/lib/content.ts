@@ -4,6 +4,7 @@ import {
   CONTENT_CATEGORIES,
   type Content,
   type ContentCategory,
+  type VisitorStats,
 } from "@/types/content";
 
 // 콘텐츠 목록을 한 번에 얼마씩 불러올지. 서버 컴포넌트의 초기 fetch와
@@ -121,4 +122,45 @@ export function mergeUniqueContents(contents: Content[]): Content[] {
     result.push(content);
   }
   return result;
+}
+
+// 자체 프록시(source: "PickTrip 내부 지표")는 그 콘텐츠가 바구니에 담긴
+// 횟수일 뿐 실제 방문자수가 아니다 — "방문자수"로 표기하면 오해를 준다.
+function isSelfProxy(stats: VisitorStats): boolean {
+  return stats.source === "PickTrip 내부 지표";
+}
+
+/**
+ * 콘텐츠 카드용 한 줄 캡션. visitorStats가 없으면 null(카드에 아무것도
+ * 그리지 않음 — 레이아웃은 그대로 유지된다).
+ */
+export function visitorStatsCaption(
+  stats: VisitorStats | null | undefined,
+): string | null {
+  if (!stats) return null;
+  const count = stats.totalVisitors.toLocaleString("ko-KR");
+  if (isSelfProxy(stats)) {
+    return `여행자들이 ${count}번 담았어요`;
+  }
+  return `지역 방문자 ${count}명 · 지역 기준 근사값`;
+}
+
+/**
+ * 상세 페이지 정보 행(라벨/값)용. source에 따라 문구를 나눈다 — 지역 통계는
+ * "지역 방문자수"로, 자체 프록시는 "관심도"로 성격 자체가 다르기 때문이다.
+ * visitorStats가 없으면 null(행 자체를 만들지 않는다).
+ */
+export function visitorStatsDetailRow(
+  stats: VisitorStats | null | undefined,
+): { label: string; value: string } | null {
+  if (!stats) return null;
+  const count = stats.totalVisitors.toLocaleString("ko-KR");
+  if (isSelfProxy(stats)) {
+    return { label: "관심도", value: `여행 일정에 ${count}번 담김` };
+  }
+  const period = stats.period ? ` (${stats.period} 누적)` : "";
+  return {
+    label: "지역 방문자수",
+    value: `${count}명${period} · 지역 기준 근사값`,
+  };
 }

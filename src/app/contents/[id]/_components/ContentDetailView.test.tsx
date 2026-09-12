@@ -161,6 +161,57 @@ describe("ContentDetailView", () => {
     expect(screen.queryByText("데이터 출처")).not.toBeInTheDocument();
   });
 
+  it("visitorStats가 없으면 방문자수 관련 행을 렌더하지 않는다", () => {
+    render(<ContentDetailView content={{ ...stub, visitorStats: null }} />);
+    expect(screen.queryByText("지역 방문자수")).not.toBeInTheDocument();
+    expect(screen.queryByText("관심도")).not.toBeInTheDocument();
+  });
+
+  it("지역 통계 visitorStats가 있으면 '지역 방문자수' 행에 기간과 근사값 문구를 담는다", () => {
+    render(
+      <ContentDetailView
+        content={{
+          ...stub,
+          visitorStats: {
+            totalVisitors: 608_859,
+            dailyAverageVisitors: 19_640,
+            period: "2026-07~2026-08",
+            source: "한국관광공사 지역별 방문자수",
+            baseDate: "2026-08-31",
+            approximate: true,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("지역 방문자수")).toBeInTheDocument();
+    expect(
+      screen.getByText("608,859명 (2026-07~2026-08 누적) · 지역 기준 근사값"),
+    ).toBeInTheDocument();
+  });
+
+  it("자체 프록시 visitorStats(PickTrip 내부 지표)면 '관심도' 행으로 담긴 횟수를 보여준다", () => {
+    render(
+      <ContentDetailView
+        content={{
+          ...stub,
+          visitorStats: {
+            totalVisitors: 12,
+            dailyAverageVisitors: null,
+            period: null,
+            source: "PickTrip 내부 지표",
+            baseDate: "2026-08-31",
+            approximate: true,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("관심도")).toBeInTheDocument();
+    expect(screen.getByText("여행 일정에 12번 담김")).toBeInTheDocument();
+    expect(screen.queryByText("지역 방문자수")).not.toBeInTheDocument();
+  });
+
   it("담기 버튼을 렌더한다", () => {
     render(<ContentDetailView content={stub} />);
     expect(screen.getByRole("button", { name: /담기/ })).toBeInTheDocument();
