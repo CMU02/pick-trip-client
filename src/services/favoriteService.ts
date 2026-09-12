@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type { Content } from "@/types/content";
 import type {
@@ -5,10 +6,6 @@ import type {
   FavoriteResponse,
   FavoritesResponse,
 } from "@/types/favorite";
-
-function authHeaders(accessToken?: string) {
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
-}
 
 export async function getFavorites(
   accessToken?: string,
