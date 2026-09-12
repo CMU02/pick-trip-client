@@ -16,10 +16,23 @@ import type { Content } from "@/types/content";
 
 interface AddContext {
   previous: Content[];
+  // onMutate가 낙관적 업데이트를 반영한 직후의 캐시 세대(dataUpdatedAt).
+  // onSuccess/onError 시점에 이 값이 달라져 있다면 그 사이 로그아웃(캐시
+  // 제거)이나 새 로그인의 refetch가 캐시를 건드린 것이므로 되돌리거나
+  // 덮어쓰지 않는다.
+  generation: number | undefined;
 }
 
 interface RemoveContext {
   previous: Content[];
+  generation: number | undefined;
+}
+
+function currentFavoritesGeneration(
+  queryClient: ReturnType<typeof useQueryClient>,
+): number | undefined {
+  return queryClient.getQueryState<Content[]>(FAVORITES_QUERY_KEY)
+    ?.dataUpdatedAt;
 }
 
 // 서버 찜 목록(/api/v1/favorites)을 React Query로 캐싱하는 훅. 비로그인
@@ -57,9 +70,15 @@ export function useFavorites() {
           content,
         ]);
       }
-      return { previous };
+      return { previous, generation: currentFavoritesGeneration(queryClient) };
     },
-    onSuccess: (response, content) => {
+    onSuccess: (response, content, context) => {
+      // 응답을 기다리는 사이 로그아웃으로 캐시가 비워졌거나 다음 로그인의
+      // refetch가 이미 새 데이터를 채웠다면, 이 요청은 더 이상 현재
+      // 세션의 것이 아니므로 캐시에 쓰지 않는다.
+      if (currentFavoritesGeneration(queryClient) !== context.generation) {
+        return;
+      }
       const current =
         queryClient.getQueryData<Content[]>(FAVORITES_QUERY_KEY) ?? [];
       queryClient.setQueryData<Content[]>(
@@ -70,6 +89,9 @@ export function useFavorites() {
       );
     },
     onError: (err, _content, context) => {
+      if (currentFavoritesGeneration(queryClient) !== context?.generation) {
+        return;
+      }
       // 이미 찜한 상태라 서버가 중복으로 거절한 경우, 화면에는 이미 찜한
       // 상태로 보이는 게 맞으므로 낙관적 업데이트를 그대로 둔다.
       if (parseApiError(err).code === "FAVORITE_DUPLICATE") return;
@@ -90,9 +112,12 @@ export function useFavorites() {
         FAVORITES_QUERY_KEY,
         previous.filter((c) => c.id !== contentId),
       );
-      return { previous };
+      return { previous, generation: currentFavoritesGeneration(queryClient) };
     },
     onError: (err, _contentId, context) => {
+      if (currentFavoritesGeneration(queryClient) !== context?.generation) {
+        return;
+      }
       // 이미 찜이 없는 상태라 서버가 404로 응답한 경우도 마찬가지로 낙관적
       // 업데이트(제거됨)를 유지한다.
       if (parseApiError(err).code === "FAVORITE_NOT_FOUND") return;
