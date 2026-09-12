@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HowItWorksSection } from "./HowItWorksSection";
 
@@ -71,5 +71,44 @@ describe("HowItWorksSection", () => {
     expect(
       screen.getByRole("button", { name: "자동 재생" }),
     ).toBeInTheDocument();
+  });
+
+  describe("키보드 포커스와 자동 전환", () => {
+    // INTERVAL_MS(3000ms)보다 약간 긴 시간 — 실제 컴포넌트 내부 상수는
+    // export하지 않으므로 여기서는 값을 하드코딩해 타이머를 흘려보낸다.
+    const INTERVAL_MS = 3000;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("캐러셀 컨트롤에 키보드 포커스가 있는 동안 자동 전환을 멈춘다", () => {
+      render(<HowItWorksSection />);
+      const track = screen.getByTestId("how-carousel-track");
+      const prevButton = screen.getByRole("button", { name: "이전 단계" });
+
+      // 마우스 hover 없이 포커스만 들어온 상태 — 이전에는 이 경우 자동
+      // 전환이 멈추지 않았다(WAI-ARIA 캐러셀 패턴 위반).
+      act(() => {
+        prevButton.focus();
+      });
+      act(() => {
+        vi.advanceTimersByTime(INTERVAL_MS + 500);
+      });
+      expect(track).toHaveStyle({ transform: "translateX(-0%)" });
+
+      // 포커스가 빠지면 다시 자동 전환된다.
+      act(() => {
+        prevButton.blur();
+      });
+      act(() => {
+        vi.advanceTimersByTime(INTERVAL_MS + 500);
+      });
+      expect(track).toHaveStyle({ transform: "translateX(-100%)" });
+    });
   });
 });
