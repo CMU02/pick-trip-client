@@ -33,18 +33,20 @@ const stub: Content = {
 describe("useFavoriteHeart", () => {
   const add = vi.fn();
   const remove = vi.fn();
+  const isFavoritePending = vi.fn(() => false);
 
   beforeEach(() => {
     mockPush.mockClear();
     add.mockClear();
     remove.mockClear();
+    isFavoritePending.mockClear();
+    isFavoritePending.mockReturnValue(false);
     mockUseAuth.mockReturnValue({ status: "authenticated" });
     mockUseFavorites.mockReturnValue({
       items: [],
       add,
       remove,
-      isAdding: false,
-      isRemoving: false,
+      isFavoritePending,
     });
   });
 
@@ -58,8 +60,7 @@ describe("useFavoriteHeart", () => {
       items: [stub],
       add,
       remove,
-      isAdding: false,
-      isRemoving: false,
+      isFavoritePending,
     });
 
     const { result } = renderHook(() => useFavoriteHeart(stub));
@@ -78,8 +79,7 @@ describe("useFavoriteHeart", () => {
       items: [stub],
       add,
       remove,
-      isAdding: false,
-      isRemoving: false,
+      isFavoritePending,
     });
 
     const { result } = renderHook(() => useFavoriteHeart(stub));
@@ -99,45 +99,21 @@ describe("useFavoriteHeart", () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
-  it("isAdding/isRemoving이 모두 false면 pending은 false다", () => {
+  it("isFavoritePending이 false면 pending은 false이고, 콘텐츠 id로 조회한다", () => {
     const { result } = renderHook(() => useFavoriteHeart(stub));
     expect(result.current.pending).toBe(false);
+    expect(isFavoritePending).toHaveBeenCalledWith(stub.id);
   });
 
-  it("isAdding이 true면 pending은 true다", () => {
-    mockUseFavorites.mockReturnValue({
-      items: [],
-      add,
-      remove,
-      isAdding: true,
-      isRemoving: false,
-    });
-
-    const { result } = renderHook(() => useFavoriteHeart(stub));
-    expect(result.current.pending).toBe(true);
-  });
-
-  it("isRemoving이 true면 pending은 true다", () => {
-    mockUseFavorites.mockReturnValue({
-      items: [stub],
-      add,
-      remove,
-      isAdding: false,
-      isRemoving: true,
-    });
+  it("isFavoritePending이 true면 pending은 true다", () => {
+    isFavoritePending.mockReturnValue(true);
 
     const { result } = renderHook(() => useFavoriteHeart(stub));
     expect(result.current.pending).toBe(true);
   });
 
   it("pending이면 toggle을 호출해도 add/remove를 호출하지 않는다", () => {
-    mockUseFavorites.mockReturnValue({
-      items: [],
-      add,
-      remove,
-      isAdding: true,
-      isRemoving: false,
-    });
+    isFavoritePending.mockReturnValue(true);
 
     const { result } = renderHook(() => useFavoriteHeart(stub));
     result.current.toggle();

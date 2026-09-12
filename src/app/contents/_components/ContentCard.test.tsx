@@ -15,6 +15,7 @@ vi.mock("@/hooks/useFavorites", () => ({
     add: vi.fn(),
     remove: vi.fn(),
     isFavorited: () => false,
+    isFavoritePending: () => false,
     isLoading: false,
     isError: false,
     refetch: vi.fn(),

@@ -1,10 +1,19 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/useAuth";
 import { parseApiError } from "@/lib/errors";
-import { FAVORITES_QUERY_KEY } from "@/lib/queryKeys";
+import {
+  FAVORITES_ADD_MUTATION_KEY,
+  FAVORITES_QUERY_KEY,
+  FAVORITES_REMOVE_MUTATION_KEY,
+} from "@/lib/queryKeys";
 import {
   addFavorite,
   contentToAddFavoriteRequest,
@@ -56,6 +65,10 @@ export function useFavorites() {
   const items = favoritesQuery.data ?? [];
 
   const addMutation = useMutation({
+    // 카드마다 이 훅을 따로 호출해 useMutation 인스턴스도 제각각이므로,
+    // 같은 콘텐츠에 대한 요청이 다른 인스턴스에서 이미 진행 중인지는
+    // mutationKey로 전역 뮤테이션 캐시를 봐야 알 수 있다(아래 isFavoritePending 참고).
+    mutationKey: FAVORITES_ADD_MUTATION_KEY,
     mutationFn: (content: Content) =>
       runAuthed((token) =>
         addFavorite(contentToAddFavoriteRequest(content), token),
@@ -102,6 +115,7 @@ export function useFavorites() {
   });
 
   const removeMutation = useMutation({
+    mutationKey: FAVORITES_REMOVE_MUTATION_KEY,
     mutationFn: (contentId: string) =>
       runAuthed((token) => removeFavorite(contentId, token)),
     onMutate: async (contentId): Promise<RemoveContext> => {
@@ -127,6 +141,21 @@ export function useFavorites() {
     },
   });
 
+  // 진행 중인 add/remove 요청의 대상 콘텐츠 id 목록. useFavorites()는
+  // 카드마다 따로 호출되어 addMutation/removeMutation도 인스턴스별로
+  // 따로 존재하므로, 이 훅 인스턴스의 addMutation.isPending만으로는 "같은
+  // 콘텐츠에 대한 요청이 다른(예: 언마운트된) 인스턴스에서 이미 진행
+  // 중인지"를 알 수 없다. mutationKey로 전역 뮤테이션 캐시를 조회하면
+  // 어느 인스턴스가 요청을 시작했는지와 무관하게 판단할 수 있다.
+  const pendingAddIds = useMutationState({
+    filters: { mutationKey: FAVORITES_ADD_MUTATION_KEY, status: "pending" },
+    select: (mutation) => (mutation.state.variables as Content).id,
+  });
+  const pendingRemoveIds = useMutationState({
+    filters: { mutationKey: FAVORITES_REMOVE_MUTATION_KEY, status: "pending" },
+    select: (mutation) => mutation.state.variables as string,
+  });
+
   return {
     items,
     add: (content: Content) => addMutation.mutate(content),
@@ -135,6 +164,11 @@ export function useFavorites() {
     // 캐시된 함수 참조를 그대로 노출하면 React Compiler가 순수 함수로
     // 오인해 상태 변경 시 재계산을 건너뛴다(useFavoriteHeart 참고).
     isFavorited: (contentId: string) => items.some((c) => c.id === contentId),
+    // 위 pendingAddIds/pendingRemoveIds를 그대로 노출하는 대신 함수로
+    // 감싼다 — 호출부(useFavoriteHeart)가 콘텐츠 id 하나에 대한 결과만
+    // 필요하기 때문이다.
+    isFavoritePending: (contentId: string) =>
+      pendingAddIds.includes(contentId) || pendingRemoveIds.includes(contentId),
     isLoading: favoritesQuery.isPending && status === "authenticated",
     isError: favoritesQuery.isError,
     refetch: favoritesQuery.refetch,
