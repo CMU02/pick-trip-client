@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type {
   OAuthExchangeRequest,
@@ -6,10 +7,6 @@ import type {
   TokenRefreshResponse,
   UserMeResponse,
 } from "@/types/auth";
-
-function authHeaders(accessToken?: string) {
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
-}
 
 // 소셜 로그인 자체는 백엔드 oauth2Login이 처리하므로 여기에 대응 함수가 없다.
 // 진입은 /auth/{provider}/start, 토큰 수령은 /auth/callback이 담당한다.

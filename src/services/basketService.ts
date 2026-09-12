@@ -1,3 +1,4 @@
+import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type {
   AddBasketItemRequest,
@@ -5,10 +6,6 @@ import type {
   BasketResponse,
   UpdateBasketConditionsRequest,
 } from "@/types/basket";
-
-function authHeaders(accessToken?: string) {
-  return accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
-}
 
 // 프론트는 duration을 UI 개념인 "박 수"(당일치기=0)로 다루지만, 백엔드는
 // "일수"(당일치기=1, 최소 1)로 정의한다(.agents/docs/domain-model.md). 서비스
