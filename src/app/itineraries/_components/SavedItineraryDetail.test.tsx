@@ -115,6 +115,41 @@ describe("SavedItineraryDetail", () => {
     expect(useItineraryMapData).toHaveBeenCalledWith(data.days);
   });
 
+  it("모든 day의 route가 null이면(카카오 길찾기 실패) 실제 도로 기준 안내 문구를 숨긴다", () => {
+    render(<SavedItineraryDetail data={data} mapData={mapData} />);
+
+    expect(
+      screen.queryByText(/카카오 모빌리티 자동차 길찾기 실제 도로/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("하나라도 route가 있으면 실제 도로 기준 안내 문구를 보여준다", () => {
+    const mapDataWithRoute: ItineraryMapData = {
+      status: "ready",
+      days: [
+        {
+          ...mapData.days[0],
+          route: {
+            totalDistanceMeters: 4200,
+            totalDurationSeconds: 600,
+            segments: [{ distanceMeters: 4200, durationSeconds: 600 }],
+            path: [
+              [127.7, 35.1],
+              [127.72, 35.12],
+            ],
+          },
+        },
+        mapData.days[1],
+      ],
+    };
+
+    render(<SavedItineraryDetail data={data} mapData={mapDataWithRoute} />);
+
+    expect(
+      screen.getByText(/카카오 모빌리티 자동차 길찾기 실제 도로/),
+    ).toBeInTheDocument();
+  });
+
   it("지도 확대 버튼을 누르면 축소 버튼으로 바뀐다", async () => {
     render(<SavedItineraryDetail data={data} mapData={mapData} />);
 
