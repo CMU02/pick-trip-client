@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/errors";
+import { FAVORITES_QUERY_KEY } from "@/lib/queryKeys";
 import type { Content } from "@/types/content";
 import type { FavoriteResponse } from "@/types/favorite";
 import { useFavorites } from "./useFavorites";
@@ -65,6 +66,18 @@ function createWrapper() {
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
+}
+
+// 로그아웃 시나리오 재현용: 훅 바깥에서도 같은 QueryClient를 조작할 수 있게
+// wrapper와 client를 함께 반환한다.
+function createWrapperWithClient() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  return { wrapper, client };
 }
 
 describe("useFavorites", () => {
@@ -281,5 +294,67 @@ describe("useFavorites", () => {
     });
 
     await waitFor(() => expect(result.current.isAdding).toBe(false));
+  });
+
+  it("add 진행 중 로그아웃으로 캐시가 제거되면 늦게 도착한 응답이 캐시를 되살리지 않는다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [] });
+    let resolveAdd: (value: FavoriteResponse) => void = () => {};
+    mockAddFavorite.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAdd = resolve;
+      }),
+    );
+
+    const { wrapper, client } = createWrapperWithClient();
+    const { result } = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    act(() => {
+      result.current.add(stub);
+    });
+    await waitFor(() => expect(result.current.isAdding).toBe(true));
+
+    // 로그아웃 시 useAuth가 하는 것과 동일하게 캐시를 통째로 제거한다.
+    act(() => {
+      client.removeQueries({ queryKey: FAVORITES_QUERY_KEY });
+    });
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
+
+    // 로그아웃 이후에야 add 응답이 도착해도 제거된 캐시를 되살리면 안 된다.
+    await act(async () => {
+      resolveAdd(stubFavorite);
+    });
+
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
+  });
+
+  it("remove 진행 중 로그아웃으로 캐시가 제거되면 늦게 도착한 실패 응답이 캐시를 되살리지 않는다", async () => {
+    mockGetFavorites.mockResolvedValueOnce({ items: [stubFavorite] });
+    let rejectRemove: (reason: unknown) => void = () => {};
+    mockRemoveFavorite.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectRemove = reject;
+      }),
+    );
+
+    const { wrapper, client } = createWrapperWithClient();
+    const { result } = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => {
+      result.current.remove("content-1");
+    });
+    await waitFor(() => expect(result.current.isRemoving).toBe(true));
+
+    act(() => {
+      client.removeQueries({ queryKey: FAVORITES_QUERY_KEY });
+    });
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
+
+    await act(async () => {
+      rejectRemove(new ApiError(500, "서버 오류", "INTERNAL_ERROR"));
+    });
+
+    expect(client.getQueryData(FAVORITES_QUERY_KEY)).toBeUndefined();
   });
 });
