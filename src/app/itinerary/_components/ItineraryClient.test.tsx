@@ -237,6 +237,122 @@ describe("ItineraryClient", () => {
     expect(mockClearBasket).toHaveBeenCalledTimes(1);
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
+    // variants가 1개뿐이면 탭을 그리지 않는다 — 기존 화면과 시각적으로 동일.
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("이동수단별 안(variants)이 여러 개면 탭으로 전환할 수 있고, 탭마다 다른 일정을 보여준다", async () => {
+    const emptyMetrics = {
+      totalTravelMinutes: null,
+      totalWalkingMinutes: null,
+      totalTransitCost: null,
+      placeCount: null,
+      unavailableReasons: {},
+    };
+    const carDays: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-car-1",
+        dayIndex: 0,
+        items: [
+          {
+            itemId: "item-car-1",
+            contentId: "content-1",
+            title: "쌍계사",
+            order: 0,
+            reason: "",
+            pinned: false,
+          },
+        ],
+      },
+    ];
+    const transitDays: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-transit-1",
+        dayIndex: 0,
+        items: [
+          {
+            itemId: "item-transit-1",
+            contentId: "content-2",
+            title: "화개장터",
+            order: 0,
+            reason: "",
+            pinned: false,
+          },
+        ],
+      },
+    ];
+    const multiVariantResponse: ItineraryGenerateResponse = {
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      adjustments: [],
+      days: carDays,
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 1박 2일 여행",
+          days: carDays,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+        {
+          label: "대중교통 힐링 루트",
+          travelMode: "TRANSIT",
+          title: "하동 1박 2일 여행",
+          days: transitDays,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+      ],
+      suggestions: [],
+    };
+
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(multiVariantResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    // 기본은 첫 번째 안(자동차)이다.
+    expect(await screen.findByText("쌍계사")).toBeInTheDocument();
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "자동차 힐링 루트" }),
+    ).toHaveAttribute("aria-selected", "true");
+
+    await userEvent.click(
+      screen.getByRole("tab", { name: "대중교통 힐링 루트" }),
+    );
+
+    expect(await screen.findByText("화개장터")).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
   });
 
   it("미리보기 사이드바에 Kakao 길찾기 실도로 거리로 '이동 거리 합계' 카드를 표시한다", async () => {
@@ -476,9 +592,13 @@ describe("ItineraryClient", () => {
       title: "쌍계사",
       priority: "MUST_VISIT",
     });
+    const adjustments = ["'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."];
     mockGenerateItinerary.mockResolvedValue({
       ...mockGenerateResponse,
-      adjustments: ["'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."],
+      adjustments,
+      // ItineraryClient는 variants[0]의 adjustments를 그린다 — 최상위만
+      // 바꾸면 화면에 반영되지 않는다.
+      variants: [{ ...mockGenerateResponse.variants[0], adjustments }],
     });
 
     renderWithClient(
@@ -634,19 +754,25 @@ describe("ItineraryClient", () => {
       title: "쌍계사",
       priority: "MUST_VISIT",
     });
+    const daysWithNullPinned: ItineraryGenerateResponse["days"] = [
+      {
+        ...mockGenerateResponse.days[0],
+        items: [
+          {
+            ...mockGenerateResponse.days[0].items[0],
+            // 백엔드가 실제로는 pinned를 null로 내려보내는 경우가 있어 이를 재현한다.
+            pinned: null as unknown as boolean,
+          },
+        ],
+      },
+    ];
     mockGenerateItinerary.mockResolvedValue({
       ...mockGenerateResponse,
-      days: [
-        {
-          ...mockGenerateResponse.days[0],
-          items: [
-            {
-              ...mockGenerateResponse.days[0].items[0],
-              // 백엔드가 실제로는 pinned를 null로 내려보내는 경우가 있어 이를 재현한다.
-              pinned: null as unknown as boolean,
-            },
-          ],
-        },
+      days: daysWithNullPinned,
+      // ItineraryClient는 저장 시 variants[0]의 days를 실어 보낸다 — 최상위만
+      // 바꾸면 저장 요청에 반영되지 않는다.
+      variants: [
+        { ...mockGenerateResponse.variants[0], days: daysWithNullPinned },
       ],
     });
     mockSaveItinerary.mockResolvedValue(mockSavedResponse);
@@ -834,7 +960,39 @@ describe("ItineraryClient", () => {
           ],
         },
       ],
-      variants: [],
+      // itineraryService는 항상 variants를 최소 1개 채워 보장한다 — 이 픽스처도
+      // 그 계약을 따라야 ItineraryClient의 activeVariantOf가 정상 동작한다.
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 여행",
+          days: [
+            {
+              dayId: "day-1",
+              dayIndex: 1,
+              items: [
+                {
+                  itemId: "i1",
+                  contentId: "content-1",
+                  title: "쌍계사",
+                  order: 0,
+                  reason: "대표 명소",
+                  pinned: false,
+                },
+              ],
+            },
+          ],
+          adjustments: [],
+          metrics: {
+            totalTravelMinutes: null,
+            totalWalkingMinutes: null,
+            totalTransitCost: null,
+            placeCount: null,
+            unavailableReasons: {},
+          },
+        },
+      ],
       suggestions: [],
     });
 

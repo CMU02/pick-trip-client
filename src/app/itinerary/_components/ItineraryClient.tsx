@@ -38,6 +38,7 @@ import type {
   ItineraryGenerateRequest,
   ItineraryGenerateResponse,
   ItineraryResponse,
+  ItineraryVariant,
   SaveItineraryRequest,
 } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
@@ -55,6 +56,7 @@ import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
 import { TripDistanceCard } from "./TripDistanceCard";
 import { TripSummary } from "./TripSummary";
+import { VariantTabs } from "./VariantTabs";
 
 // useItineraryMapData 를 조건부로 부를 수 없어(hooks 규칙), 지도 대상이 아닌
 // 단계에서 넘길 안정된 빈 배열.
@@ -211,6 +213,19 @@ type ItineraryPhase =
   | { status: "saving"; data: ItineraryGenerateResponse }
   | { status: "saved"; data: ItineraryResponse }
   | { status: "error"; message: string; code?: string; traceId?: string };
+
+// 사용자가 탭으로 고른 이동수단별 안. 인덱스가 범위를 벗어나면(예: 이전
+// 생성에서 골랐던 인덱스가 새 생성의 variants 수보다 큼) 0번째로 되돌린다.
+function activeVariantOf(
+  data: ItineraryGenerateResponse,
+  selectedIndex: number,
+): ItineraryVariant {
+  const clamped = Math.min(
+    Math.max(selectedIndex, 0),
+    data.variants.length - 1,
+  );
+  return data.variants[clamped];
+}
 
 // 로그인 기능이 아직 구현되지 않아 generate가 401 AUTH_REQUIRED를 반환하는 동안,
 // 결과 화면 UX를 확인할 수 있도록 바구니 콘텐츠로 로컬 미리보기 데이터를 만든다.
@@ -382,6 +397,9 @@ export function ItineraryClient({
 }: ItineraryClientProps) {
   const [phase, setPhase] = useState<ItineraryPhase>({ status: "idle" });
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
+  // 이동수단별 안(variants) 중 사용자가 탭으로 고른 것. 안이 1개뿐이면(옵션
+  // 미지정 시 기본) 항상 0이라 화면은 지금까지와 완전히 동일하게 보인다.
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const { items, clear: clearBasket, save: saveBasket } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const setMapSnapshot = useItineraryMapSnapshotStore((s) => s.set);
@@ -393,7 +411,7 @@ export function ItineraryClient({
     phase.status === "preview" ||
     phase.status === "saving" ||
     phase.status === "loginPreview"
-      ? phase.data.days
+      ? activeVariantOf(phase.data, selectedVariantIndex).days
       : EMPTY_DAYS;
   const mapData = useItineraryMapData(previewDays);
 
@@ -490,6 +508,7 @@ export function ItineraryClient({
       // 남아있던 문제를 해결한다.
       onSuccess: (data) => {
         clearBasket();
+        setSelectedVariantIndex(0);
         setPhase({ status: "preview", data });
       },
       onError: (err) => {
@@ -507,6 +526,7 @@ export function ItineraryClient({
           // 남겨 로그인/다시 생성으로 흐름을 이어갈 때만 복원한다.
           preLoginBasketRef.current = items;
           clearBasket();
+          setSelectedVariantIndex(0);
           setPhase({ status: "loginPreview", data });
           return;
         }
@@ -529,8 +549,10 @@ export function ItineraryClient({
   function handleSave(title: string) {
     if (phase.status !== "preview") return;
     const previewData = phase.data;
+    // 탭으로 고른 안을 저장한다 — variants가 1개뿐이면 지금까지와 동일하다.
+    const activeDays = activeVariantOf(previewData, selectedVariantIndex).days;
     // 장소가 없는 날이 있으면 백엔드가 저장을 거부한다(저장 버튼도 이미 막혀 있음).
-    if (hasEmptyDay(previewData.days)) return;
+    if (hasEmptyDay(activeDays)) return;
 
     setPhase({ status: "saving", data: previewData });
 
@@ -539,7 +561,7 @@ export function ItineraryClient({
       region: previewData.region,
       travelDate: previewData.travelDate,
       duration: previewData.duration,
-      days: toSaveDays(previewData.days),
+      days: toSaveDays(activeDays),
     };
 
     saveMutation.mutate(request, {
@@ -575,7 +597,8 @@ export function ItineraryClient({
   if (phase.status === "loginPreview") {
     // 로그인 전/후 결과 화면을 통일한다: 사이드바는 preview와 동일한
     // TripSummary, "예시" 안내는 일차 카드 위 작은 배너로 둔다.
-    const previewItemCount = phase.data.days.reduce(
+    const activeVariant = activeVariantOf(phase.data, selectedVariantIndex);
+    const previewItemCount = activeVariant.days.reduce(
       (sum, day) => sum + day.items.length,
       0,
     );
@@ -584,7 +607,7 @@ export function ItineraryClient({
         region={phase.data.region}
         duration={phase.data.duration}
         travelDate={phase.data.travelDate}
-        days={phase.data.days}
+        days={activeVariant.days}
         mapData={mapData}
         actions={
           <>
@@ -607,10 +630,17 @@ export function ItineraryClient({
           </>
         }
         banner={
-          <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
-            이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로 저장할
-            수 있어요.
-          </p>
+          <>
+            <VariantTabs
+              variants={phase.data.variants}
+              selectedIndex={selectedVariantIndex}
+              onSelect={setSelectedVariantIndex}
+            />
+            <p className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-[13px] text-primary">
+              이 일정은 담아주신 콘텐츠로 만든 예시예요. 로그인하면 실제로
+              저장할 수 있어요.
+            </p>
+          </>
         }
         sidebar={
           <>
@@ -622,9 +652,9 @@ export function ItineraryClient({
               items={preLoginBasketRef.current}
               showItemList={false}
               itemCount={previewItemCount}
-              days={phase.data.days}
+              days={activeVariant.days}
               travelSummary={null}
-              departureTime={phase.data.days[0]?.items[0]?.startTime ?? null}
+              departureTime={activeVariant.days[0]?.items[0]?.startTime ?? null}
             />
             <TripDistanceCard mapDays={mapData.days} />
           </>
@@ -632,7 +662,10 @@ export function ItineraryClient({
       >
         {(selectedDayIndex, onSelectDay) => (
           <ItineraryResult
-            data={phase.data}
+            data={{
+              days: activeVariant.days,
+              adjustments: activeVariant.adjustments,
+            }}
             mapData={mapData}
             selectedDayIndex={selectedDayIndex}
             onSelectDay={onSelectDay}
@@ -646,13 +679,14 @@ export function ItineraryClient({
 
   if (phase.status === "preview" || phase.status === "saving") {
     const isSaving = phase.status === "saving";
-    const blockedByEmptyDay = hasEmptyDay(phase.data.days);
+    const activeVariant = activeVariantOf(phase.data, selectedVariantIndex);
+    const blockedByEmptyDay = hasEmptyDay(activeVariant.days);
     return (
       <ItineraryResultLayout
         region={phase.data.region}
         duration={phase.data.duration}
         travelDate={phase.data.travelDate}
-        days={phase.data.days}
+        days={activeVariant.days}
         mapData={mapData}
         actions={
           <>
@@ -660,7 +694,7 @@ export function ItineraryClient({
               <>
                 <Button
                   disabled={isSaving || blockedByEmptyDay}
-                  onClick={() => setTitleDraft(phase.data.title)}
+                  onClick={() => setTitleDraft(activeVariant.title)}
                 >
                   저장
                 </Button>
@@ -715,7 +749,12 @@ export function ItineraryClient({
         }
         banner={
           <>
-            <AdjustmentsNotice adjustments={phase.data.adjustments} />
+            <VariantTabs
+              variants={phase.data.variants}
+              selectedIndex={selectedVariantIndex}
+              onSelect={setSelectedVariantIndex}
+            />
+            <AdjustmentsNotice adjustments={activeVariant.adjustments} />
             {phase.status === "preview" && phase.error && (
               <p className="text-sm text-destructive">
                 {phase.error.message}
@@ -741,13 +780,13 @@ export function ItineraryClient({
               showItemList={false}
               // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
               // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
-              itemCount={phase.data.days.reduce(
+              itemCount={activeVariant.days.reduce(
                 (sum, day) => sum + day.items.length,
                 0,
               )}
-              days={phase.data.days}
-              travelSummary={sumDayTravel(phase.data.days)}
-              departureTime={phase.data.days[0]?.items[0]?.startTime ?? null}
+              days={activeVariant.days}
+              travelSummary={sumDayTravel(activeVariant.days)}
+              departureTime={activeVariant.days[0]?.items[0]?.startTime ?? null}
             />
             <TripDistanceCard mapDays={mapData.days} />
           </>
@@ -755,7 +794,10 @@ export function ItineraryClient({
       >
         {(selectedDayIndex, onSelectDay) => (
           <ItineraryResult
-            data={phase.data}
+            data={{
+              days: activeVariant.days,
+              adjustments: activeVariant.adjustments,
+            }}
             mapData={mapData}
             selectedDayIndex={selectedDayIndex}
             onSelectDay={onSelectDay}
