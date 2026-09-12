@@ -239,6 +239,7 @@ function buildLoginPreviewItinerary(
     });
   });
 
+  const adjustments: string[] = [];
   return {
     title: "미리보기 일정",
     region,
@@ -246,7 +247,26 @@ function buildLoginPreviewItinerary(
     duration: nights,
     days,
     // 로컬에서 만든 가짜 데이터라 스케줄러 조정 내역이 없다.
-    adjustments: [],
+    adjustments,
+    // 로컬 목데이터라 이동수단별 안을 만들 수 없다 — 자동차 단일안 하나로
+    // 맞춰 variants를 쓰는 화면(#135)도 그대로 동작하게 한다.
+    variants: [
+      {
+        label: "자동차 힐링 루트",
+        travelMode: "CAR",
+        title: "미리보기 일정",
+        days,
+        adjustments,
+        metrics: {
+          totalTravelMinutes: null,
+          totalWalkingMinutes: null,
+          totalTransitCost: null,
+          placeCount: null,
+          unavailableReasons: {},
+        },
+      },
+    ],
+    suggestions: [],
   };
 }
 
@@ -447,7 +467,7 @@ export function ItineraryClient({
           }
         }
 
-        return generateItinerary(token);
+        return generateItinerary(undefined, token);
       }),
   });
 

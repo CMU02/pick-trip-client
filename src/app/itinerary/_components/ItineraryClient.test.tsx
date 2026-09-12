@@ -90,28 +90,49 @@ function renderWithClient(ui: ReactElement) {
   );
 }
 
+const mockGenerateDays: ItineraryGenerateResponse["days"] = [
+  {
+    dayId: "day-1",
+    dayIndex: 0,
+    items: [
+      {
+        itemId: "item-1",
+        contentId: "content-1",
+        title: "쌍계사",
+        order: 0,
+        reason: "지역 대표 명소",
+        pinned: false,
+      },
+    ],
+  },
+];
+
 const mockGenerateResponse: ItineraryGenerateResponse = {
   title: "하동 1박 2일 여행",
   region: "HADONG",
   travelDate: "2026-08-01",
   duration: 1,
   adjustments: [],
-  days: [
+  days: mockGenerateDays,
+  // v2: travelModes를 지정하지 않은 실제 응답도 자동차 단일 variants를 채워
+  // 보낸다. 최상위 필드와 같은 값을 참조한다.
+  variants: [
     {
-      dayId: "day-1",
-      dayIndex: 0,
-      items: [
-        {
-          itemId: "item-1",
-          contentId: "content-1",
-          title: "쌍계사",
-          order: 0,
-          reason: "지역 대표 명소",
-          pinned: false,
-        },
-      ],
+      label: "자동차 힐링 루트",
+      travelMode: "CAR",
+      title: "하동 1박 2일 여행",
+      days: mockGenerateDays,
+      adjustments: [],
+      metrics: {
+        totalTravelMinutes: null,
+        totalWalkingMinutes: null,
+        totalTransitCost: null,
+        placeCount: null,
+        unavailableReasons: {},
+      },
     },
   ],
+  suggestions: [],
 };
 
 const mockSavedResponse: ItineraryResponse = {
@@ -813,6 +834,8 @@ describe("ItineraryClient", () => {
           ],
         },
       ],
+      variants: [],
+      suggestions: [],
     });
 
     renderWithClient(
