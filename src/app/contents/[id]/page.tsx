@@ -9,6 +9,7 @@ import { getContentById } from "@/services/contentService";
 import { REGION_LABELS } from "@/types/region";
 
 import { ContentDetailView } from "./_components/ContentDetailView";
+import { buildContentJsonLd } from "./_lib/contentJsonLd";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -94,12 +95,22 @@ export default async function ContentDetailPage({
     );
   }
 
+  const jsonLd = buildContentJsonLd(content);
+
   return (
-    <ContentDetailView
-      content={content}
-      showBasketAction={from !== "explore"}
-      backHref={from === "explore" ? "/explore" : undefined}
-      fromParam={from}
-    />
+    <>
+      {/* JSON-LD TouristAttraction. TourAPI 원본 텍스트가 그대로 실리지만,
+          React가 문자열 children 안의 </script> 시퀀스를 s 로 중화해
+          스크립트가 조기 종료되지 않는다. (dangerouslySetInnerHTML은 그
+          중화를 건너뛰므로 여기서 쓰면 안 된다.) */}
+      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+
+      <ContentDetailView
+        content={content}
+        showBasketAction={from !== "explore"}
+        backHref={from === "explore" ? "/explore" : undefined}
+        fromParam={from}
+      />
+    </>
   );
 }
