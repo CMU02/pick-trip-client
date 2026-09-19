@@ -10,11 +10,10 @@ import { JOURNEY_STEPS } from "@/lib/journey";
 import { cn } from "@/lib/utils";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
-import {
-  type ItineraryGenerateMode,
-  type ItineraryGenerateRequest,
-  TRAVEL_MODE_LABELS,
-  type TravelMode,
+import type {
+  ItineraryGenerateMode,
+  ItineraryGenerateRequest,
+  TravelMode,
 } from "@/types/itinerary";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
@@ -55,30 +54,21 @@ const MODE_OPTIONS: {
   },
 ];
 
-const TRAVEL_MODE_OPTIONS: { value: TravelMode; label: string }[] = (
-  Object.keys(TRAVEL_MODE_LABELS) as TravelMode[]
-).map((value) => ({ value, label: TRAVEL_MODE_LABELS[value] }));
-
 const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
-const DEFAULT_TRAVEL_MODES: TravelMode[] = ["CAR"];
+// 이동수단은 더 이상 생성 전에 고르지 않는다 — 항상 전체 이동수단으로 안을
+// 만들고, 결과 화면의 VariantSelector 카드에서 하나를 고르게 한다.
+const ALL_TRAVEL_MODES: TravelMode[] = ["CAR", "TRANSIT"];
 
-// 기본값과 다른 필드만 실어 보낸다 — 아무것도 안 바꾸면 undefined를 돌려줘
-// generateItinerary가 요청 바디 없이 호출한 것과 완전히 같게 동작한다.
+// mode/startContentId는 기본값과 다를 때만 싣지만, travelModes는 항상 전체를
+// 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.
 function buildGenerateOptions(
   mode: ItineraryGenerateMode,
-  travelModes: TravelMode[],
   startContentId: string,
-): ItineraryGenerateRequest | undefined {
-  const options: ItineraryGenerateRequest = {};
+): ItineraryGenerateRequest {
+  const options: ItineraryGenerateRequest = { travelModes: ALL_TRAVEL_MODES };
   if (mode !== DEFAULT_MODE) options.mode = mode;
-  if (
-    travelModes.length !== DEFAULT_TRAVEL_MODES.length ||
-    !travelModes.every((m) => DEFAULT_TRAVEL_MODES.includes(m))
-  ) {
-    options.travelModes = travelModes;
-  }
   if (startContentId) options.startContentId = startContentId;
-  return Object.keys(options).length > 0 ? options : undefined;
+  return options;
 }
 
 // 스펙 §8: 쿼리가 비었을 때 `NaN월 NaN일`이 나오던 문제를 막는다.
@@ -164,26 +154,21 @@ export function PreGenerateView({
 }: PreGenerateViewProps) {
   const { items, remove } = useBasket();
 
-  // 일정 생성 옵션. 서버 기본값과 동일하게 시작한다 — 아무것도 안 바꾸면
-  // buildGenerateOptions가 undefined를 돌려줘 기존과 완전히 같은 요청이 된다.
+  // 일정 생성 옵션. mode/startContentId는 서버 기본값과 동일하게 시작한다.
+  // 이동수단은 사용자가 고르지 않고 항상 전체를 요청한다(ALL_TRAVEL_MODES).
   const [mode, setMode] = useState<ItineraryGenerateMode>(DEFAULT_MODE);
-  const [travelModes, setTravelModes] =
-    useState<TravelMode[]>(DEFAULT_TRAVEL_MODES);
   const [startContentId, setStartContentId] = useState("");
-
-  function toggleTravelMode(value: TravelMode) {
-    setTravelModes((prev) => {
-      if (prev.includes(value)) {
-        // 최소 1개는 항상 선택돼 있어야 한다 — 마지막 하나는 끌 수 없다.
-        if (prev.length === 1) return prev;
-        return prev.filter((m) => m !== value);
-      }
-      return [...prev, value];
-    });
-  }
+  // 고른 시작 장소가 바구니에서 지워지면 select state는 그대로 남는다
+  // (버그였다). 매 렌더 바구니와 대조해 사라진 값은 없는 셈 치고
+  // "AI가 자동으로 정함"으로 되돌린다 — 별도 effect 없이 파생값으로 처리한다.
+  const validStartContentId = items.some(
+    (item) => item.content.id === startContentId,
+  )
+    ? startContentId
+    : "";
 
   function handleGenerateClick() {
-    onGenerate(buildGenerateOptions(mode, travelModes, startContentId));
+    onGenerate(buildGenerateOptions(mode, validStartContentId));
   }
 
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
@@ -391,32 +376,6 @@ export function PreGenerateView({
               </div>
             </div>
 
-            <div className="mt-4">
-              <span className="text-[13px] font-bold text-foreground">
-                이동수단 (선택한 수만큼 비교할 안이 나옵니다)
-              </span>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {TRAVEL_MODE_OPTIONS.map((option) => {
-                  const selected = travelModes.includes(option.value);
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => toggleTravelMode(option.value)}
-                      className={
-                        selected
-                          ? "rounded-full border-[1.5px] border-primary bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
-                          : "rounded-full border-[1.5px] border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-muted-foreground hover:border-primary/40"
-                      }
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {items.length > 0 && (
               <div className="mt-4">
                 <label
@@ -427,7 +386,7 @@ export function PreGenerateView({
                 </label>
                 <select
                   id="start-content-id"
-                  value={startContentId}
+                  value={validStartContentId}
                   onChange={(e) => setStartContentId(e.target.value)}
                   className="mt-2 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
                 >

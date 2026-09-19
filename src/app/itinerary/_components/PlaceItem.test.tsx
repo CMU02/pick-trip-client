@@ -226,4 +226,16 @@ describe("PlaceItem", () => {
     expect(screen.queryByText("AI 추천")).not.toBeInTheDocument();
     expect(screen.queryByText("휴식")).not.toBeInTheDocument();
   });
+
+  it("isStartPoint=true이면 출발 배지를 표시한다", () => {
+    render(<PlaceItem item={makeItem()} isStartPoint />);
+
+    expect(screen.getByText("출발")).toBeInTheDocument();
+  });
+
+  it("isStartPoint가 없으면 출발 배지를 렌더하지 않는다", () => {
+    render(<PlaceItem item={makeItem()} />);
+
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
+  });
 });

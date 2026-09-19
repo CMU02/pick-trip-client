@@ -33,6 +33,43 @@ describe("DayCard", () => {
     expect(screen.getByText("2일차")).toBeInTheDocument();
   });
 
+  it("startContentId와 일치하는 항목에만 출발 배지를 붙인다", () => {
+    render(
+      <DayCard
+        day={makeDay({
+          items: [
+            {
+              itemId: "item-1",
+              contentId: "content-1",
+              title: "쌍계사",
+              order: 0,
+              reason: "",
+              pinned: false,
+            },
+            {
+              itemId: "item-2",
+              contentId: "content-2",
+              title: "화개장터",
+              order: 1,
+              reason: "",
+              pinned: false,
+            },
+          ],
+        })}
+        startContentId="content-2"
+      />,
+    );
+
+    const badges = screen.getAllByText("출발");
+    expect(badges).toHaveLength(1);
+  });
+
+  it("startContentId가 없으면 출발 배지를 렌더하지 않는다", () => {
+    render(<DayCard day={makeDay()} />);
+
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
+  });
+
   it("day의 모든 장소를 렌더한다", () => {
     render(
       <DayCard

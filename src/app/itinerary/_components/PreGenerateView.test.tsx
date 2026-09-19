@@ -95,9 +95,10 @@ describe("PreGenerateView — 생성 버튼 활성 조건", () => {
 
     await userEvent.click(button);
     expect(baseProps.onGenerate).toHaveBeenCalledTimes(1);
-    // 옵션을 하나도 안 바꿨으면 undefined — generateItinerary가 요청 바디
-    // 없이 호출한 것과 완전히 같은 결과가 나와야 한다.
-    expect(baseProps.onGenerate).toHaveBeenCalledWith(undefined);
+    // 이동수단은 사용자가 고르지 않아도 항상 전체를 실어 보낸다.
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+    });
   });
 
   it("담은 콘텐츠가 1개면 비활성화된다", () => {
@@ -119,33 +120,9 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
     ]);
   });
 
-  it("아무것도 바꾸지 않으면 옵션 없이(undefined) onGenerate를 호출한다", async () => {
+  it("아무것도 바꾸지 않아도 이동수단은 항상 CAR·TRANSIT 전체를 실어 보낸다", async () => {
     render(<PreGenerateView {...baseProps} />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "일정 생성하기" }),
-    );
-
-    expect(baseProps.onGenerate).toHaveBeenCalledWith(undefined);
-  });
-
-  it("AI 추천 장소도 추가를 선택하면 mode: AUGMENT를 실어 보낸다", async () => {
-    render(<PreGenerateView {...baseProps} />);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /AI 추천 장소도 추가/ }),
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "일정 생성하기" }),
-    );
-
-    expect(baseProps.onGenerate).toHaveBeenCalledWith({ mode: "AUGMENT" });
-  });
-
-  it("대중교통을 추가로 선택하면 travelModes에 CAR·TRANSIT을 모두 실어 보낸다", async () => {
-    render(<PreGenerateView {...baseProps} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "대중교통" }));
     await userEvent.click(
       screen.getByRole("button", { name: "일정 생성하기" }),
     );
@@ -155,22 +132,34 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
     });
   });
 
-  it("이동수단은 최소 1개를 유지한다 — 마지막 하나는 끌 수 없다", async () => {
+  it("이동수단을 미리 고르는 UI는 없다", () => {
     render(<PreGenerateView {...baseProps} />);
 
-    const carButton = screen.getByRole("button", { name: "자동차" });
-    expect(carButton).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.queryByRole("button", { name: "자동차" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "대중교통" }),
+    ).not.toBeInTheDocument();
+  });
 
-    await userEvent.click(carButton);
-    expect(carButton).toHaveAttribute("aria-pressed", "true");
+  it("AI 추천 장소도 추가를 선택하면 mode: AUGMENT와 함께 실어 보낸다", async () => {
+    render(<PreGenerateView {...baseProps} />);
 
+    await userEvent.click(
+      screen.getByRole("button", { name: /AI 추천 장소도 추가/ }),
+    );
     await userEvent.click(
       screen.getByRole("button", { name: "일정 생성하기" }),
     );
-    expect(baseProps.onGenerate).toHaveBeenCalledWith(undefined);
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      mode: "AUGMENT",
+      travelModes: ["CAR", "TRANSIT"],
+    });
   });
 
-  it("시작 장소를 고르면 startContentId를 실어 보낸다", async () => {
+  it("시작 장소를 고르면 startContentId와 함께 실어 보낸다", async () => {
     render(<PreGenerateView {...baseProps} />);
 
     await userEvent.selectOptions(screen.getByLabelText("시작 장소"), "쌍계사");
@@ -179,6 +168,7 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
     );
 
     expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
       startContentId: "1",
     });
   });
@@ -189,6 +179,30 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
     render(<PreGenerateView {...baseProps} />);
 
     expect(screen.queryByLabelText("시작 장소")).not.toBeInTheDocument();
+  });
+
+  it("시작 장소로 고른 항목을 바구니에서 지우면 선택이 'AI가 자동으로 정함'으로 되돌아간다", async () => {
+    setBasket([
+      { content: content("1", "쌍계사"), priority: "MUST" },
+      { content: content("2", "화개장터"), priority: null },
+      { content: content("3", "최참판댁"), priority: null },
+    ]);
+    render(<PreGenerateView {...baseProps} />);
+
+    const select = screen.getByLabelText("시작 장소");
+    await userEvent.selectOptions(select, "쌍계사");
+    expect(select).toHaveValue("1");
+
+    await userEvent.click(screen.getByRole("button", { name: "쌍계사 삭제" }));
+
+    expect(select).toHaveValue("");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+    });
   });
 });
 

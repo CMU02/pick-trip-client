@@ -237,11 +237,59 @@ describe("ItineraryClient", () => {
     expect(mockClearBasket).toHaveBeenCalledTimes(1);
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
-    // variants가 1개뿐이면 탭을 그리지 않는다 — 기존 화면과 시각적으로 동일.
-    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    // variants가 1개뿐이면 고를 필요가 없어 선택 화면 없이 곧바로 결과가 보인다.
+    expect(
+      screen.queryByText("어떤 루트로 일정을 만들까요?"),
+    ).not.toBeInTheDocument();
   });
 
-  it("이동수단별 안(variants)이 여러 개면 탭으로 전환할 수 있고, 탭마다 다른 일정을 보여준다", async () => {
+  it("시작 장소를 지정해 생성하면 결과 화면에서 그 장소에 출발 배지를 보여준다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText("시작 장소"),
+      "쌍계사",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockGenerateItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({ startContentId: "content-1" }),
+        undefined,
+      );
+    });
+
+    expect(await screen.findByText("출발")).toBeInTheDocument();
+  });
+
+  it("이동수단별 안(variants)이 여러 개면 먼저 카드 선택 화면이 뜨고, 고른 안의 일정을 결과 화면에서 보여준다", async () => {
     const emptyMetrics = {
       totalTravelMinutes: null,
       totalWalkingMinutes: null,
@@ -340,17 +388,18 @@ describe("ItineraryClient", () => {
       await screen.findByRole("button", { name: "일정 생성하기" }),
     );
 
-    // 기본은 첫 번째 안(자동차)이다.
-    expect(await screen.findByText("쌍계사")).toBeInTheDocument();
-    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    // 안이 2개면 결과 화면 대신 먼저 카드 선택 화면이 뜬다 — 결과가 아직 안 보인다.
     expect(
-      screen.getByRole("tab", { name: "자동차 힐링 루트" }),
-    ).toHaveAttribute("aria-selected", "true");
+      await screen.findByText("어떤 루트로 일정을 만들까요?"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole("tab", { name: "대중교통 힐링 루트" }),
+      screen.getByRole("button", { name: "대중교통 힐링 루트" }),
     );
 
+    // 고른 안(대중교통)의 일정만 결과 화면에 보인다.
     expect(await screen.findByText("화개장터")).toBeInTheDocument();
     expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
   });

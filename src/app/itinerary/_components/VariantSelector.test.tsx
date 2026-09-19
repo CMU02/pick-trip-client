@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ItineraryVariant } from "@/types/itinerary";
-import { VariantTabs } from "./VariantTabs";
+import { VariantSelector } from "./VariantSelector";
 
 function variant(overrides: Partial<ItineraryVariant> = {}): ItineraryVariant {
   return {
@@ -22,21 +22,7 @@ function variant(overrides: Partial<ItineraryVariant> = {}): ItineraryVariant {
   };
 }
 
-describe("VariantTabs — 안이 1개일 때", () => {
-  it("아무것도 렌더하지 않는다", () => {
-    const { container } = render(
-      <VariantTabs
-        variants={[variant()]}
-        selectedIndex={0}
-        onSelect={vi.fn()}
-      />,
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-});
-
-describe("VariantTabs — 안이 2개 이상일 때", () => {
+describe("VariantSelector", () => {
   const carVariant = variant({
     label: "자동차 힐링 루트",
     travelMode: "CAR",
@@ -60,36 +46,57 @@ describe("VariantTabs — 안이 2개 이상일 때", () => {
     },
   });
 
-  it("안마다 탭을 렌더하고, 클릭하면 onSelect에 인덱스를 넘긴다", async () => {
+  it("안마다 카드를 렌더하고, 클릭하면 onSelect에 인덱스를 넘긴다", async () => {
     const onSelect = vi.fn();
     render(
-      <VariantTabs
+      <VariantSelector
         variants={[carVariant, transitVariant]}
-        selectedIndex={0}
         onSelect={onSelect}
       />,
     );
 
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(2);
     expect(
-      screen.getByRole("tab", { name: "자동차 힐링 루트" }),
-    ).toHaveAttribute("aria-selected", "true");
+      screen.getByRole("button", { name: "자동차 힐링 루트" }),
+    ).toBeInTheDocument();
     expect(
-      screen.getByRole("tab", { name: "대중교통 힐링 루트" }),
-    ).toHaveAttribute("aria-selected", "false");
+      screen.getByRole("button", { name: "대중교통 힐링 루트" }),
+    ).toBeInTheDocument();
+    expect(onSelect).not.toHaveBeenCalled();
 
     await userEvent.click(
-      screen.getByRole("tab", { name: "대중교통 힐링 루트" }),
+      screen.getByRole("button", { name: "대중교통 힐링 루트" }),
     );
     expect(onSelect).toHaveBeenCalledWith(1);
   });
 
+  it("커서를 올린 카드는 강조하고 다른 카드는 흐리게 한다(호버만으로는 확정하지 않는다)", async () => {
+    const onSelect = vi.fn();
+    render(
+      <VariantSelector
+        variants={[carVariant, transitVariant]}
+        onSelect={onSelect}
+      />,
+    );
+
+    const carCard = screen.getByRole("button", { name: "자동차 힐링 루트" });
+    const transitCard = screen.getByRole("button", {
+      name: "대중교통 힐링 루트",
+    });
+
+    await userEvent.hover(carCard);
+    expect(carCard.className).toMatch(/scale-\[1\.05\]/);
+    expect(transitCard.className).toMatch(/opacity-35/);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    await userEvent.unhover(carCard);
+    expect(carCard.className).not.toMatch(/scale-\[1\.05\]/);
+    expect(transitCard.className).not.toMatch(/opacity-35/);
+  });
+
   it("안별 비교 지표(이동 시간·도보 시간·교통비·장소 수)를 표로 보여준다", () => {
     render(
-      <VariantTabs
+      <VariantSelector
         variants={[carVariant, transitVariant]}
-        selectedIndex={0}
         onSelect={vi.fn()}
       />,
     );
@@ -123,9 +130,8 @@ describe("VariantTabs — 안이 2개 이상일 때", () => {
     });
 
     render(
-      <VariantTabs
+      <VariantSelector
         variants={[carVariant, unknownCost]}
-        selectedIndex={0}
         onSelect={vi.fn()}
       />,
     );

@@ -25,6 +25,9 @@ interface DayCardProps {
   onTogglePinned?: (dayId: string, itemId: string) => void;
   onOpenReplacePicker?: (dayId: string, itemId: string) => void;
   onDismissAiSuggestion?: (dayId: string, itemId: string) => void;
+  // 일정 생성 요청에 startContentId로 지정한 장소의 contentId. 신규 생성
+  // 직후 미리보기 화면에서만 넘어온다.
+  startContentId?: string;
 }
 
 export function DayCard({
@@ -35,6 +38,7 @@ export function DayCard({
   onTogglePinned,
   onOpenReplacePicker,
   onDismissAiSuggestion,
+  startContentId,
 }: DayCardProps) {
   // 백엔드는 dayIndex를 1부터 채번한다.
   const dayNumber = day.dayIndex;
@@ -130,6 +134,10 @@ export function DayCard({
                   item={item}
                   isFirst={index === 0}
                   isLast={index === day.items.length - 1}
+                  isStartPoint={
+                    startContentId !== undefined &&
+                    item.contentId === startContentId
+                  }
                   onMoveUp={
                     onMoveItem
                       ? () => onMoveItem(day.dayId, item.itemId, "up")
