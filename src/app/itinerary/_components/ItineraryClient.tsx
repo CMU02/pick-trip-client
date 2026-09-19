@@ -67,6 +67,11 @@ import { VariantSelector } from "./VariantSelector";
 // 단계에서 넘길 안정된 빈 배열.
 const EMPTY_DAYS: Day[] = [];
 
+// 로그인 왕복(전체 페이지 이동) 동안 리액트 state가 모두 사라지므로, generate
+// 시도에 쓴 옵션(mode·startContentId 등)을 잠깐 sessionStorage에 남겨
+// autoResume이 같은 조건으로 재생성하게 한다.
+const PENDING_GENERATE_OPTIONS_KEY = "pick-trip:pending-generate-options";
+
 // 여행 요약(travelDate·장소 수·이동 합계)을 한 줄로 압축한 결과 헤더 메타.
 // CAR는 실도로 route 합계 우선(없으면 백엔드 스케줄러 값 폴백), TRANSIT은
 // Kakao route가 자동차 전용이라 항상 백엔드 대중교통 모델 값을 쓴다.
@@ -230,12 +235,32 @@ type ItineraryPhase =
   | { status: "saved"; data: ItineraryResponse }
   | { status: "error"; message: string; code?: string; traceId?: string };
 
+// variants가 아예 비어 있을 때(테스트 픽스처 등, generateItinerary는 항상
+// 최소 1개를 보장한다) 결과 화면이 크래시하지 않도록 돌려줄 빈 안.
+const EMPTY_VARIANT_METRICS = {
+  totalTravelMinutes: null,
+  totalWalkingMinutes: null,
+  totalTransitCost: null,
+  placeCount: null,
+  unavailableReasons: {},
+} as const;
+
 // 사용자가 탭으로 고른 이동수단별 안. 인덱스가 범위를 벗어나면(예: 이전
 // 생성에서 골랐던 인덱스가 새 생성의 variants 수보다 큼) 0번째로 되돌린다.
 function activeVariantOf(
   data: ItineraryGenerateResponse,
   selectedIndex: number,
 ): ItineraryVariant {
+  if (data.variants.length === 0) {
+    return {
+      label: "",
+      travelMode: "CAR",
+      title: data.title,
+      days: data.days,
+      adjustments: data.adjustments,
+      metrics: EMPTY_VARIANT_METRICS,
+    };
+  }
   const clamped = Math.min(
     Math.max(selectedIndex, 0),
     data.variants.length - 1,
@@ -245,13 +270,18 @@ function activeVariantOf(
 
 // AI가 추가 제안한(addedByAi) 항목 중 사용자가 저장 전에 지운 것들을 걸러낸다.
 // dismissed가 비어 있으면(가장 흔한 경우) 원본 배열을 그대로 돌려줘 불필요한
-// 리렌더를 피한다. 지운 뒤에는 order를 다시 매겨 번호가 연속되게 한다.
+// 리렌더를 피한다. 지운 뒤에는 order를 다시 매겨 번호가 연속되게 하고,
+// 그 항목이 걸치던 이동 구간이 사라졌으니 방문 시각·이동 요약도 지운다
+// (clearDaySchedule) — 서버가 다시 계산해주지 않는 한 stale 값이 남는다.
 function withAiItemsDismissed(days: Day[], dismissed: Set<string>): Day[] {
   if (dismissed.size === 0) return days;
   return days.map((day) => {
     const items = day.items.filter((item) => !dismissed.has(item.itemId));
     if (items.length === day.items.length) return day;
-    return { ...day, items: items.map((item, i) => ({ ...item, order: i })) };
+    return clearDaySchedule({
+      ...day,
+      items: items.map((item, i) => ({ ...item, order: i })),
+    });
   });
 }
 
@@ -516,10 +546,10 @@ export function ItineraryClient({
       : EMPTY_DAYS;
   const mapData = useItineraryMapData(previewDays);
 
-  // 로그인 전 미리보기로 전환하며 비운 바구니의 스냅샷. "로그인하고 계속하기"나
-  // "다시 생성"으로 흐름을 이어갈 때만 복원하고, 그냥 페이지를 벗어나면
-  // 복원하지 않아 다른 화면에 담아둔 상태가 남지 않는다.
-  const preLoginBasketRef = useRef<BasketItem[]>([]);
+  // generate 성공/AUTH_REQUIRED로 비운 바구니의 스냅샷. "로그인하고 계속하기"나
+  // 선택 화면(VariantSelector) 닫기로 흐름을 이어갈 때만 복원하고, 그냥
+  // 페이지를 벗어나면 복원하지 않아 다른 화면에 담아둔 상태가 남지 않는다.
+  const basketSnapshotRef = useRef<BasketItem[]>([]);
   const autoResumeTriggered = useRef(false);
 
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
@@ -562,38 +592,35 @@ export function ItineraryClient({
           serverBasket.items.map((item) => item.contentId),
         );
 
-        // 각 루프 안의 호출은 서로 다른 항목을 대상으로 해 독립적이므로
-        // Promise.all로 병렬화한다 — 바구니 항목이 많을수록 순차 호출은
-        // "일정 생성하기" 클릭 후 첫 응답까지의 시간이 항목 수에 비례해 늘어났다.
-        await Promise.all(
-          serverBasket.items
-            .filter((serverItem) => !localContentIds.has(serverItem.contentId))
-            .map((serverItem) => removeBasketItem(serverItem.itemId, token)),
-        );
+        // 순차로 호출한다 — Promise.all로 병렬화하면 서버 바구니 순서가
+        // 로컬 순서와 달라지고(스케줄러의 startContentId 기본값이 바구니
+        // 순서를 읽을 수 있음), 중간 항목이 실패해도(BASKET_LIMIT_EXCEEDED
+        // 등) 나머지는 이미 요청이 나가버려 부분 상태가 남는다.
+        for (const serverItem of serverBasket.items) {
+          if (localContentIds.has(serverItem.contentId)) continue;
+          await removeBasketItem(serverItem.itemId, token);
+        }
 
-        await Promise.all(
-          items
-            .filter((item) => !serverContentIds.has(item.content.id))
-            .map(async (item) => {
-              try {
-                await addBasketItem(
-                  {
-                    contentId: item.content.id,
-                    priority:
-                      BASKET_PRIORITY_TO_SERVER[item.priority ?? "OPTIONAL"],
-                    title: item.content.name,
-                    ...(item.content.imageUrl
-                      ? { thumbnailUrl: item.content.imageUrl }
-                      : {}),
-                  },
-                  token,
-                );
-              } catch (err) {
-                const parsed = parseApiError(err);
-                if (parsed.code !== "BASKET_ITEM_DUPLICATE") throw err;
-              }
-            }),
-        );
+        for (const item of items) {
+          if (serverContentIds.has(item.content.id)) continue;
+          try {
+            await addBasketItem(
+              {
+                contentId: item.content.id,
+                priority:
+                  BASKET_PRIORITY_TO_SERVER[item.priority ?? "OPTIONAL"],
+                title: item.content.name,
+                ...(item.content.imageUrl
+                  ? { thumbnailUrl: item.content.imageUrl }
+                  : {}),
+              },
+              token,
+            );
+          } catch (err) {
+            const parsed = parseApiError(err);
+            if (parsed.code !== "BASKET_ITEM_DUPLICATE") throw err;
+          }
+        }
 
         return generateItinerary(options, token);
       }),
@@ -616,6 +643,9 @@ export function ItineraryClient({
       // 로컬 바구니(장바구니)는 비운다 — 담아둔 콘텐츠가 생성 후에도 그대로
       // 남아있던 문제를 해결한다.
       onSuccess: (data) => {
+        // 스냅샷을 먼저 남겨 안이 여러 개일 때 VariantSelector를 닫아도
+        // (선택 없이 취소) 방금 비운 바구니를 되돌릴 수 있게 한다.
+        basketSnapshotRef.current = items;
         clearBasket();
         setChosenVariantIndex(data.variants.length <= 1 ? 0 : null);
         setDismissedAiItemIds(new Set());
@@ -635,7 +665,20 @@ export function ItineraryClient({
           );
           // 로그인 이후 흐름과 동일하게 로컬 바구니를 비운다. 스냅샷은 ref에
           // 남겨 로그인/다시 생성으로 흐름을 이어갈 때만 복원한다.
-          preLoginBasketRef.current = items;
+          basketSnapshotRef.current = items;
+          // 로그인 왕복은 전체 페이지 이동이라 이 컴포넌트의 state가 모두
+          // 사라진다 — 이번 시도에 쓴 옵션(mode·startContentId 등)을
+          // sessionStorage에 남겨 로그인 후 autoResume이 같은 조건으로
+          // 재생성하게 한다. 저장이 막힌 환경(프라이빗 모드 등)이면 그냥
+          // 기본 옵션으로 재생성된다.
+          try {
+            sessionStorage.setItem(
+              PENDING_GENERATE_OPTIONS_KEY,
+              JSON.stringify(options ?? {}),
+            );
+          } catch {
+            // 저장 실패는 무시 — autoResume이 기본 옵션으로 대체한다.
+          }
           clearBasket();
           setChosenVariantIndex(data.variants.length <= 1 ? 0 : null);
           setDismissedAiItemIds(new Set());
@@ -650,16 +693,26 @@ export function ItineraryClient({
 
   // 로그인 후 이 화면으로 되돌아온 경우(autoResume) 바구니에 항목이 복원돼
   // 있으면 곧바로 진짜 생성을 다시 시도한다. 마운트 후 한 번만. PreGenerateView를
-  // 거치지 않는 경로라, 그쪽과 같은 기본 옵션(전체 이동수단)을 직접 넘겨야
-  // 한다 — 이걸 빼먹으면 서버가 CAR 단일 안으로 되돌아가 카드 선택 화면이
-  // 뜨지 않는다(예전 버그).
+  // 거치지 않는 경로라, 로그인 전 시도에 쓴 옵션을 sessionStorage에서 되살려
+  // 넘긴다 — 못 찾으면(직접 URL 진입 등) 그쪽과 같은 기본값(전체 이동수단)으로
+  // 대체한다. 이걸 빼먹으면 서버가 CAR 단일 안으로 되돌아가 카드 선택 화면이
+  // 뜨지 않거나, 로그인 전에 고른 구성 방식·시작 장소가 조용히 사라진다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: handleGenerate는 매 렌더 재생성되지만 실행 시점 최신 상태를 클로저로 캡처한다
   useEffect(() => {
     if (!autoResume || autoResumeTriggered.current) return;
     if (phase.status !== "idle") return;
     if (items.length < 2) return;
     autoResumeTriggered.current = true;
-    handleGenerate({ travelModes: ALL_TRAVEL_MODES });
+
+    let options: ItineraryGenerateRequest = { travelModes: ALL_TRAVEL_MODES };
+    try {
+      const stored = sessionStorage.getItem(PENDING_GENERATE_OPTIONS_KEY);
+      if (stored) options = JSON.parse(stored) as ItineraryGenerateRequest;
+      sessionStorage.removeItem(PENDING_GENERATE_OPTIONS_KEY);
+    } catch {
+      // 접근/파싱 실패는 기본 옵션으로 대체한다.
+    }
+    handleGenerate(options);
   }, [autoResume, phase.status, items.length]);
 
   // 선택 화면(VariantSelector)에서 안을 하나 확정한다. 이후 결과 화면은
@@ -668,8 +721,11 @@ export function ItineraryClient({
     setChosenVariantIndex(index);
   }
 
-  // VariantSelector를 닫고 조건을 다시 만지러 간다("다시 생성"과 동일).
+  // VariantSelector를 닫고 조건을 다시 만지러 간다. generate 성공 시 이미
+  // 비운 바구니를 되돌리지 않으면 PreGenerateView가 콘텐츠 0개로 뜨고
+  // 생성 버튼이 막혀(2개 이상 필요) 다시 시도할 방법이 없다.
   function handleCancelVariantSelection() {
+    saveBasket(basketSnapshotRef.current);
     setPhase({ status: "idle" });
   }
 
@@ -690,18 +746,11 @@ export function ItineraryClient({
   function handleSave(title: string) {
     if (phase.status !== "preview") return;
     const previewData = phase.data;
-    // 탭으로 고른 안에서 수락한 순서변경을 반영하고 AI 추천을 지운 뒤
-    // 저장한다 — 아무것도 안 바꿨으면 지금까지와 동일하다.
-    const activeDays = withAiItemsDismissed(
-      applyAcceptedSuggestions(
-        activeVariantOf(previewData, selectedVariantIndex).days,
-        previewData.suggestions,
-        acceptedSuggestionKeys,
-      ),
-      dismissedAiItemIds,
-    );
+    // 저장 버튼은 안을 이미 확정한 뒤(variantChosen)에만 보이므로, 위에서
+    // 계산한 previewDays가 곧 탭으로 고른 안에 수락한 순서변경을 반영하고
+    // AI 추천을 지운 결과다.
     // 장소가 없는 날이 있으면 백엔드가 저장을 거부한다(저장 버튼도 이미 막혀 있음).
-    if (hasEmptyDay(activeDays)) return;
+    if (hasEmptyDay(previewDays)) return;
 
     setPhase({ status: "saving", data: previewData });
 
@@ -710,7 +759,7 @@ export function ItineraryClient({
       region: previewData.region,
       travelDate: previewData.travelDate,
       duration: previewData.duration,
-      days: toSaveDays(activeDays),
+      days: toSaveDays(previewDays),
     };
 
     saveMutation.mutate(request, {
@@ -761,17 +810,11 @@ export function ItineraryClient({
 
   if (phase.status === "loginPreview") {
     // 로그인 전/후 결과 화면을 통일한다: 사이드바는 preview와 동일한
-    // TripSummary, "예시" 안내는 일차 카드 위 작은 배너로 둔다.
+    // TripSummary, "예시" 안내는 일차 카드 위 작은 배너로 둔다. 위에서 계산한
+    // previewDays가 곧 이 안(activeVariant)에 순서변경·AI 추천 지우기를
+    // 반영한 결과다.
     const activeVariant = activeVariantOf(phase.data, selectedVariantIndex);
-    const activeDays = withAiItemsDismissed(
-      applyAcceptedSuggestions(
-        activeVariant.days,
-        phase.data.suggestions,
-        acceptedSuggestionKeys,
-      ),
-      dismissedAiItemIds,
-    );
-    const previewItemCount = activeDays.reduce(
+    const previewItemCount = previewDays.reduce(
       (sum, day) => sum + day.items.length,
       0,
     );
@@ -780,7 +823,7 @@ export function ItineraryClient({
         region={phase.data.region}
         duration={phase.data.duration}
         travelDate={phase.data.travelDate}
-        days={activeDays}
+        days={previewDays}
         mapData={mapData}
         travelMode={activeVariant.travelMode}
         actions={
@@ -788,7 +831,7 @@ export function ItineraryClient({
             <Button asChild>
               <Link
                 href={`/login?next=${encodeURIComponent(loginNext)}`}
-                onClick={() => saveBasket(preLoginBasketRef.current)}
+                onClick={() => saveBasket(basketSnapshotRef.current)}
               >
                 로그인하고 계속하기
               </Link>
@@ -826,17 +869,17 @@ export function ItineraryClient({
               startDate={startDate}
               nights={parsedNights}
               companions={parsedCompanions}
-              items={preLoginBasketRef.current}
+              items={basketSnapshotRef.current}
               showItemList={false}
               itemCount={previewItemCount}
-              days={activeDays}
+              days={previewDays}
               travelSummary={null}
-              departureTime={activeDays[0]?.items[0]?.startTime ?? null}
+              departureTime={previewDays[0]?.items[0]?.startTime ?? null}
               walkingMinutes={activeVariant.metrics.totalWalkingMinutes}
             />
             <TripDistanceCard
               mapDays={mapData.days}
-              days={activeDays}
+              days={previewDays}
               travelMode={activeVariant.travelMode}
             />
           </>
@@ -845,7 +888,7 @@ export function ItineraryClient({
         {(selectedDayIndex, onSelectDay) => (
           <ItineraryResult
             data={{
-              days: activeDays,
+              days: previewDays,
               adjustments: activeVariant.adjustments,
             }}
             mapData={mapData}
@@ -866,22 +909,16 @@ export function ItineraryClient({
 
   if (phase.status === "preview" || phase.status === "saving") {
     const isSaving = phase.status === "saving";
+    // 위에서 계산한 previewDays가 곧 이 안(activeVariant)에 순서변경·AI
+    // 추천 지우기를 반영한 결과다.
     const activeVariant = activeVariantOf(phase.data, selectedVariantIndex);
-    const activeDays = withAiItemsDismissed(
-      applyAcceptedSuggestions(
-        activeVariant.days,
-        phase.data.suggestions,
-        acceptedSuggestionKeys,
-      ),
-      dismissedAiItemIds,
-    );
-    const blockedByEmptyDay = hasEmptyDay(activeDays);
+    const blockedByEmptyDay = hasEmptyDay(previewDays);
     return (
       <ItineraryResultLayout
         region={phase.data.region}
         duration={phase.data.duration}
         travelDate={phase.data.travelDate}
-        days={activeDays}
+        days={previewDays}
         mapData={mapData}
         travelMode={activeVariant.travelMode}
         actions={
@@ -979,18 +1016,18 @@ export function ItineraryClient({
               showItemList={false}
               // 생성 성공 시 로컬 바구니를 비우므로(handleGenerate), 결과 화면의
               // "담은 콘텐츠" 수는 실제 일정에 배치된 장소 수로 표시한다.
-              itemCount={activeDays.reduce(
+              itemCount={previewDays.reduce(
                 (sum, day) => sum + day.items.length,
                 0,
               )}
-              days={activeDays}
-              travelSummary={sumDayTravel(activeDays)}
-              departureTime={activeDays[0]?.items[0]?.startTime ?? null}
+              days={previewDays}
+              travelSummary={sumDayTravel(previewDays)}
+              departureTime={previewDays[0]?.items[0]?.startTime ?? null}
               walkingMinutes={activeVariant.metrics.totalWalkingMinutes}
             />
             <TripDistanceCard
               mapDays={mapData.days}
-              days={activeDays}
+              days={previewDays}
               travelMode={activeVariant.travelMode}
             />
           </>
@@ -999,7 +1036,7 @@ export function ItineraryClient({
         {(selectedDayIndex, onSelectDay) => (
           <ItineraryResult
             data={{
-              days: activeDays,
+              days: previewDays,
               adjustments: activeVariant.adjustments,
             }}
             mapData={mapData}

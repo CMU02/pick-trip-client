@@ -2,7 +2,7 @@ import type { Region } from "@/types/region";
 
 // ── 생성 요청 옵션 (POST generate, v2) ───────────────────────────────
 // 전부 선택 필드다. 아무것도 안 보내면 기존과 완전히 같은 결과(자동차 단일안)가
-// 온다(.agents/docs/api-endpoints.md 참고, 원본은 pick-trip-server 저장소).
+// 온다(pick-trip-server 저장소 .agents/docs/api-endpoints.md 참고).
 export type ItineraryGenerateMode = "STRICT" | "AUGMENT";
 export type TravelMode = "CAR" | "TRANSIT";
 

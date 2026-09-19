@@ -21,7 +21,7 @@ interface VariantSelectorProps {
 type MetricKey = Exclude<keyof ItineraryVariantMetrics, "unavailableReasons">;
 
 // 산출 불가 사유 코드 → 사용자에게 보여줄 한국어 문장.
-// .agents/docs/api-endpoints.md(pick-trip-server) 기준.
+// pick-trip-server 저장소 .agents/docs/api-endpoints.md 기준.
 const UNAVAILABLE_REASON_LABELS: Record<string, string> = {
   UNKNOWN_TRAVEL_DISTANCE: "구간 좌표를 몰라 이동 거리를 잴 수 없었어요",
 };
@@ -131,7 +131,7 @@ export function VariantSelector({
     // biome-ignore lint/a11y/noStaticElementInteractions: 위와 같은 이유
     <div
       data-testid="variant-selector-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-sm"
       onClick={onClose}
     >
       <button
@@ -142,7 +142,7 @@ export function VariantSelector({
           onClose();
         }}
         aria-label="닫기"
-        className="absolute top-6 right-6 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+        className="fixed top-6 right-6 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
       >
         <Icon name="close" size={20} />
       </button>
@@ -150,7 +150,7 @@ export function VariantSelector({
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: 배경 클릭이 카드까지 닫지 않게 막는 용도일 뿐, 그 자체는 상호작용이 아니다 */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: 위와 같은 이유 */}
       <div
-        className="flex w-full max-w-[1152px] flex-col items-center gap-9 py-10"
+        className="my-auto flex w-full max-w-[1152px] flex-col items-center gap-9 py-10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center">

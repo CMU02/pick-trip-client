@@ -54,9 +54,10 @@ function withSyntheticIds(days: RawGeneratedDay[]): Day[] {
   }));
 }
 
-// 모든 안이 같은 키 집합을 반환한다는 백엔드 계약(.agents/docs/api-endpoints.md)에
-// 맞춰, variants가 아예 없을 때(구버전 백엔드·로컬 목데이터) 최상위 필드로
-// 합성하는 기본 안의 metrics는 전부 산출 불가로 채운다.
+// 모든 안이 같은 키 집합을 반환한다는 백엔드 계약(pick-trip-server 저장소
+// .agents/docs/api-endpoints.md)에 맞춰, variants가 아예 없을 때(구버전
+// 백엔드·로컬 목데이터) 최상위 필드로 합성하는 기본 안의 metrics는 전부
+// 산출 불가로 채운다.
 const UNKNOWN_METRICS: ItineraryVariantMetrics = {
   totalTravelMinutes: null,
   totalWalkingMinutes: null,
@@ -72,7 +73,10 @@ function hydrateVariant(variant: RawGeneratedVariant): ItineraryVariant {
     title: variant.title,
     days: withSyntheticIds(variant.days),
     adjustments: variant.adjustments ?? [],
-    metrics: variant.metrics,
+    // 구버전 백엔드가 개별 variant에 metrics를 채우지 않고 보낼 수 있다 —
+    // 없으면 산출 불가로 채워 VariantSelector·TripSummary의 metrics 접근이
+    // TypeError로 화면 전체를 크래시시키지 않게 한다.
+    metrics: variant.metrics ?? UNKNOWN_METRICS,
   };
 }
 

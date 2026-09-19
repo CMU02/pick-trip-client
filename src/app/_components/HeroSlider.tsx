@@ -202,8 +202,7 @@ export function HeroSlider() {
           const relation = relationOf(n, index);
           return (
             <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: 6장 고정, 순서 불변
-              key={n}
+              key={slide.image}
               aria-hidden={relation !== 0}
               className="absolute top-0 left-1/2 aspect-[20/11] w-[min(1020px,92vw)] overflow-hidden rounded-[26px] bg-[oklch(0.9_0.01_30)] shadow-[0_30px_70px_oklch(0.4_0.03_30_/_0.18)]"
               style={slideStyle(relation, reducedMotion, hideSides)}
@@ -264,10 +263,9 @@ export function HeroSlider() {
         </div>
 
         <div className="flex flex-1 items-center gap-2.5">
-          {HERO_SLIDES.map((_, n) => (
+          {HERO_SLIDES.map((slide, n) => (
             <button
-              // biome-ignore lint/suspicious/noArrayIndexKey: 6장 고정, 순서 불변
-              key={n}
+              key={slide.image}
               type="button"
               aria-label={`${n + 1}번 사진`}
               onClick={() => goTo(n)}
