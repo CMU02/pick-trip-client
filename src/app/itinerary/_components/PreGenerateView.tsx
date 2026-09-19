@@ -10,10 +10,10 @@ import { JOURNEY_STEPS } from "@/lib/journey";
 import { cn } from "@/lib/utils";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
-import type {
-  ItineraryGenerateMode,
-  ItineraryGenerateRequest,
-  TravelMode,
+import {
+  ALL_TRAVEL_MODES,
+  type ItineraryGenerateMode,
+  type ItineraryGenerateRequest,
 } from "@/types/itinerary";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
@@ -55,9 +55,6 @@ const MODE_OPTIONS: {
 ];
 
 const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
-// 이동수단은 더 이상 생성 전에 고르지 않는다 — 항상 전체 이동수단으로 안을
-// 만들고, 결과 화면의 VariantSelector 카드에서 하나를 고르게 한다.
-const ALL_TRAVEL_MODES: TravelMode[] = ["CAR", "TRANSIT"];
 
 // mode/startContentId는 기본값과 다를 때만 싣지만, travelModes는 항상 전체를
 // 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.

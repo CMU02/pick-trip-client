@@ -97,6 +97,10 @@ export function ItineraryResult({
   const dayIndex =
     days.length === 0 ? 0 : Math.min(Math.max(rawIndex, 0), days.length - 1);
   const selectedDay = days[dayIndex];
+  // "출발" 배지는 여행 전체에서 시작 장소로 고정한 그 한 자리에만 붙어야
+  // 한다. 첫째 날이 아니면 startContentId를 아예 넘기지 않는다 — 같은
+  // 콘텐츠를 나중에 다시 방문해도 그 항목까지 배지가 붙는 걸 막는다.
+  const isFirstDay = days.length > 0 && selectedDay === days[0];
 
   return (
     <section>
@@ -135,7 +139,7 @@ export function ItineraryResult({
                   : undefined
               }
               onDismissAiSuggestion={onDismissAiSuggestion}
-              startContentId={startContentId}
+              startContentId={isFirstDay ? startContentId : undefined}
             />
           </div>
           {hasAnyRoute && !hideMap && (

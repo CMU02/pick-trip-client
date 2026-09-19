@@ -52,6 +52,7 @@ describe("VariantSelector", () => {
       <VariantSelector
         variants={[carVariant, transitVariant]}
         onSelect={onSelect}
+        onClose={vi.fn()}
       />,
     );
 
@@ -75,6 +76,7 @@ describe("VariantSelector", () => {
       <VariantSelector
         variants={[carVariant, transitVariant]}
         onSelect={onSelect}
+        onClose={vi.fn()}
       />,
     );
 
@@ -98,6 +100,7 @@ describe("VariantSelector", () => {
       <VariantSelector
         variants={[carVariant, transitVariant]}
         onSelect={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
 
@@ -133,6 +136,7 @@ describe("VariantSelector", () => {
       <VariantSelector
         variants={[carVariant, unknownCost]}
         onSelect={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
 
@@ -144,5 +148,66 @@ describe("VariantSelector", () => {
         "구간 좌표를 몰라 이동 거리를 잴 수 없었어요",
       );
     }
+  });
+
+  it("안이 1개뿐이면 아무것도 렌더하지 않는다(호출부 실수에 대비한 방어 가드)", () => {
+    const { container } = render(
+      <VariantSelector
+        variants={[carVariant]}
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("닫기(X) 버튼 클릭 시 onClose를 호출한다", async () => {
+    const onClose = vi.fn();
+    render(
+      <VariantSelector
+        variants={[carVariant, transitVariant]}
+        onSelect={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "닫기" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("배경 클릭 시 onClose를 호출하고, 카드 클릭은 닫지 않는다", async () => {
+    const onClose = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <VariantSelector
+        variants={[carVariant, transitVariant]}
+        onSelect={onSelect}
+        onClose={onClose}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "자동차 힐링 루트" }),
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledWith(0);
+
+    await userEvent.click(screen.getByTestId("variant-selector-overlay"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("Escape 키를 누르면 onClose를 호출한다", async () => {
+    const onClose = vi.fn();
+    render(
+      <VariantSelector
+        variants={[carVariant, transitVariant]}
+        onSelect={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

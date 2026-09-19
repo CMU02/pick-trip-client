@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { CONTENT_LIST_STALE_TIME } from "@/hooks/useLoadMoreContents";
 import { parseApiError } from "@/lib/errors";
 import { getContents } from "@/services/contentService";
 import type { Content } from "@/types/content";
@@ -17,11 +18,6 @@ interface AlternativePlacePickerProps {
   onClose: () => void;
 }
 
-type PickerState =
-  | { status: "loading" }
-  | { status: "loaded"; contents: Content[] }
-  | { status: "error"; message: string };
-
 export function AlternativePlacePicker({
   region,
   travelDate,
@@ -29,26 +25,20 @@ export function AlternativePlacePicker({
   onSelect,
   onClose,
 }: AlternativePlacePickerProps) {
-  const [state, setState] = useState<PickerState>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    setState({ status: "loading" });
-
-    getContents({ regions: [region], startDate: travelDate, nights: duration })
-      .then((res) => {
-        if (!cancelled) setState({ status: "loaded", contents: res.contents });
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setState({ status: "error", message: parseApiError(err).message });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [region, travelDate, duration]);
+  // "대체" 버튼을 같은 지역·기간으로 여러 항목에서 연달아 누르면 캐시를
+  // 재사용한다 — 예전엔 열 때마다 매번 새로 조회했다. 캐시 키는
+  // ContentBrowser(useLoadMoreContents)의 ["contents", 조건, 페이지크기] 키와
+  // 절대 겹치지 않도록 "alternative" 태그를 넣어 구분한다.
+  const query = useQuery({
+    queryKey: ["contents", "alternative", region, travelDate, duration],
+    queryFn: () =>
+      getContents({
+        regions: [region],
+        startDate: travelDate,
+        nights: duration,
+      }),
+    staleTime: CONTENT_LIST_STALE_TIME,
+  });
 
   return (
     <div
@@ -79,24 +69,24 @@ export function AlternativePlacePicker({
         </div>
 
         <div className="overflow-y-auto px-4 pb-6">
-          {state.status === "loading" && (
+          {query.isLoading && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               불러오는 중...
             </p>
           )}
-          {state.status === "error" && (
+          {query.isError && (
             <p className="py-8 text-center text-sm text-destructive">
-              {state.message}
+              {parseApiError(query.error).message}
             </p>
           )}
-          {state.status === "loaded" && state.contents.length === 0 && (
+          {query.isSuccess && query.data.contents.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               추천할 대체 장소가 없습니다
             </p>
           )}
-          {state.status === "loaded" && state.contents.length > 0 && (
+          {query.isSuccess && query.data.contents.length > 0 && (
             <ul className="flex flex-col gap-2">
-              {state.contents.map((content) => (
+              {query.data.contents.map((content) => (
                 <li
                   key={content.id}
                   className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2"

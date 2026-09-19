@@ -43,6 +43,7 @@ import type {
   ItineraryVariant,
   SaveItineraryRequest,
 } from "@/types/itinerary";
+import { ALL_TRAVEL_MODES } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
@@ -452,12 +453,17 @@ export function ItineraryClient({
 }: ItineraryClientProps) {
   const [phase, setPhase] = useState<ItineraryPhase>({ status: "idle" });
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
-  // 이동수단별 안(variants) 중 사용자가 선택 화면에서 고른 것. 안이 1개뿐이면
-  // (옵션 미지정 시 기본) 항상 0이라 화면은 지금까지와 완전히 동일하게 보인다.
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-  // 안이 여러 개일 때 선택 화면(VariantSelector)에서 하나를 확정했는지. 안이
-  // 1개뿐이면 고를 필요가 없어 항상 true로 시작해 곧바로 결과 화면을 보여준다.
-  const [variantChosen, setVariantChosen] = useState(true);
+  // 이동수단별 안(variants) 중 사용자가 선택 화면(VariantSelector)에서 고른
+  // 인덱스. null이면 아직 안 골랐다는 뜻이다(안이 여러 개일 때만 가능하고,
+  // 그동안은 결과 화면을 그리지 않는다). 안이 1개뿐이면 고를 필요가 없어
+  // generate 성공 시 곧바로 0으로 채워진다. 예전엔 selectedVariantIndex와
+  // variantChosen을 따로 둬서 두 곳에서 손으로 맞춰야 했다(desync 위험) —
+  // 단일 state로 합친다.
+  const [chosenVariantIndex, setChosenVariantIndex] = useState<number | null>(
+    null,
+  );
+  const variantChosen = chosenVariantIndex !== null;
+  const selectedVariantIndex = chosenVariantIndex ?? 0;
   // AI가 추가 제안한 항목 중 저장 전에 지운 것들의 itemId. 새로 생성하면 비운다.
   const [dismissedAiItemIds, setDismissedAiItemIds] = useState<Set<string>>(
     new Set(),
@@ -478,11 +484,15 @@ export function ItineraryClient({
   const { runAuthed } = useAuth();
 
   // 미리보기 단계의 일정으로 지도 데이터(좌표·경로)를 해석한다. 결과 화면에
-  // 넘겨 지도를 그리고, 저장 시 그 시점 상태를 스냅샷으로 남긴다.
+  // 넘겨 지도를 그리고, 저장 시 그 시점 상태를 스냅샷으로 남긴다. 안을 아직
+  // 고르지 않았으면(VariantSelector가 떠 있는 동안) 계산하지 않는다 — 안
+  // 선택 전에 기본 0번 안 기준으로 카카오 지도 API를 미리 불렀다가, 사용자가
+  // 다른 안을 고르면 그 요청이 그대로 낭비되는 문제가 있었다.
   const previewDays: Day[] =
-    phase.status === "preview" ||
-    phase.status === "saving" ||
-    phase.status === "loginPreview"
+    variantChosen &&
+    (phase.status === "preview" ||
+      phase.status === "saving" ||
+      phase.status === "loginPreview")
       ? withAiItemsDismissed(
           applyAcceptedSuggestions(
             activeVariantOf(phase.data, selectedVariantIndex).days,
@@ -540,31 +550,38 @@ export function ItineraryClient({
           serverBasket.items.map((item) => item.contentId),
         );
 
-        for (const serverItem of serverBasket.items) {
-          if (localContentIds.has(serverItem.contentId)) continue;
-          await removeBasketItem(serverItem.itemId, token);
-        }
+        // 각 루프 안의 호출은 서로 다른 항목을 대상으로 해 독립적이므로
+        // Promise.all로 병렬화한다 — 바구니 항목이 많을수록 순차 호출은
+        // "일정 생성하기" 클릭 후 첫 응답까지의 시간이 항목 수에 비례해 늘어났다.
+        await Promise.all(
+          serverBasket.items
+            .filter((serverItem) => !localContentIds.has(serverItem.contentId))
+            .map((serverItem) => removeBasketItem(serverItem.itemId, token)),
+        );
 
-        for (const item of items) {
-          if (serverContentIds.has(item.content.id)) continue;
-          try {
-            await addBasketItem(
-              {
-                contentId: item.content.id,
-                priority:
-                  BASKET_PRIORITY_TO_SERVER[item.priority ?? "OPTIONAL"],
-                title: item.content.name,
-                ...(item.content.imageUrl
-                  ? { thumbnailUrl: item.content.imageUrl }
-                  : {}),
-              },
-              token,
-            );
-          } catch (err) {
-            const parsed = parseApiError(err);
-            if (parsed.code !== "BASKET_ITEM_DUPLICATE") throw err;
-          }
-        }
+        await Promise.all(
+          items
+            .filter((item) => !serverContentIds.has(item.content.id))
+            .map(async (item) => {
+              try {
+                await addBasketItem(
+                  {
+                    contentId: item.content.id,
+                    priority:
+                      BASKET_PRIORITY_TO_SERVER[item.priority ?? "OPTIONAL"],
+                    title: item.content.name,
+                    ...(item.content.imageUrl
+                      ? { thumbnailUrl: item.content.imageUrl }
+                      : {}),
+                  },
+                  token,
+                );
+              } catch (err) {
+                const parsed = parseApiError(err);
+                if (parsed.code !== "BASKET_ITEM_DUPLICATE") throw err;
+              }
+            }),
+        );
 
         return generateItinerary(options, token);
       }),
@@ -588,8 +605,7 @@ export function ItineraryClient({
       // 남아있던 문제를 해결한다.
       onSuccess: (data) => {
         clearBasket();
-        setSelectedVariantIndex(0);
-        setVariantChosen(data.variants.length <= 1);
+        setChosenVariantIndex(data.variants.length <= 1 ? 0 : null);
         setDismissedAiItemIds(new Set());
         setAcceptedSuggestionKeys(new Set());
         setPhase({ status: "preview", data });
@@ -609,8 +625,7 @@ export function ItineraryClient({
           // 남겨 로그인/다시 생성으로 흐름을 이어갈 때만 복원한다.
           preLoginBasketRef.current = items;
           clearBasket();
-          setSelectedVariantIndex(0);
-          setVariantChosen(data.variants.length <= 1);
+          setChosenVariantIndex(data.variants.length <= 1 ? 0 : null);
           setDismissedAiItemIds(new Set());
           setAcceptedSuggestionKeys(new Set());
           setPhase({ status: "loginPreview", data });
@@ -622,21 +637,28 @@ export function ItineraryClient({
   }
 
   // 로그인 후 이 화면으로 되돌아온 경우(autoResume) 바구니에 항목이 복원돼
-  // 있으면 곧바로 진짜 생성을 다시 시도한다. 마운트 후 한 번만.
+  // 있으면 곧바로 진짜 생성을 다시 시도한다. 마운트 후 한 번만. PreGenerateView를
+  // 거치지 않는 경로라, 그쪽과 같은 기본 옵션(전체 이동수단)을 직접 넘겨야
+  // 한다 — 이걸 빼먹으면 서버가 CAR 단일 안으로 되돌아가 카드 선택 화면이
+  // 뜨지 않는다(예전 버그).
   // biome-ignore lint/correctness/useExhaustiveDependencies: handleGenerate는 매 렌더 재생성되지만 실행 시점 최신 상태를 클로저로 캡처한다
   useEffect(() => {
     if (!autoResume || autoResumeTriggered.current) return;
     if (phase.status !== "idle") return;
     if (items.length < 2) return;
     autoResumeTriggered.current = true;
-    handleGenerate();
+    handleGenerate({ travelModes: ALL_TRAVEL_MODES });
   }, [autoResume, phase.status, items.length]);
 
   // 선택 화면(VariantSelector)에서 안을 하나 확정한다. 이후 결과 화면은
   // 이 안의 days/adjustments만 보여준다.
   function handleSelectVariant(index: number) {
-    setSelectedVariantIndex(index);
-    setVariantChosen(true);
+    setChosenVariantIndex(index);
+  }
+
+  // VariantSelector를 닫고 조건을 다시 만지러 간다("다시 생성"과 동일).
+  function handleCancelVariantSelection() {
+    setPhase({ status: "idle" });
   }
 
   // AI 추천 배지를 눌러 저장 전에 그 항목만 지운다(일반 삭제와 달리 확인 단계 없음).
@@ -720,6 +742,7 @@ export function ItineraryClient({
       <VariantSelector
         variants={phase.data.variants}
         onSelect={handleSelectVariant}
+        onClose={handleCancelVariantSelection}
       />
     );
   }
@@ -813,7 +836,9 @@ export function ItineraryClient({
             hideMap
             hideAdjustments
             onDismissAiSuggestion={handleDismissAiSuggestion}
-            startContentId={requestedStartContentId}
+            // buildLoginPreviewItinerary(로컬 목데이터)는 startContentId를
+            // 반영하지 않고 순번대로 날짜를 배분하므로, 여기서 배지를 붙이면
+            // 엉뚱한 장소가 "출발"로 표시될 수 있다 — 이 경로에서는 생략한다.
           />
         )}
       </ItineraryResultLayout>

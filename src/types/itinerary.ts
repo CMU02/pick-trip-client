@@ -11,6 +11,12 @@ export const TRAVEL_MODE_LABELS: Record<TravelMode, string> = {
   TRANSIT: "대중교통",
 };
 
+// 이동수단은 사용자가 미리 고르지 않고 항상 전체를 요청한다 — 결과 화면의
+// VariantSelector 카드에서 하나를 고르게 하기 위함이다. 새로 generate를
+// 호출하는 곳(PreGenerateView·autoResume)이 늘어나도 같은 기본값을 쓰도록
+// 한 곳에 둔다.
+export const ALL_TRAVEL_MODES: TravelMode[] = ["CAR", "TRANSIT"];
+
 export interface ItineraryGenerateRequest {
   // STRICT(기본) = 바구니에 담은 장소만. AUGMENT = AI가 같은 지역 콘텐츠를
   // 추가 제안할 수 있음(추가된 항목은 addedByAi: true로 표시).
