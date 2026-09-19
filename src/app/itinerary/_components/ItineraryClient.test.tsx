@@ -1207,6 +1207,51 @@ describe("ItineraryClient", () => {
     expect(mockClearBasket).toHaveBeenCalled();
   });
 
+  it("시작 장소를 지정했는데 AUTH_REQUIRED로 실패하면, 로컬 목데이터 미리보기에는 출발 배지를 붙이지 않는다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockRejectedValue(
+      new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
+    );
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText("시작 장소"),
+      "쌍계사",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    // buildLoginPreviewItinerary(로컬 목데이터)는 startContentId를 반영하지
+    // 않고 순번대로 날짜를 배분하므로, 배지를 표시하면 엉뚱한 장소가
+    // "출발"로 보일 수 있다 — 이 경로에서는 아예 안 보여야 한다.
+    await screen.findByText("쌍계사");
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
+  });
+
   it("로그인 미리보기에서 '로그인하고 계속하기'를 누르면 바구니를 복원한다", async () => {
     mockUpdateBasketConditions.mockRejectedValue(
       new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
@@ -1342,6 +1387,13 @@ describe("ItineraryClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(mockGenerateItinerary).toHaveBeenCalled();
+    // PreGenerateView를 거치지 않는 이 경로도 항상 전체 이동수단을 요청해야
+    // 한다 — 빠뜨리면 서버가 CAR 단일 안으로 되돌아가 카드 선택 화면이 다른
+    // 경로와 다르게 스킵된다(예전 버그).
+    expect(mockGenerateItinerary).toHaveBeenCalledWith(
+      { travelModes: ["CAR", "TRANSIT"] },
+      undefined,
+    );
   });
 
   it("generate가 AUTH_REQUIRED가 아닌 오류로 실패하면 기존처럼 오류 메시지를 표시한다", async () => {
