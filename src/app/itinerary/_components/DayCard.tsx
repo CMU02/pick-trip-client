@@ -136,6 +136,7 @@ export function DayCard({
                   isLast={index === day.items.length - 1}
                   isStartPoint={
                     startContentId !== undefined &&
+                    index === 0 &&
                     item.contentId === startContentId
                   }
                   onMoveUp={
