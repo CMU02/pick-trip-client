@@ -158,9 +158,17 @@ export function PreGenerateView({
   // 이동수단은 사용자가 고르지 않고 항상 전체를 요청한다(ALL_TRAVEL_MODES).
   const [mode, setMode] = useState<ItineraryGenerateMode>(DEFAULT_MODE);
   const [startContentId, setStartContentId] = useState("");
+  // 고른 시작 장소가 바구니에서 지워지면 select state는 그대로 남는다
+  // (버그였다). 매 렌더 바구니와 대조해 사라진 값은 없는 셈 치고
+  // "AI가 자동으로 정함"으로 되돌린다 — 별도 effect 없이 파생값으로 처리한다.
+  const validStartContentId = items.some(
+    (item) => item.content.id === startContentId,
+  )
+    ? startContentId
+    : "";
 
   function handleGenerateClick() {
-    onGenerate(buildGenerateOptions(mode, startContentId));
+    onGenerate(buildGenerateOptions(mode, validStartContentId));
   }
 
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
@@ -378,7 +386,7 @@ export function PreGenerateView({
                 </label>
                 <select
                   id="start-content-id"
-                  value={startContentId}
+                  value={validStartContentId}
                   onChange={(e) => setStartContentId(e.target.value)}
                   className="mt-2 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
                 >

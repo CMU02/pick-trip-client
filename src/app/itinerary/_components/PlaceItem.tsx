@@ -11,6 +11,9 @@ interface PlaceItemProps {
   item: Item;
   isFirst?: boolean;
   isLast?: boolean;
+  // 일정 생성 요청에 startContentId로 지정한 장소인지. 신규 생성 직후
+  // 미리보기 화면에서만 안다(저장된 일정 재조회 경로는 원래 요청값을 모른다).
+  isStartPoint?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onRemove?: () => void;
@@ -28,6 +31,7 @@ export function PlaceItem({
   item,
   isFirst,
   isLast,
+  isStartPoint,
   onMoveUp,
   onMoveDown,
   onRemove,
@@ -96,6 +100,12 @@ export function PlaceItem({
                   <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                     <Icon name="pin" size={11} />
                     고정
+                  </span>
+                )}
+                {isStartPoint && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
+                    <Icon name="compass-outline" size={11} />
+                    출발
                   </span>
                 )}
                 {/* addedByAi/addedForRest는 동시에 true가 되지 않는다(서버 계약). */}

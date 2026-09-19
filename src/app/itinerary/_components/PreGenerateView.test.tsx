@@ -180,6 +180,30 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
 
     expect(screen.queryByLabelText("시작 장소")).not.toBeInTheDocument();
   });
+
+  it("시작 장소로 고른 항목을 바구니에서 지우면 선택이 'AI가 자동으로 정함'으로 되돌아간다", async () => {
+    setBasket([
+      { content: content("1", "쌍계사"), priority: "MUST" },
+      { content: content("2", "화개장터"), priority: null },
+      { content: content("3", "최참판댁"), priority: null },
+    ]);
+    render(<PreGenerateView {...baseProps} />);
+
+    const select = screen.getByLabelText("시작 장소");
+    await userEvent.selectOptions(select, "쌍계사");
+    expect(select).toHaveValue("1");
+
+    await userEvent.click(screen.getByRole("button", { name: "쌍계사 삭제" }));
+
+    expect(select).toHaveValue("");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+    });
+  });
 });
 
 describe("PreGenerateView — 담은 콘텐츠", () => {

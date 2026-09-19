@@ -467,6 +467,11 @@ export function ItineraryClient({
   const [acceptedSuggestionKeys, setAcceptedSuggestionKeys] = useState<
     Set<string>
   >(new Set());
+  // 이번 생성 요청에 startContentId로 지정한 장소. 결과 화면에서 "출발"
+  // 배지를 표시하는 데만 쓰고, 저장된 일정 재조회 경로에는 없다.
+  const [requestedStartContentId, setRequestedStartContentId] = useState<
+    string | undefined
+  >(undefined);
   const { items, clear: clearBasket, save: saveBasket } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const setMapSnapshot = useItineraryMapSnapshotStore((s) => s.set);
@@ -575,6 +580,7 @@ export function ItineraryClient({
     if (phase.status === "loading") return;
 
     setPhase({ status: "loading" });
+    setRequestedStartContentId(options?.startContentId);
 
     generateMutation.mutate(options, {
       // 이 시점 바구니 내용은 이미 서버 바구니로 반영돼 AI 생성에 쓰였으니
@@ -807,6 +813,7 @@ export function ItineraryClient({
             hideMap
             hideAdjustments
             onDismissAiSuggestion={handleDismissAiSuggestion}
+            startContentId={requestedStartContentId}
           />
         )}
       </ItineraryResultLayout>
@@ -951,6 +958,7 @@ export function ItineraryClient({
             hideMap
             hideAdjustments
             onDismissAiSuggestion={handleDismissAiSuggestion}
+            startContentId={requestedStartContentId}
           />
         )}
       </ItineraryResultLayout>

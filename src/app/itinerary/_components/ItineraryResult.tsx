@@ -54,6 +54,10 @@ interface ItineraryResultProps {
   // AI 추천(addedByAi) 배지를 저장 전 바로 지우는 전용 액션. editor와 무관하게
   // 저장 전 미리보기 화면(editor 없음)에서도 쓸 수 있게 별도로 둔다.
   onDismissAiSuggestion?: (dayId: string, itemId: string) => void;
+  // 일정 생성 요청에 startContentId로 지정한 장소의 contentId. 신규 생성
+  // 직후 미리보기 화면에서만 넘어온다 — 저장된 일정 재조회 경로는 원래
+  // 요청값을 모르므로 생략한다.
+  startContentId?: string;
 }
 
 export function ItineraryResult({
@@ -66,6 +70,7 @@ export function ItineraryResult({
   hideMap = false,
   hideAdjustments = false,
   onDismissAiSuggestion,
+  startContentId,
 }: ItineraryResultProps) {
   const [replaceTarget, setReplaceTarget] = useState<{
     dayId: string;
@@ -130,6 +135,7 @@ export function ItineraryResult({
                   : undefined
               }
               onDismissAiSuggestion={onDismissAiSuggestion}
+              startContentId={startContentId}
             />
           </div>
           {hasAnyRoute && !hideMap && (

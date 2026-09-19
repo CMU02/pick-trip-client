@@ -243,6 +243,52 @@ describe("ItineraryClient", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("시작 장소를 지정해 생성하면 결과 화면에서 그 장소에 출발 배지를 보여준다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText("시작 장소"),
+      "쌍계사",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockGenerateItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({ startContentId: "content-1" }),
+        undefined,
+      );
+    });
+
+    expect(await screen.findByText("출발")).toBeInTheDocument();
+  });
+
   it("이동수단별 안(variants)이 여러 개면 먼저 카드 선택 화면이 뜨고, 고른 안의 일정을 결과 화면에서 보여준다", async () => {
     const emptyMetrics = {
       totalTravelMinutes: null,
