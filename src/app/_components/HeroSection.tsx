@@ -1,104 +1,52 @@
 import Link from "next/link";
 
-import { ContentImage } from "@/components/ContentImage";
-import { Button } from "@/components/ui/button";
-import {
-  ALL_REGIONS_QUERY,
-  REGION_IMAGE_URLS,
-  REGION_LABELS,
-} from "@/types/region";
+import { ALL_REGIONS_QUERY } from "@/types/region";
 
-// 매 요청마다 TourAPI를 3지역씩 호출해 실제 총 개수를 세던 방식은 API
-// 호출량이 너무 커서 정적 값으로 바꿨다. 값은 백엔드 /api/v1/contents의
-// 지역별 totalCount 합이라 TourAPI 카탈로그가 바뀌면 흔들린다
-// (2026-08-16: 228 → 08-25: 226 → 08-27: 222 → 08-29: 221 → 08-30: 하동 190 +
-// 영주 145 + 예천 78 = 413). 크게 벌어지면 이 숫자만 수동으로 갱신한다.
-const CONTENT_COUNT = 413;
+import { HeroSlider } from "./HeroSlider";
 
 export function HeroSection() {
-  const heroStats = [
-    { value: "3곳", label: "경상도 소도시" },
-    { value: `${CONTENT_COUNT}개`, label: "여행 콘텐츠" },
-    { value: "30초", label: "AI 일정 생성" },
-  ] as const;
-
   return (
-    <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-[oklch(0.985_0.02_30)] to-white">
-      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 sm:py-28 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[11.5px] font-extrabold tracking-widest text-primary-foreground">
-            PICK TRIP
-          </span>
-          <h1 className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-            하동, 영주, 예천
-            <br />
-            내가 고른 콘텐츠로
-            <br />
-            만드는 <span className="text-primary">나만의 일정</span>
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
-            경상도 소도시의 여행 콘텐츠를 둘러보고 마음에 드는 것만 골라 담으면,
-            AI가 현실적인 여행 일정을 짜드려요.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg">
-              <Link href="/explore">콘텐츠 둘러보기</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}>
-                AI 일정 살펴보기
-              </Link>
-            </Button>
-          </div>
-          <div className="mt-9 flex gap-7">
-            {heroStats.map((stat) => (
-              <div key={stat.label}>
-                <div className="text-2xl font-extrabold tracking-tight text-primary">
-                  {stat.value}
-                </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 grid-rows-[150px_150px_150px] gap-3">
-          <div className="relative col-start-1 row-span-2 row-start-1 overflow-hidden rounded-2xl bg-muted">
-            <ContentImage
-              src={REGION_IMAGE_URLS.HADONG}
-              alt={`${REGION_LABELS.HADONG} 대표 사진`}
-              size="lg"
-              sizes="(max-width: 1024px) 50vw, 24vw"
-            />
-          </div>
-          <div className="relative overflow-hidden rounded-2xl bg-muted">
-            <ContentImage
-              src={REGION_IMAGE_URLS.YEONGJU}
-              alt={`${REGION_LABELS.YEONGJU} 대표 사진`}
-              size="lg"
-              sizes="(max-width: 1024px) 50vw, 24vw"
-            />
-          </div>
-          <div className="relative col-start-2 row-span-2 row-start-2 overflow-hidden rounded-2xl bg-muted">
-            <ContentImage
-              src={REGION_IMAGE_URLS.YECHEON}
-              alt={`${REGION_LABELS.YECHEON} 대표 사진`}
-              size="lg"
-              sizes="(max-width: 1024px) 50vw, 24vw"
-            />
-          </div>
-          <div className="flex flex-col justify-between rounded-2xl bg-primary p-4.5 text-primary-foreground">
-            <div className="text-xs font-bold opacity-85">AI 일정</div>
-            <div className="text-lg leading-tight font-bold tracking-tight">
-              1박 2일
-              <br />
-              코스 완성
-            </div>
-          </div>
+    <section className="relative overflow-hidden border-b border-[oklch(0.94_0.012_30)] bg-[oklch(0.98_0.012_32)]">
+      <div className="relative z-10 mx-auto max-w-[1240px] px-6 pt-16 text-center sm:px-10">
+        <span className="inline-block rounded-full bg-[oklch(0.5_0.19_28)] px-3.5 py-1.5 text-[11.5px] font-extrabold tracking-[0.16em] text-white">
+          PICK TRIP
+        </span>
+        <h1 className="mx-auto mt-5 max-w-[760px] text-[32px] leading-[1.16] font-extrabold tracking-[-0.05em] text-balance sm:text-[46px]">
+          하동, 영주, 예천 내가 고른 콘텐츠로
+          <br />
+          만드는 <span className="text-[oklch(0.5_0.19_28)]">나만의 일정</span>
+        </h1>
+        <p className="mx-auto mt-5 max-w-[680px] text-base leading-[1.66] tracking-[-0.02em] text-[oklch(0.42_0.016_30)] text-balance sm:text-lg">
+          경상도 소도시의 여행 콘텐츠를 둘러보고 마음에 드는 것만 골라 담으면,
+          <br className="hidden sm:block" />
+          AI가 현실적인 여행 일정을 짜드려요.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3.5 sm:flex-row">
+          <Link
+            href="/explore"
+            className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[oklch(0.5_0.19_28)] px-8.5 text-[17px] font-extrabold tracking-[-0.02em] text-white shadow-[0_12px_26px_oklch(0.5_0.19_28_/_0.34)] transition-colors hover:bg-[oklch(0.44_0.19_28)] sm:h-[58px] sm:w-auto"
+          >
+            콘텐츠 둘러보기
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M7 4v16l11-8z" />
+            </svg>
+          </Link>
+          <Link
+            href={`/select/conditions?regions=${ALL_REGIONS_QUERY}`}
+            className="flex h-13 w-full items-center justify-center rounded-2xl border-2 border-[oklch(0.5_0.19_28)] bg-white px-7.5 text-[17px] font-extrabold tracking-[-0.02em] text-[oklch(0.44_0.19_28)] shadow-[0_8px_20px_oklch(0.4_0.03_30_/_0.1)] transition-colors hover:bg-[oklch(0.97_0.02_30)] sm:h-[58px] sm:w-auto"
+          >
+            AI 일정 살펴보기
+          </Link>
         </div>
       </div>
+
+      <HeroSlider />
     </section>
   );
 }
