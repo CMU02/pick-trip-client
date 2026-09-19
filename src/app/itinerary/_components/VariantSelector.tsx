@@ -54,8 +54,8 @@ const METRIC_ROWS: {
 function CarIcon() {
   return (
     <svg
-      width="22"
-      height="22"
+      width="33"
+      height="33"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -75,8 +75,8 @@ function CarIcon() {
 function TransitIcon() {
   return (
     <svg
-      width="22"
-      height="22"
+      width="33"
+      height="33"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -109,7 +109,7 @@ export function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-sm">
-      <div className="flex w-full max-w-3xl flex-col items-center gap-9 py-10">
+      <div className="flex w-full max-w-[1152px] flex-col items-center gap-9 py-10">
         <div className="text-center">
           <p className="text-2xl font-bold tracking-tight text-white">
             어떤 루트로 일정을 만들까요?
@@ -119,7 +119,7 @@ export function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
           </p>
         </div>
 
-        <div className="flex w-full flex-col items-center justify-center gap-7 sm:flex-row sm:items-stretch">
+        <div className="flex w-full flex-col items-center justify-center gap-10.5 sm:flex-row sm:items-stretch">
           {variants.map((variant, index) => {
             const isHovered = hoveredIndex === index;
             const isDimmed = hoveredIndex !== null && !isHovered;
@@ -136,27 +136,27 @@ export function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
                 onBlur={() => setHoveredIndex(null)}
                 aria-label={variant.label}
                 className={cn(
-                  "flex w-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-card text-left shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)] transition-all duration-300 ease-out sm:w-[300px]",
+                  "flex w-full flex-col overflow-hidden rounded-[42px] border border-white/10 bg-card text-left shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)] transition-all duration-300 ease-out sm:w-[450px]",
                   isHovered &&
                     "-translate-y-1.5 scale-[1.05] shadow-[0_0_0_4px_oklch(0.64_0.19_32_/_0.35),0_30px_60px_-20px_oklch(0.56_0.2_20_/_0.55)]",
                   isDimmed && "scale-[0.95] opacity-35",
                 )}
               >
-                <div className="flex items-center gap-3 bg-gradient-to-br from-[oklch(0.68_0.19_32)] to-[oklch(0.56_0.2_20)] px-6 py-5 text-white">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
+                <div className="flex items-center gap-4.5 bg-gradient-to-br from-[oklch(0.68_0.19_32)] to-[oklch(0.56_0.2_20)] px-9 py-7.5 text-white">
+                  <span className="flex h-15 w-15 shrink-0 items-center justify-center rounded-full bg-white/20">
                     <ModeIcon />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11.5px] font-bold tracking-wide text-white/80">
+                    <p className="text-[17.25px] font-bold tracking-wide text-white/80">
                       {TRAVEL_MODE_LABELS[variant.travelMode]}
                     </p>
-                    <p className="truncate text-[17px] font-bold tracking-tight">
+                    <p className="truncate text-[25.5px] font-bold tracking-tight">
                       {variant.label}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex flex-1 flex-col gap-2.5 px-6 py-5">
+                <div className="flex flex-1 flex-col gap-3.75 px-9 py-7.5">
                   {METRIC_ROWS.map((row) => {
                     const value = variant.metrics[row.key];
                     if (value === null) {
@@ -168,13 +168,13 @@ export function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
                       return (
                         <div
                           key={row.key}
-                          className="flex items-center justify-between border-b border-[oklch(0.95_0.008_30)] pb-2.5 last:border-0 last:pb-0"
+                          className="flex items-center justify-between border-b border-[oklch(0.95_0.008_30)] pb-3.75 last:border-0 last:pb-0"
                         >
-                          <span className="text-[13px] text-muted-foreground">
+                          <span className="text-[19.5px] text-muted-foreground">
                             {row.label}
                           </span>
                           <span
-                            className="text-[13px] text-muted-foreground"
+                            className="text-[19.5px] text-muted-foreground"
                             title={reasonLabel}
                           >
                             산출 불가
@@ -185,12 +185,12 @@ export function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
                     return (
                       <div
                         key={row.key}
-                        className="flex items-center justify-between border-b border-[oklch(0.95_0.008_30)] pb-2.5 last:border-0 last:pb-0"
+                        className="flex items-center justify-between border-b border-[oklch(0.95_0.008_30)] pb-3.75 last:border-0 last:pb-0"
                       >
-                        <span className="text-[13px] text-muted-foreground">
+                        <span className="text-[19.5px] text-muted-foreground">
                           {row.label}
                         </span>
-                        <span className="text-[14.5px] font-bold text-foreground">
+                        <span className="text-[21.75px] font-bold text-foreground">
                           {row.format(value)}
                         </span>
                       </div>
@@ -200,7 +200,7 @@ export function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
 
                 <div
                   className={cn(
-                    "px-6 py-3.5 text-center text-[13px] font-bold transition-colors duration-300",
+                    "px-9 py-5.25 text-center text-[19.5px] font-bold transition-colors duration-300",
                     isHovered
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted/60 text-muted-foreground",
