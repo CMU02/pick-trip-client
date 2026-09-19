@@ -55,16 +55,23 @@ const MODE_OPTIONS: {
 ];
 
 const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
+// 백엔드 SchedulingPolicy.DAY_START와 동일한 기본값. 아직 백엔드가
+// dayStartTime을 모르므로, 이 값과 달라지면 요청에 실려 400을 받는다
+// (docs/plan/itinerary-day-start-time.md 참고 — 백엔드 연동 전까지 머지 보류).
+const DEFAULT_DAY_START_TIME = "09:00";
 
-// mode/startContentId는 기본값과 다를 때만 싣지만, travelModes는 항상 전체를
-// 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.
+// mode/startContentId/dayStartTime은 기본값과 다를 때만 싣지만, travelModes는
+// 항상 전체를 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.
 function buildGenerateOptions(
   mode: ItineraryGenerateMode,
   startContentId: string,
+  dayStartTime: string,
 ): ItineraryGenerateRequest {
   const options: ItineraryGenerateRequest = { travelModes: ALL_TRAVEL_MODES };
   if (mode !== DEFAULT_MODE) options.mode = mode;
   if (startContentId) options.startContentId = startContentId;
+  if (dayStartTime !== DEFAULT_DAY_START_TIME)
+    options.dayStartTime = dayStartTime;
   return options;
 }
 
@@ -151,10 +158,12 @@ export function PreGenerateView({
 }: PreGenerateViewProps) {
   const { items, remove } = useBasket();
 
-  // 일정 생성 옵션. mode/startContentId는 서버 기본값과 동일하게 시작한다.
-  // 이동수단은 사용자가 고르지 않고 항상 전체를 요청한다(ALL_TRAVEL_MODES).
+  // 일정 생성 옵션. mode/startContentId/dayStartTime은 서버 기본값과
+  // 동일하게 시작한다. 이동수단은 사용자가 고르지 않고 항상 전체를
+  // 요청한다(ALL_TRAVEL_MODES).
   const [mode, setMode] = useState<ItineraryGenerateMode>(DEFAULT_MODE);
   const [startContentId, setStartContentId] = useState("");
+  const [dayStartTime, setDayStartTime] = useState(DEFAULT_DAY_START_TIME);
   // 고른 시작 장소가 바구니에서 지워지면 select state는 그대로 남는다
   // (버그였다). 매 렌더 바구니와 대조해 사라진 값은 없는 셈 치고
   // "AI가 자동으로 정함"으로 되돌린다 — 별도 effect 없이 파생값으로 처리한다.
@@ -165,7 +174,7 @@ export function PreGenerateView({
     : "";
 
   function handleGenerateClick() {
-    onGenerate(buildGenerateOptions(mode, validStartContentId));
+    onGenerate(buildGenerateOptions(mode, validStartContentId, dayStartTime));
   }
 
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
@@ -396,6 +405,27 @@ export function PreGenerateView({
                 </select>
               </div>
             )}
+
+            <div className="mt-4">
+              <label
+                htmlFor="day-start-time"
+                className="text-[13px] font-bold text-foreground"
+              >
+                출발 시간
+              </label>
+              <input
+                id="day-start-time"
+                type="time"
+                value={dayStartTime}
+                min="06:00"
+                max="20:00"
+                onChange={(e) => setDayStartTime(e.target.value)}
+                className="mt-2 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
+              />
+              <p className="mt-1.5 text-[11.5px] text-muted-foreground">
+                매일 이 시각부터 장소를 방문하도록 일정을 짭니다
+              </p>
+            </div>
           </section>
 
           {/* 3. 담은 콘텐츠 */}

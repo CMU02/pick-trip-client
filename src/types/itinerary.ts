@@ -29,6 +29,9 @@ export interface ItineraryGenerateRequest {
   // 만들 일정안의 이동수단. 기본 ["CAR"], 중복 제거, 최대 4개. 지정한 수만큼
   // variants[]에 안이 하나씩 나온다.
   travelModes?: TravelMode[];
+  // 하루 시작 시각("HH:mm"). 백엔드 미지원 필드 — 별도 이슈에서 연동 예정.
+  // 그때까지 기본값(09:00)과 다른 값을 보내면 백엔드가 400으로 거부한다.
+  dayStartTime?: string;
 }
 
 // ── 저장/수정 요청 공용 (POST save, PATCH modify) ──────────────────

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -202,6 +202,35 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
     );
     expect(baseProps.onGenerate).toHaveBeenCalledWith({
       travelModes: ["CAR", "TRANSIT"],
+    });
+  });
+
+  it("출발 시간 기본값은 09:00이고, 바꾸지 않으면 요청에 실리지 않는다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    expect(screen.getByLabelText("출발 시간")).toHaveValue("09:00");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+    });
+  });
+
+  it("출발 시간을 바꾸면 dayStartTime을 함께 실어 보낸다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    const input = screen.getByLabelText("출발 시간");
+    fireEvent.change(input, { target: { value: "10:30" } });
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+      dayStartTime: "10:30",
     });
   });
 });
