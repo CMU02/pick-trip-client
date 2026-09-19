@@ -1,4 +1,4 @@
-import type { Day, DayRequest } from "@/types/itinerary";
+import type { Day, DayRequest, TravelMode } from "@/types/itinerary";
 import type { ItineraryMapDay } from "@/types/map";
 
 /**
@@ -125,15 +125,19 @@ export function sumDayTravel(days: Day[]): {
 }
 
 /**
- * 한 날의 이동 합계 "34분 · 27.6km". Kakao 길찾기(실도로) route 결과가 있으면
- * 우선, 없으면 백엔드 스케줄러 값(day.totalTravel*)으로 폴백한다. 둘 다 없으면 null.
- * DayCard 헤더와 DayMapPanel 구간 헤더행이 같은 값을 쓰도록 공유한다.
+ * 한 날의 이동 합계 "34분 · 27.6km". CAR는 Kakao 길찾기(실도로) route 결과가
+ * 있으면 우선, 없으면 백엔드 스케줄러 값(day.totalTravel*)으로 폴백한다.
+ * TRANSIT은 Kakao route가 자동차 전용이라(도보 없음) 항상 백엔드 값을 쓴다 —
+ * 지도에 도로선은 그대로 그리되 숫자는 대중교통(도보+버스) 모델 값이어야
+ * 한다. 둘 다 없으면 null. DayCard 헤더와 DayMapPanel 구간 헤더행이 같은
+ * 값을 쓰도록 공유한다.
  */
 export function dayTravelLabel(
   day: Day,
+  travelMode: TravelMode,
   mapDay?: ItineraryMapDay | null,
 ): string | null {
-  const route = mapDay?.route ?? null;
+  const route = travelMode === "CAR" ? (mapDay?.route ?? null) : null;
   const duration = route
     ? formatTravelMinutes(Math.round(route.totalDurationSeconds / 60))
     : formatTravelMinutes(day.totalTravelMinutes);
@@ -147,6 +151,25 @@ export function dayTravelLabel(
 /** 장소가 0개인 날이 하나라도 있는지. 저장은 이런 날을 400으로 거부한다. */
 export function hasEmptyDay(days: Day[]): boolean {
   return days.some((day) => day.items.length === 0);
+}
+
+/**
+ * 서버는 저장(PATCH) 시 스케줄러를 다시 돌리지 않는다. 사용자가 순서를 바꾸거나
+ * 장소를 빼면 서버가 계산해준 방문 시각·이동 요약이 어긋나므로, 편집한 날의
+ * 그 값들을 지워 화면에서 잘못된 시각이 보이지 않게 한다. 재계산은 "다시 생성" 몫.
+ * useItineraryEditor(순서 이동)와 혼잡 기반 순서변경 제안 수락이 함께 쓴다.
+ */
+export function clearDaySchedule(day: Day): Day {
+  return {
+    ...day,
+    totalTravelMinutes: null,
+    totalTravelKm: null,
+    items: day.items.map((item) => ({
+      ...item,
+      startTime: null,
+      endTime: null,
+    })),
+  };
 }
 
 /**

@@ -84,4 +84,30 @@ describe("ContentCard", () => {
     const link = screen.getByRole("link");
     expect(link).toHaveAttribute("href", "/contents/1");
   });
+
+  it("visitorStats가 없으면 방문자수 캡션을 렌더하지 않는다", () => {
+    render(<ContentCard content={stub} />);
+    expect(screen.queryByText(/지역 방문자/)).not.toBeInTheDocument();
+  });
+
+  it("visitorStats가 있으면 방문자수 캡션을 렌더한다", () => {
+    render(
+      <ContentCard
+        content={{
+          ...stub,
+          visitorStats: {
+            totalVisitors: 608_859,
+            dailyAverageVisitors: 19_640,
+            period: "2026-07~2026-08",
+            source: "한국관광공사 지역별 방문자수",
+            baseDate: "2026-08-31",
+            approximate: true,
+          },
+        }}
+      />,
+    );
+    expect(
+      screen.getByText("지역 방문자 608,859명 · 지역 기준 근사값"),
+    ).toBeInTheDocument();
+  });
 });

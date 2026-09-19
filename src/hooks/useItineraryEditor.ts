@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
 import { type ParsedApiError, parseApiError } from "@/lib/errors";
-import { hasEmptyDay, toSaveDays } from "@/lib/itinerary";
+import { clearDaySchedule, hasEmptyDay, toSaveDays } from "@/lib/itinerary";
 import { modifyItinerary } from "@/services/itineraryService";
 import type { Content } from "@/types/content";
 import type { Day, SaveItineraryRequest } from "@/types/itinerary";
@@ -32,22 +32,6 @@ function moveWithinDay(
   const next = [...items];
   [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
   return next.map((item, i) => ({ ...item, order: i }));
-}
-
-// 서버는 저장(PATCH) 시 스케줄러를 다시 돌리지 않는다. 사용자가 순서를 바꾸거나
-// 장소를 빼면 서버가 계산해준 방문 시각·이동 요약이 어긋나므로, 편집한 날의
-// 그 값들을 지워 화면에서 잘못된 시각이 보이지 않게 한다. 재계산은 "다시 생성" 몫.
-function clearDaySchedule(day: Day): Day {
-  return {
-    ...day,
-    totalTravelMinutes: null,
-    totalTravelKm: null,
-    items: day.items.map((item) => ({
-      ...item,
-      startTime: null,
-      endTime: null,
-    })),
-  };
 }
 
 export function useItineraryEditor({

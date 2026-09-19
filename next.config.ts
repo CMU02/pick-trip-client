@@ -105,6 +105,9 @@ const nextConfig: NextConfig = {
         hostname: "tong.visitkorea.or.kr",
       },
     ],
+    // VisitKorea 원본 이미지는 한 번 최적화하면 24시간 동안 재사용한다는
+    // 백엔드 캐싱 규정에 맞춘 값. Next.js 16 기본값(4시간, 14400s)보다 길다.
+    minimumCacheTTL: 86400,
   },
   async headers() {
     return [

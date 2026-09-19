@@ -105,6 +105,30 @@ export const CATEGORY_BADGE_CLASSES: Record<ContentCategory, string> = {
   EXPERIENCE: "bg-blue-50 text-blue-700",
 };
 
+// 관광객수 지표 출처. 지역 통계가 없으면 자체 프록시(바구니에 담긴 횟수)로
+// 대체한다. 폴백 순서: 지역 통계 → 자체 프록시 → null(콘텐츠에 visitorStats
+// 자체가 없음).
+export type VisitorStatsSource =
+  | "한국관광공사 지역별 방문자수"
+  | "PickTrip 내부 지표";
+
+// 콘텐츠 관광객수. 개별 장소 단위 관광객수를 주는 공개 데이터가 없어, 지역
+// (시군구) 단위 통계를 그 지역 모든 콘텐츠에 같은 값으로 내려주거나 자체
+// 프록시로 대체한다 — 항상 지역 기준 근사값이다(UI에 이 점을 표시해야 함).
+export interface VisitorStats {
+  // 기간 누적 방문자수. 자체 프록시일 때는 그 콘텐츠가 바구니에 담긴 횟수.
+  totalVisitors: number;
+  // 일평균 방문자수. 자체 프록시일 때는 null.
+  dailyAverageVisitors: number | null;
+  // 집계 기간 (예: "2026-07~2026-08"). 자체 프록시일 때는 null.
+  period: string | null;
+  source: VisitorStatsSource;
+  // 기준일 "yyyy-MM-dd".
+  baseDate: string;
+  // 개별 장소 단위 실측이 아니라 항상 true.
+  approximate: true;
+}
+
 export interface Content {
   id: string;
   name: string;
@@ -119,6 +143,9 @@ export interface Content {
   // 정렬(src/lib/favorites.ts)에 쓴다. 다른 출처(탐색·바구니 등)의
   // Content에는 없다.
   createdAt?: string;
+  // v2: 목록/상세 응답의 각 콘텐츠에 붙는다. 지표 조회가 실패하거나 지역
+  // 통계·프록시 모두 없으면 null.
+  visitorStats?: VisitorStats | null;
 }
 
 export interface ContentDetail extends Content {
