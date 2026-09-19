@@ -42,6 +42,7 @@ import type {
   ItinerarySuggestion,
   ItineraryVariant,
   SaveItineraryRequest,
+  TravelMode,
 } from "@/types/itinerary";
 import { ALL_TRAVEL_MODES } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
@@ -67,18 +68,21 @@ import { VariantSelector } from "./VariantSelector";
 const EMPTY_DAYS: Day[] = [];
 
 // 여행 요약(travelDate·장소 수·이동 합계)을 한 줄로 압축한 결과 헤더 메타.
-// 이동 합계는 실도로 route 합계 우선, 없으면 백엔드 스케줄러 값 폴백.
+// CAR는 실도로 route 합계 우선(없으면 백엔드 스케줄러 값 폴백), TRANSIT은
+// Kakao route가 자동차 전용이라 항상 백엔드 대중교통 모델 값을 쓴다.
 function headerMeta(
   travelDate: string,
   days: Day[],
   mapData: ItineraryMapData,
+  travelMode: TravelMode,
 ): string {
   const [, month, day] = travelDate.split("-");
   const dateText =
     month && day ? `${Number(month)}월 ${Number(day)}일 출발` : null;
   const totalPlaces = days.reduce((sum, d) => sum + d.items.length, 0);
 
-  const routeDays = mapData.days.filter((d) => d.route);
+  const routeDays =
+    travelMode === "CAR" ? mapData.days.filter((d) => d.route) : [];
   const fallback = sumDayTravel(days);
   const totalMin =
     routeDays.length > 0
@@ -95,11 +99,12 @@ function headerMeta(
         )
       : fallback.totalKm;
   const travelMin = formatTravelMinutes(totalMin);
+  const travelLabel = travelMode === "CAR" ? "차량 이동" : "대중교통 이동";
 
   return [
     dateText,
     totalPlaces > 0 ? `장소 ${totalPlaces}곳` : null,
-    travelMin ? `차량 이동 ${travelMin}` : null,
+    travelMin ? `${travelLabel} ${travelMin}` : null,
     formatDistanceKm(totalKm),
   ]
     .filter(Boolean)
@@ -115,6 +120,7 @@ function ItineraryResultLayout({
   travelDate,
   days,
   mapData,
+  travelMode = "CAR",
   actions,
   banner,
   children,
@@ -125,6 +131,10 @@ function ItineraryResultLayout({
   travelDate: string;
   days: Day[];
   mapData: ItineraryMapData;
+  // 선택된 일정안의 이동수단. 저장된 일정 재조회(SavedItineraryPanel)처럼
+  // 이동수단을 모르는 경로는 기존과 같은 CAR 기본값을 쓴다(백엔드가 저장
+  // 응답에 travelMode를 담지 않는다).
+  travelMode?: TravelMode;
   actions: ReactNode;
   // 제목/액션 행과 2열 그리드 사이에 전체 폭으로 렌더하는 안내(조정 내역, 오류,
   // "예시"·"저장됨" 배너 등). 그리드 위에 두어야 왼쪽 타임라인과 오른쪽 지도의
@@ -141,7 +151,7 @@ function ItineraryResultLayout({
     days.length === 0
       ? 0
       : Math.min(Math.max(selectedDayIndex, 0), days.length - 1);
-  const meta = headerMeta(travelDate, days, mapData);
+  const meta = headerMeta(travelDate, days, mapData, travelMode);
   const mapDaysByIndex = new Map(mapData.days.map((d) => [d.dayIndex, d]));
 
   return (
@@ -190,11 +200,13 @@ function ItineraryResultLayout({
               days={days}
               mapData={mapData}
               selectedDayIndex={safeIndex}
+              travelMode={travelMode}
             />
             {mapData.days.some((d) => d.route) && (
               <p className="px-0.5 text-[12px] leading-relaxed text-muted-foreground">
-                이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로
-                기준입니다. 순서를 바꾸면 다시 계산돼요.
+                {travelMode === "CAR"
+                  ? "이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로 기준입니다. 순서를 바꾸면 다시 계산돼요."
+                  : "이동 시간·거리는 도보·대중교통 소요시간 근사치예요(실제 노선·배차는 반영하지 않아요). 지도의 경로선은 참고용 도로 기준이에요."}
               </p>
             )}
             {sidebar}
@@ -770,6 +782,7 @@ export function ItineraryClient({
         travelDate={phase.data.travelDate}
         days={activeDays}
         mapData={mapData}
+        travelMode={activeVariant.travelMode}
         actions={
           <>
             <Button asChild>
@@ -819,8 +832,13 @@ export function ItineraryClient({
               days={activeDays}
               travelSummary={null}
               departureTime={activeDays[0]?.items[0]?.startTime ?? null}
+              walkingMinutes={activeVariant.metrics.totalWalkingMinutes}
             />
-            <TripDistanceCard mapDays={mapData.days} />
+            <TripDistanceCard
+              mapDays={mapData.days}
+              days={activeDays}
+              travelMode={activeVariant.travelMode}
+            />
           </>
         }
       >
@@ -836,6 +854,7 @@ export function ItineraryClient({
             hideMap
             hideAdjustments
             onDismissAiSuggestion={handleDismissAiSuggestion}
+            travelMode={activeVariant.travelMode}
             // buildLoginPreviewItinerary(로컬 목데이터)는 startContentId를
             // 반영하지 않고 순번대로 날짜를 배분하므로, 여기서 배지를 붙이면
             // 엉뚱한 장소가 "출발"로 표시될 수 있다 — 이 경로에서는 생략한다.
@@ -864,6 +883,7 @@ export function ItineraryClient({
         travelDate={phase.data.travelDate}
         days={activeDays}
         mapData={mapData}
+        travelMode={activeVariant.travelMode}
         actions={
           <>
             {titleDraft === null ? (
@@ -966,8 +986,13 @@ export function ItineraryClient({
               days={activeDays}
               travelSummary={sumDayTravel(activeDays)}
               departureTime={activeDays[0]?.items[0]?.startTime ?? null}
+              walkingMinutes={activeVariant.metrics.totalWalkingMinutes}
             />
-            <TripDistanceCard mapDays={mapData.days} />
+            <TripDistanceCard
+              mapDays={mapData.days}
+              days={activeDays}
+              travelMode={activeVariant.travelMode}
+            />
           </>
         }
       >
@@ -982,6 +1007,7 @@ export function ItineraryClient({
             onSelectDay={onSelectDay}
             hideMap
             hideAdjustments
+            travelMode={activeVariant.travelMode}
             onDismissAiSuggestion={handleDismissAiSuggestion}
             startContentId={requestedStartContentId}
           />

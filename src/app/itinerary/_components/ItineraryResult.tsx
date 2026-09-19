@@ -8,7 +8,7 @@ import { useItineraryMapData } from "@/hooks/useItineraryMapData";
 import type { ParsedApiError } from "@/lib/errors";
 import { hasEmptyDay } from "@/lib/itinerary";
 import type { Content } from "@/types/content";
-import type { Day } from "@/types/itinerary";
+import type { Day, TravelMode } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
 import type { Region } from "@/types/region";
 import { AdjustmentsNotice } from "./AdjustmentsNotice";
@@ -58,6 +58,10 @@ interface ItineraryResultProps {
   // 직후 미리보기 화면에서만 넘어온다 — 저장된 일정 재조회 경로는 원래
   // 요청값을 모르므로 생략한다.
   startContentId?: string;
+  // 선택된 일정안의 이동수단. 저장된 일정 재조회·공유 페이지처럼 이동수단을
+  // 모르는 경로는 기존과 같은 CAR 기본값을 쓴다(백엔드가 저장 응답에
+  // travelMode를 담지 않는다).
+  travelMode?: TravelMode;
 }
 
 export function ItineraryResult({
@@ -71,6 +75,7 @@ export function ItineraryResult({
   hideAdjustments = false,
   onDismissAiSuggestion,
   startContentId,
+  travelMode = "CAR",
 }: ItineraryResultProps) {
   const [replaceTarget, setReplaceTarget] = useState<{
     dayId: string;
@@ -140,12 +145,14 @@ export function ItineraryResult({
               }
               onDismissAiSuggestion={onDismissAiSuggestion}
               startContentId={isFirstDay ? startContentId : undefined}
+              travelMode={travelMode}
             />
           </div>
           {hasAnyRoute && !hideMap && (
             <p className="mt-3.5 px-0.5 text-[12px] leading-relaxed text-muted-foreground">
-              이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로
-              기준입니다. 순서를 바꾸면 다시 계산돼요.
+              {travelMode === "CAR"
+                ? "이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로 기준입니다. 순서를 바꾸면 다시 계산돼요."
+                : "이동 시간·거리는 도보·대중교통 소요시간 근사치예요(실제 노선·배차는 반영하지 않아요). 지도의 경로선은 참고용 도로 기준이에요."}
             </p>
           )}
           {!hideMap && (
@@ -154,6 +161,7 @@ export function ItineraryResult({
                 days={days}
                 mapData={resolvedMapData}
                 selectedDayIndex={dayIndex}
+                travelMode={travelMode}
               />
             </div>
           )}

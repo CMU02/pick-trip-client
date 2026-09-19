@@ -1,4 +1,4 @@
-import type { Day, DayRequest } from "@/types/itinerary";
+import type { Day, DayRequest, TravelMode } from "@/types/itinerary";
 import type { ItineraryMapDay } from "@/types/map";
 
 /**
@@ -125,15 +125,19 @@ export function sumDayTravel(days: Day[]): {
 }
 
 /**
- * 한 날의 이동 합계 "34분 · 27.6km". Kakao 길찾기(실도로) route 결과가 있으면
- * 우선, 없으면 백엔드 스케줄러 값(day.totalTravel*)으로 폴백한다. 둘 다 없으면 null.
- * DayCard 헤더와 DayMapPanel 구간 헤더행이 같은 값을 쓰도록 공유한다.
+ * 한 날의 이동 합계 "34분 · 27.6km". CAR는 Kakao 길찾기(실도로) route 결과가
+ * 있으면 우선, 없으면 백엔드 스케줄러 값(day.totalTravel*)으로 폴백한다.
+ * TRANSIT은 Kakao route가 자동차 전용이라(도보 없음) 항상 백엔드 값을 쓴다 —
+ * 지도에 도로선은 그대로 그리되 숫자는 대중교통(도보+버스) 모델 값이어야
+ * 한다. 둘 다 없으면 null. DayCard 헤더와 DayMapPanel 구간 헤더행이 같은
+ * 값을 쓰도록 공유한다.
  */
 export function dayTravelLabel(
   day: Day,
+  travelMode: TravelMode,
   mapDay?: ItineraryMapDay | null,
 ): string | null {
-  const route = mapDay?.route ?? null;
+  const route = travelMode === "CAR" ? (mapDay?.route ?? null) : null;
   const duration = route
     ? formatTravelMinutes(Math.round(route.totalDurationSeconds / 60))
     : formatTravelMinutes(day.totalTravelMinutes);
