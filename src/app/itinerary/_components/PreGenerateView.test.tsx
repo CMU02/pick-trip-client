@@ -233,6 +233,35 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
       dayStartTime: "10:30",
     });
   });
+
+  it("출발 시간을 비우면(트리거가 button이라 min/max가 강제되지 않음) 기본값 취급해 요청에 싣지 않는다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    const input = screen.getByLabelText("출발 시간");
+    fireEvent.change(input, { target: { value: "" } });
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+    });
+  });
+
+  it("출발 시간이 06:00~20:00 범위를 벗어나면 가까운 경계로 클램프해서 싣는다", async () => {
+    render(<PreGenerateView {...baseProps} />);
+
+    const input = screen.getByLabelText("출발 시간");
+    fireEvent.change(input, { target: { value: "03:00" } });
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(baseProps.onGenerate).toHaveBeenCalledWith({
+      travelModes: ["CAR", "TRANSIT"],
+      dayStartTime: "06:00",
+    });
+  });
 });
 
 describe("PreGenerateView — 담은 콘텐츠", () => {
