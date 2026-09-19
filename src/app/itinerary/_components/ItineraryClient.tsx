@@ -59,7 +59,7 @@ import { PreGenerateView } from "./PreGenerateView";
 import { ShareButton } from "./ShareButton";
 import { TripDistanceCard } from "./TripDistanceCard";
 import { TripSummary } from "./TripSummary";
-import { VariantTabs } from "./VariantTabs";
+import { VariantSelector } from "./VariantSelector";
 
 // useItineraryMapData 를 조건부로 부를 수 없어(hooks 규칙), 지도 대상이 아닌
 // 단계에서 넘길 안정된 빈 배열.
@@ -452,9 +452,12 @@ export function ItineraryClient({
 }: ItineraryClientProps) {
   const [phase, setPhase] = useState<ItineraryPhase>({ status: "idle" });
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
-  // 이동수단별 안(variants) 중 사용자가 탭으로 고른 것. 안이 1개뿐이면(옵션
-  // 미지정 시 기본) 항상 0이라 화면은 지금까지와 완전히 동일하게 보인다.
+  // 이동수단별 안(variants) 중 사용자가 선택 화면에서 고른 것. 안이 1개뿐이면
+  // (옵션 미지정 시 기본) 항상 0이라 화면은 지금까지와 완전히 동일하게 보인다.
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  // 안이 여러 개일 때 선택 화면(VariantSelector)에서 하나를 확정했는지. 안이
+  // 1개뿐이면 고를 필요가 없어 항상 true로 시작해 곧바로 결과 화면을 보여준다.
+  const [variantChosen, setVariantChosen] = useState(true);
   // AI가 추가 제안한 항목 중 저장 전에 지운 것들의 itemId. 새로 생성하면 비운다.
   const [dismissedAiItemIds, setDismissedAiItemIds] = useState<Set<string>>(
     new Set(),
@@ -580,6 +583,7 @@ export function ItineraryClient({
       onSuccess: (data) => {
         clearBasket();
         setSelectedVariantIndex(0);
+        setVariantChosen(data.variants.length <= 1);
         setDismissedAiItemIds(new Set());
         setAcceptedSuggestionKeys(new Set());
         setPhase({ status: "preview", data });
@@ -600,6 +604,7 @@ export function ItineraryClient({
           preLoginBasketRef.current = items;
           clearBasket();
           setSelectedVariantIndex(0);
+          setVariantChosen(data.variants.length <= 1);
           setDismissedAiItemIds(new Set());
           setAcceptedSuggestionKeys(new Set());
           setPhase({ status: "loginPreview", data });
@@ -620,6 +625,13 @@ export function ItineraryClient({
     autoResumeTriggered.current = true;
     handleGenerate();
   }, [autoResume, phase.status, items.length]);
+
+  // 선택 화면(VariantSelector)에서 안을 하나 확정한다. 이후 결과 화면은
+  // 이 안의 days/adjustments만 보여준다.
+  function handleSelectVariant(index: number) {
+    setSelectedVariantIndex(index);
+    setVariantChosen(true);
+  }
 
   // AI 추천 배지를 눌러 저장 전에 그 항목만 지운다(일반 삭제와 달리 확인 단계 없음).
   function handleDismissAiSuggestion(_dayId: string, itemId: string) {
@@ -691,6 +703,21 @@ export function ItineraryClient({
     );
   }
 
+  // 안(variants)이 여러 개면 결과 화면 대신 먼저 카드로 비교해 고르게 한다.
+  // 저장/로그인 전 미리보기 화면은 이 선택 뒤에야 등장한다.
+  if (
+    (phase.status === "preview" || phase.status === "loginPreview") &&
+    !variantChosen &&
+    phase.data.variants.length > 1
+  ) {
+    return (
+      <VariantSelector
+        variants={phase.data.variants}
+        onSelect={handleSelectVariant}
+      />
+    );
+  }
+
   if (phase.status === "loginPreview") {
     // 로그인 전/후 결과 화면을 통일한다: 사이드바는 preview와 동일한
     // TripSummary, "예시" 안내는 일차 카드 위 작은 배너로 둔다.
@@ -736,12 +763,7 @@ export function ItineraryClient({
         }
         banner={
           <>
-            <VariantTabs
-              variants={phase.data.variants}
-              selectedIndex={selectedVariantIndex}
-              onSelect={setSelectedVariantIndex}
-            />
-            {/* 제안은 variants[0] 기준으로 계산되므로 그 탭을 보고 있을 때만. */}
+            {/* 제안은 variants[0] 기준으로 계산되므로 그 안을 보고 있을 때만. */}
             {selectedVariantIndex === 0 && (
               <CongestionSuggestions
                 suggestions={phase.data.suggestions}
@@ -871,12 +893,7 @@ export function ItineraryClient({
         }
         banner={
           <>
-            <VariantTabs
-              variants={phase.data.variants}
-              selectedIndex={selectedVariantIndex}
-              onSelect={setSelectedVariantIndex}
-            />
-            {/* 제안은 variants[0] 기준으로 계산되므로 그 탭을 보고 있을 때만. */}
+            {/* 제안은 variants[0] 기준으로 계산되므로 그 안을 보고 있을 때만. */}
             {selectedVariantIndex === 0 && (
               <CongestionSuggestions
                 suggestions={phase.data.suggestions}
