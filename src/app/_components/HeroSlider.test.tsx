@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { HeroSlider } from "./HeroSlider";
@@ -21,6 +21,20 @@ describe("HeroSlider", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "다음 사진" })[0]);
 
     expect(screen.getByText("02")).toBeInTheDocument();
+  });
+
+  it("리렌더 전에 다음 버튼을 두 번 누르면 두 칸 이동한다(클로저로 계산하면 한 칸만 이동하는 버그가 있었다)", () => {
+    render(<HeroSlider />);
+    const nextButton = screen.getAllByRole("button", { name: "다음 사진" })[0];
+
+    // 같은 act 배치 안에서 두 번 클릭해, 리렌더 전에 두 클릭이 겹치는
+    // 상황(빠른 연속 클릭)을 흉내낸다.
+    act(() => {
+      fireEvent.click(nextButton);
+      fireEvent.click(nextButton);
+    });
+
+    expect(screen.getByText("03")).toBeInTheDocument();
   });
 
   it("진행 바를 클릭하면 해당 장으로 바로 이동한다", () => {

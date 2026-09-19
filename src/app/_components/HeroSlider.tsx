@@ -109,12 +109,24 @@ export function HeroSlider() {
   const visibleRef = useRef(true);
   const touchStartXRef = useRef<number | null>(null);
 
+  // 절대 인덱스로 점프한다(진행 바 점 클릭). 상대 이동(이전/다음)은
+  // step()을 쓴다 — 렌더 시점 index를 그대로 계산에 쓰면 리렌더 전에 두 번
+  // 누를 때(빠른 연속 클릭) 둘 다 같은 목적지로 계산돼 한 칸만 이동한다.
   function goTo(next: number) {
     progressRef.current = 0;
     setIndex(((next % SLIDE_COUNT) + SLIDE_COUNT) % SLIDE_COUNT);
   }
 
+  function step(delta: number) {
+    progressRef.current = 0;
+    setIndex(
+      (current) =>
+        (((current + delta) % SLIDE_COUNT) + SLIDE_COUNT) % SLIDE_COUNT,
+    );
+  }
+
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mediaQuery.matches);
     const handleChange = (e: MediaQueryListEvent) =>
@@ -124,6 +136,7 @@ export function HeroSlider() {
   }, []);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
     const mediaQuery = window.matchMedia("(max-width: 767px)");
     setHideSides(mediaQuery.matches);
     const handleChange = (e: MediaQueryListEvent) => setHideSides(e.matches);
@@ -174,7 +187,7 @@ export function HeroSlider() {
     const endX = e.changedTouches[0]?.clientX ?? startX;
     const delta = endX - startX;
     if (Math.abs(delta) < SWIPE_THRESHOLD_PX) return;
-    goTo(delta > 0 ? index - 1 : index + 1);
+    step(delta > 0 ? -1 : 1);
   }
 
   return (
@@ -223,20 +236,20 @@ export function HeroSlider() {
         <button
           type="button"
           aria-label="이전 사진"
-          onClick={() => goTo(index - 1)}
+          onClick={() => step(-1)}
           className="absolute inset-y-0 left-0 hidden w-[calc(50%-510px)] cursor-pointer border-0 bg-transparent md:block"
         />
         <button
           type="button"
           aria-label="다음 사진"
-          onClick={() => goTo(index + 1)}
+          onClick={() => step(1)}
           className="absolute inset-y-0 right-0 hidden w-[calc(50%-510px)] cursor-pointer border-0 bg-transparent md:block"
         />
       </div>
 
       <div className="mx-auto flex max-w-[1020px] items-center gap-4.5 px-6 pb-10 sm:px-10 sm:pb-14">
         <div className="flex items-center gap-2">
-          <ControlButton label="이전 사진" onClick={() => goTo(index - 1)}>
+          <ControlButton label="이전 사진" onClick={() => step(-1)}>
             <PrevIcon />
           </ControlButton>
           <ControlButton
@@ -245,7 +258,7 @@ export function HeroSlider() {
           >
             {paused ? <PlayIcon /> : <PauseIcon />}
           </ControlButton>
-          <ControlButton label="다음 사진" onClick={() => goTo(index + 1)}>
+          <ControlButton label="다음 사진" onClick={() => step(1)}>
             <NextIcon />
           </ControlButton>
         </div>
