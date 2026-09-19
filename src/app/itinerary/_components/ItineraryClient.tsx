@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -723,11 +723,13 @@ export function ItineraryClient({
 
   // VariantSelector를 닫고 조건을 다시 만지러 간다. generate 성공 시 이미
   // 비운 바구니를 되돌리지 않으면 PreGenerateView가 콘텐츠 0개로 뜨고
-  // 생성 버튼이 막혀(2개 이상 필요) 다시 시도할 방법이 없다.
-  function handleCancelVariantSelection() {
+  // 생성 버튼이 막혀(2개 이상 필요) 다시 시도할 방법이 없다. useCallback으로
+  // 참조를 고정해 VariantSelector의 Escape 키 리스너가 렌더마다 해제·재등록되지
+  // 않게 한다(saveBasket은 zustand 액션이라 참조가 이미 안정적이다).
+  const handleCancelVariantSelection = useCallback(() => {
     saveBasket(basketSnapshotRef.current);
     setPhase({ status: "idle" });
-  }
+  }, [saveBasket]);
 
   // AI 추천 배지를 눌러 저장 전에 그 항목만 지운다(일반 삭제와 달리 확인 단계 없음).
   function handleDismissAiSuggestion(_dayId: string, itemId: string) {
