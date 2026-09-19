@@ -36,9 +36,10 @@ const makeDay = (overrides: Partial<Day> = {}): Day => ({
 });
 
 describe("dayTravelLabel", () => {
-  it("route가 있으면 route 거리·시간을 쓴다", () => {
+  it("CAR는 route가 있으면 route 거리·시간을 쓴다", () => {
     const label = dayTravelLabel(
       makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+      "CAR",
       {
         dayIndex: 1,
         points: [],
@@ -53,9 +54,12 @@ describe("dayTravelLabel", () => {
     expect(label).toBe("20분 · 8.3km");
   });
 
-  it("route가 없으면 day.totalTravel* 로 폴백한다", () => {
+  it("CAR는 route가 없으면 day.totalTravel* 로 폴백한다", () => {
     expect(
-      dayTravelLabel(makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 })),
+      dayTravelLabel(
+        makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+        "CAR",
+      ),
     ).toBe("1시간 15분 · 12.4km");
   });
 
@@ -63,8 +67,27 @@ describe("dayTravelLabel", () => {
     expect(
       dayTravelLabel(
         makeDay({ totalTravelMinutes: null, totalTravelKm: null }),
+        "CAR",
       ),
     ).toBeNull();
+  });
+
+  it("TRANSIT은 route가 있어도 항상 day.totalTravel* 로 백엔드 대중교통 모델 값을 쓴다", () => {
+    const label = dayTravelLabel(
+      makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+      "TRANSIT",
+      {
+        dayIndex: 1,
+        points: [],
+        route: {
+          totalDistanceMeters: 8300,
+          totalDurationSeconds: 1200,
+          segments: [],
+          path: [],
+        },
+      },
+    );
+    expect(label).toBe("1시간 15분 · 12.4km");
   });
 });
 

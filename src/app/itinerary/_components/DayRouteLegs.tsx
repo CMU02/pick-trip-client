@@ -1,16 +1,26 @@
 import { formatDistanceKm, formatTravelMinutes } from "@/lib/itinerary";
+import type { TravelMode } from "@/types/itinerary";
 import type { RoutePoint, RouteResult } from "@/types/map";
 
 interface DayRouteLegsProps {
   points: RoutePoint[];
   route: RouteResult | null;
+  // Kakao 실도로 길찾기는 자동차 전용이다. TRANSIT은 구간별(leg) 도보/버스
+  // 분류 데이터가 없어 이 목록 자체를 숨긴다(부정확한 숫자를 보여주지 않기
+  // 위함) — 이동수단을 모르는 호출부는 기존과 같은 CAR 기본값을 쓴다.
+  travelMode?: TravelMode;
 }
 
 // 사이드바 지도 아래 구간 목록. "1→2  최참판댁 → 고하버거  9분 · 4.8km" 한 줄씩.
 // 실도로 길찾기(route) 결과가 없으면 아무것도 그리지 않는다 — 직선 근사로
 // 채우지 않는다.
-export function DayRouteLegs({ points, route }: DayRouteLegsProps) {
-  if (!route || route.segments.length === 0) return null;
+export function DayRouteLegs({
+  points,
+  route,
+  travelMode = "CAR",
+}: DayRouteLegsProps) {
+  if (travelMode !== "CAR" || !route || route.segments.length === 0)
+    return null;
 
   return (
     <ul className="mt-3 flex flex-col gap-1.5">
