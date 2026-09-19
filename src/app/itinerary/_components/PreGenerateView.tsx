@@ -59,6 +59,20 @@ const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
 // dayStartTime을 모르므로, 이 값과 달라지면 요청에 실려 400을 받는다
 // (docs/plan/itinerary-day-start-time.md 참고 — 백엔드 연동 전까지 머지 보류).
 const DEFAULT_DAY_START_TIME = "09:00";
+const MIN_DAY_START_TIME = "06:00";
+const MAX_DAY_START_TIME = "20:00";
+
+// <input type="time">의 min/max는 트리거가 type="button"이라 브라우저
+// 제약 검증(reportValidity)을 안 거친다 — 필드를 비우거나(빈 문자열이
+// 브라우저에 따라 허용됨) 06:00~20:00 밖 값을 직접 입력할 수 있다. 값이
+// "HH:mm"(항상 0패딩) 형식일 때만 문자열 비교로 범위를 보장하므로, 빈
+// 값은 기본값으로, 범위를 벗어나면 가까운 경계로 클램프한다.
+function normalizeDayStartTime(value: string): string {
+  if (!value) return DEFAULT_DAY_START_TIME;
+  if (value < MIN_DAY_START_TIME) return MIN_DAY_START_TIME;
+  if (value > MAX_DAY_START_TIME) return MAX_DAY_START_TIME;
+  return value;
+}
 
 // mode/startContentId/dayStartTime은 기본값과 다를 때만 싣지만, travelModes는
 // 항상 전체를 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.
@@ -70,8 +84,9 @@ function buildGenerateOptions(
   const options: ItineraryGenerateRequest = { travelModes: ALL_TRAVEL_MODES };
   if (mode !== DEFAULT_MODE) options.mode = mode;
   if (startContentId) options.startContentId = startContentId;
-  if (dayStartTime !== DEFAULT_DAY_START_TIME)
-    options.dayStartTime = dayStartTime;
+  const normalizedDayStartTime = normalizeDayStartTime(dayStartTime);
+  if (normalizedDayStartTime !== DEFAULT_DAY_START_TIME)
+    options.dayStartTime = normalizedDayStartTime;
   return options;
 }
 
