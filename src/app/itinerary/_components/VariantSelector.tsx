@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import {
   type ItineraryVariant,
@@ -13,6 +14,8 @@ import {
 interface VariantSelectorProps {
   variants: ItineraryVariant[];
   onSelect: (index: number) => void;
+  // 닫기 버튼·배경 클릭·Escape로 선택을 취소하고 조건을 다시 만지러 간다.
+  onClose: () => void;
 }
 
 type MetricKey = Exclude<keyof ItineraryVariantMetrics, "unavailableReasons">;
@@ -104,12 +107,52 @@ const TRAVEL_MODE_ICONS = {
 // 하고, 커서를 올린 카드는 한 번 더 밝게 강조하고 반대쪽은 한층 더 흐리게 죽인다.
 // 실제 확정은 클릭으로만 일어난다(호버는 미리보기일 뿐). 안이 1개뿐이면(옵션
 // 미지정 시 기본) 호출하는 쪽에서 이 컴포넌트를 그리지 않는다.
-export function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
+export function VariantSelector({
+  variants,
+  onSelect,
+  onClose,
+}: VariantSelectorProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  // 비교할 안이 1개뿐이면 호출부가 이미 이 컴포넌트를 그리지 않지만, 방어적으로
+  // 한 번 더 막는다(예전 VariantTabs가 갖고 있던 가드).
+  if (variants.length <= 1) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-sm">
-      <div className="flex w-full max-w-[1152px] flex-col items-center gap-9 py-10">
+    // biome-ignore lint/a11y/useKeyWithClickEvents: 배경 클릭 닫기는 보조 동선이고, 키보드는 Escape로 이미 지원한다
+    // biome-ignore lint/a11y/noStaticElementInteractions: 위와 같은 이유
+    <div
+      data-testid="variant-selector-overlay"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          // 배경 onClick과 중복 호출되지 않게 버블링을 막는다.
+          e.stopPropagation();
+          onClose();
+        }}
+        aria-label="닫기"
+        className="absolute top-6 right-6 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+      >
+        <Icon name="close" size={20} />
+      </button>
+
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: 배경 클릭이 카드까지 닫지 않게 막는 용도일 뿐, 그 자체는 상호작용이 아니다 */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: 위와 같은 이유 */}
+      <div
+        className="flex w-full max-w-[1152px] flex-col items-center gap-9 py-10"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="text-center">
           <p className="text-2xl font-bold tracking-tight text-white">
             어떤 루트로 일정을 만들까요?
