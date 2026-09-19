@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Day } from "@/types/itinerary";
 
 import {
+  clearDaySchedule,
   dayTravelLabel,
   formatDayDate,
   formatDistanceKm,
@@ -35,9 +36,10 @@ const makeDay = (overrides: Partial<Day> = {}): Day => ({
 });
 
 describe("dayTravelLabel", () => {
-  it("route가 있으면 route 거리·시간을 쓴다", () => {
+  it("CAR는 route가 있으면 route 거리·시간을 쓴다", () => {
     const label = dayTravelLabel(
       makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+      "CAR",
       {
         dayIndex: 1,
         points: [],
@@ -52,9 +54,12 @@ describe("dayTravelLabel", () => {
     expect(label).toBe("20분 · 8.3km");
   });
 
-  it("route가 없으면 day.totalTravel* 로 폴백한다", () => {
+  it("CAR는 route가 없으면 day.totalTravel* 로 폴백한다", () => {
     expect(
-      dayTravelLabel(makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 })),
+      dayTravelLabel(
+        makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+        "CAR",
+      ),
     ).toBe("1시간 15분 · 12.4km");
   });
 
@@ -62,8 +67,27 @@ describe("dayTravelLabel", () => {
     expect(
       dayTravelLabel(
         makeDay({ totalTravelMinutes: null, totalTravelKm: null }),
+        "CAR",
       ),
     ).toBeNull();
+  });
+
+  it("TRANSIT은 route가 있어도 항상 day.totalTravel* 로 백엔드 대중교통 모델 값을 쓴다", () => {
+    const label = dayTravelLabel(
+      makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+      "TRANSIT",
+      {
+        dayIndex: 1,
+        points: [],
+        route: {
+          totalDistanceMeters: 8300,
+          totalDurationSeconds: 1200,
+          segments: [],
+          path: [],
+        },
+      },
+    );
+    expect(label).toBe("1시간 15분 · 12.4km");
   });
 });
 
@@ -253,6 +277,37 @@ describe("hasEmptyDay", () => {
 
   it("모든 날에 장소가 있으면 false", () => {
     expect(hasEmptyDay([makeDay(), makeDay()])).toBe(false);
+  });
+});
+
+describe("clearDaySchedule", () => {
+  it("이동 요약과 각 항목의 방문 시각을 지운다", () => {
+    const day = makeDay({
+      totalTravelMinutes: 20,
+      totalTravelKm: 3.5,
+      items: [
+        makeItem({ startTime: "09:00", endTime: "10:30" }),
+        makeItem({ itemId: "item-2", startTime: "11:00", endTime: "12:00" }),
+      ],
+    });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.totalTravelMinutes).toBeNull();
+    expect(cleared.totalTravelKm).toBeNull();
+    expect(
+      cleared.items.every((i) => i.startTime === null && i.endTime === null),
+    ).toBe(true);
+  });
+
+  it("dayIndex·items 순서 등 나머지 필드는 그대로 둔다", () => {
+    const day = makeDay({ dayIndex: 3 });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.dayIndex).toBe(3);
+    expect(cleared.items).toHaveLength(1);
+    expect(cleared.items[0].contentId).toBe("c-1");
   });
 });
 

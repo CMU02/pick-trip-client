@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/errors";
 import type {
+  ItineraryGenerateRequest,
   ItineraryGenerateResponse,
   ItineraryResponse,
   RawItineraryGenerateResponse,
@@ -30,71 +31,112 @@ const mockPatch = vi.mocked(apiClient.patch);
 
 describe("generateItinerary", () => {
   // 백엔드 원본 응답: duration은 일수(박 수+1) 기준이고, 저장 전 미리보기라
-  // dayId/itemId/pinned가 없다.
+  // dayId/itemId/pinned가 없다. v2 백엔드는 옵션을 안 보내도 자동차 단일
+  // variants를 항상 채워 보낸다.
+  const rawDays: RawItineraryGenerateResponse["days"] = [
+    {
+      dayIndex: 0,
+      date: "2025-01-15",
+      totalTravelMinutes: 20,
+      totalTravelKm: 3.5,
+      dayNotes: ["하루 총 이동시간이 약 20분입니다."],
+      items: [
+        {
+          contentId: "content-1",
+          title: "예천군 문화유산",
+          order: 0,
+          reason: "지역 대표 명소",
+          startTime: "09:00",
+          endTime: "10:30",
+          notes: ["개장 전 도착이라 09:00까지 대기가 필요합니다."],
+        },
+      ],
+    },
+  ];
+  const rawAdjustments = [
+    "'예천군 문화유산'은 1일차(수)에 휴무여서 2일차로 옮겼습니다.",
+  ];
   const rawServerResponse: RawItineraryGenerateResponse = {
     title: "하동 1박 2일 여행",
     region: "HADONG",
     travelDate: "2025-01-15",
     duration: 2,
-    adjustments: [
-      "'예천군 문화유산'은 1일차(수)에 휴무여서 2일차로 옮겼습니다.",
-    ],
-    days: [
+    adjustments: rawAdjustments,
+    days: rawDays,
+    variants: [
       {
-        dayIndex: 0,
-        date: "2025-01-15",
-        totalTravelMinutes: 20,
-        totalTravelKm: 3.5,
-        dayNotes: ["하루 총 이동시간이 약 20분입니다."],
-        items: [
-          {
-            contentId: "content-1",
-            title: "예천군 문화유산",
-            order: 0,
-            reason: "지역 대표 명소",
-            startTime: "09:00",
-            endTime: "10:30",
-            notes: ["개장 전 도착이라 09:00까지 대기가 필요합니다."],
-          },
-        ],
+        label: "자동차 힐링 루트",
+        travelMode: "CAR",
+        title: "하동 1박 2일 여행",
+        days: rawDays,
+        adjustments: rawAdjustments,
+        metrics: {
+          totalTravelMinutes: 20,
+          totalWalkingMinutes: 0,
+          totalTransitCost: 284,
+          placeCount: 1,
+          unavailableReasons: {},
+        },
       },
     ],
+    suggestions: [],
   };
 
   // 화면이 key와 조작 대상으로 쓰는 id는 서비스 경계에서 합성해 채운다.
+  const hydratedDays: ItineraryGenerateResponse["days"] = [
+    {
+      dayId: "generated-day-0",
+      dayIndex: 0,
+      date: "2025-01-15",
+      totalTravelMinutes: 20,
+      totalTravelKm: 3.5,
+      dayNotes: ["하루 총 이동시간이 약 20분입니다."],
+      items: [
+        {
+          itemId: "generated-item-0-0-content-1",
+          contentId: "content-1",
+          title: "예천군 문화유산",
+          order: 0,
+          reason: "지역 대표 명소",
+          pinned: false,
+          startTime: "09:00",
+          endTime: "10:30",
+          notes: ["개장 전 도착이라 09:00까지 대기가 필요합니다."],
+          addedByAi: undefined,
+          addedForRest: undefined,
+        },
+      ],
+    },
+  ];
   const expectedResult: ItineraryGenerateResponse = {
     ...rawServerResponse,
     duration: 1,
-    days: [
+    days: hydratedDays,
+    adjustments: rawAdjustments,
+    variants: [
       {
-        dayId: "generated-day-0",
-        dayIndex: 0,
-        date: "2025-01-15",
-        totalTravelMinutes: 20,
-        totalTravelKm: 3.5,
-        dayNotes: ["하루 총 이동시간이 약 20분입니다."],
-        items: [
-          {
-            itemId: "generated-item-0-0-content-1",
-            contentId: "content-1",
-            title: "예천군 문화유산",
-            order: 0,
-            reason: "지역 대표 명소",
-            pinned: false,
-            startTime: "09:00",
-            endTime: "10:30",
-            notes: ["개장 전 도착이라 09:00까지 대기가 필요합니다."],
-          },
-        ],
+        label: "자동차 힐링 루트",
+        travelMode: "CAR",
+        title: "하동 1박 2일 여행",
+        days: hydratedDays,
+        adjustments: rawAdjustments,
+        metrics: {
+          totalTravelMinutes: 20,
+          totalWalkingMinutes: 0,
+          totalTransitCost: 284,
+          placeCount: 1,
+          unavailableReasons: {},
+        },
       },
     ],
+    suggestions: [],
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("요청 바디 없이 POST /api/v1/itineraries/generate를 호출하고, 응답 duration을 박 수로 변환", async () => {
+  it("요청 바디 없이 POST /api/v1/itineraries/generate를 호출하고, 응답 duration을 박 수로 변환하며 variants/suggestions를 그대로 반영", async () => {
     mockPost.mockResolvedValueOnce({ data: rawServerResponse });
 
     const result = await generateItinerary();
@@ -105,6 +147,60 @@ describe("generateItinerary", () => {
       { headers: undefined },
     );
     expect(result).toEqual(expectedResult);
+    // 최상위 days/adjustments는 variants[0]의 복제 — 같은 참조를 그대로 쓴다.
+    expect(result.days).toBe(result.variants[0]?.days);
+    expect(result.adjustments).toBe(result.variants[0]?.adjustments);
+  });
+
+  it("옵션(mode/startContentId/travelModes)을 전달하면 요청 바디에 그대로 실어 보낸다", async () => {
+    mockPost.mockResolvedValueOnce({ data: rawServerResponse });
+    const options: ItineraryGenerateRequest = {
+      mode: "AUGMENT",
+      startContentId: "content-1",
+      travelModes: ["CAR", "TRANSIT"],
+    };
+
+    await generateItinerary(options, "access-1");
+
+    expect(mockPost).toHaveBeenCalledWith(
+      "/api/v1/itineraries/generate",
+      options,
+      { headers: { Authorization: "Bearer access-1" } },
+    );
+  });
+
+  it("variants가 없는 응답(구버전 백엔드)은 최상위 필드로 안 하나를 합성한다", async () => {
+    const legacyResponse: RawItineraryGenerateResponse = {
+      title: rawServerResponse.title,
+      region: rawServerResponse.region,
+      travelDate: rawServerResponse.travelDate,
+      duration: rawServerResponse.duration,
+      adjustments: rawAdjustments,
+      days: rawDays,
+      // variants/suggestions 필드 자체가 없다.
+    };
+    mockPost.mockResolvedValueOnce({ data: legacyResponse });
+
+    const result = await generateItinerary();
+
+    expect(result.variants).toEqual([
+      {
+        label: "자동차 힐링 루트",
+        travelMode: "CAR",
+        title: rawServerResponse.title,
+        days: hydratedDays,
+        adjustments: rawAdjustments,
+        metrics: {
+          totalTravelMinutes: null,
+          totalWalkingMinutes: null,
+          totalTransitCost: null,
+          placeCount: null,
+          unavailableReasons: {},
+        },
+      },
+    ]);
+    expect(result.suggestions).toEqual([]);
+    expect(result.days).toBe(result.variants[0]?.days);
   });
 
   it("오류 전파: apiClient가 throw 하면 오류를 그대로 전파", async () => {
@@ -118,10 +214,10 @@ describe("generateItinerary", () => {
     await expect(generateItinerary()).rejects.toThrow(testError);
   });
 
-  it("accessToken을 전달하면 Authorization 헤더를 붙인다", async () => {
+  it("accessToken만 전달하면 바디 없이 Authorization 헤더만 붙인다", async () => {
     mockPost.mockResolvedValueOnce({ data: rawServerResponse });
 
-    await generateItinerary("access-1");
+    await generateItinerary(undefined, "access-1");
 
     expect(mockPost).toHaveBeenCalledWith(
       "/api/v1/itineraries/generate",

@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { Icon, type IconName } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
 import { formatDuration } from "@/lib/itinerary";
 import { JOURNEY_STEPS } from "@/lib/journey";
+import { cn } from "@/lib/utils";
 import type { BasketItem, BasketPriority } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
+import {
+  ALL_TRAVEL_MODES,
+  type ItineraryGenerateMode,
+  type ItineraryGenerateRequest,
+} from "@/types/itinerary";
 import { REGION_LABELS, type Region } from "@/types/region";
 import {
   COMPANION_CONDITION_LABELS,
@@ -22,11 +29,44 @@ interface PreGenerateViewProps {
   startDate: string;
   nights: string;
   companions: string;
-  onGenerate: () => void;
+  // 옵션을 하나도 안 바꿨으면 undefined — 기존과 완전히 같은 요청(자동차
+  // 단일안)을 보낸다.
+  onGenerate: (options?: ItineraryGenerateRequest) => void;
   error?: { message: string; traceId?: string } | null;
 }
 
 const MISSING = "미선택";
+
+const MODE_OPTIONS: {
+  value: ItineraryGenerateMode;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    value: "STRICT",
+    label: "담은 콘텐츠만",
+    desc: "바구니에 담은 장소만으로 일정을 만듭니다",
+  },
+  {
+    value: "AUGMENT",
+    label: "AI 추천 장소도 추가",
+    desc: "같은 지역의 다른 콘텐츠를 AI가 더 제안할 수 있어요",
+  },
+];
+
+const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
+
+// mode/startContentId는 기본값과 다를 때만 싣지만, travelModes는 항상 전체를
+// 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.
+function buildGenerateOptions(
+  mode: ItineraryGenerateMode,
+  startContentId: string,
+): ItineraryGenerateRequest {
+  const options: ItineraryGenerateRequest = { travelModes: ALL_TRAVEL_MODES };
+  if (mode !== DEFAULT_MODE) options.mode = mode;
+  if (startContentId) options.startContentId = startContentId;
+  return options;
+}
 
 // 스펙 §8: 쿼리가 비었을 때 `NaN월 NaN일`이 나오던 문제를 막는다.
 function formatStartDate(value: string): string | null {
@@ -111,6 +151,23 @@ export function PreGenerateView({
 }: PreGenerateViewProps) {
   const { items, remove } = useBasket();
 
+  // 일정 생성 옵션. mode/startContentId는 서버 기본값과 동일하게 시작한다.
+  // 이동수단은 사용자가 고르지 않고 항상 전체를 요청한다(ALL_TRAVEL_MODES).
+  const [mode, setMode] = useState<ItineraryGenerateMode>(DEFAULT_MODE);
+  const [startContentId, setStartContentId] = useState("");
+  // 고른 시작 장소가 바구니에서 지워지면 select state는 그대로 남는다
+  // (버그였다). 매 렌더 바구니와 대조해 사라진 값은 없는 셈 치고
+  // "AI가 자동으로 정함"으로 되돌린다 — 별도 effect 없이 파생값으로 처리한다.
+  const validStartContentId = items.some(
+    (item) => item.content.id === startContentId,
+  )
+    ? startContentId
+    : "";
+
+  function handleGenerateClick() {
+    onGenerate(buildGenerateOptions(mode, validStartContentId));
+  }
+
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
   const parsedNights = Number(nights) || 0;
   const parsedCompanions = companions
@@ -186,7 +243,7 @@ export function PreGenerateView({
           <ErrorState
             message={error.message}
             traceId={error.traceId}
-            onRetry={onGenerate}
+            onRetry={handleGenerateClick}
           />
         </div>
       )}
@@ -276,6 +333,69 @@ export function PreGenerateView({
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* 2.5 일정 만들기 옵션 */}
+          <section className="rounded-[22px] border border-border bg-white p-6">
+            <SectionHeading>
+              <h2 className="text-[18px] font-bold tracking-[-0.03em]">
+                일정 만들기 옵션
+              </h2>
+            </SectionHeading>
+
+            <div className="mt-4">
+              <span className="text-[13px] font-bold text-foreground">
+                구성 방식
+              </span>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {MODE_OPTIONS.map((option) => {
+                  const selected = mode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setMode(option.value)}
+                      className={cn(
+                        "rounded-[13px] border-[1.5px] px-3.5 py-3 text-left transition-colors",
+                        selected
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/40",
+                      )}
+                    >
+                      <p className="text-[13.5px] font-bold">{option.label}</p>
+                      <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                        {option.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {items.length > 0 && (
+              <div className="mt-4">
+                <label
+                  htmlFor="start-content-id"
+                  className="text-[13px] font-bold text-foreground"
+                >
+                  시작 장소
+                </label>
+                <select
+                  id="start-content-id"
+                  value={validStartContentId}
+                  onChange={(e) => setStartContentId(e.target.value)}
+                  className="mt-2 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
+                >
+                  <option value="">AI가 자동으로 정함</option>
+                  {items.map((item) => (
+                    <option key={item.content.id} value={item.content.id}>
+                      {item.content.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </section>
 
           {/* 3. 담은 콘텐츠 */}
@@ -424,7 +544,7 @@ export function PreGenerateView({
             <button
               type="button"
               disabled={!canGenerate}
-              onClick={onGenerate}
+              onClick={handleGenerateClick}
               className="mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-[13px] px-4 py-3.5 text-[15px] font-bold transition-transform enabled:cursor-pointer enabled:bg-white enabled:text-[oklch(0.52_0.19_28)] enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/70"
             >
               <Icon name="wand" size={16} />

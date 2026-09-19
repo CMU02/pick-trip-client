@@ -22,14 +22,18 @@ describe("HeroSection", () => {
     );
   });
 
-  it("경상도 소도시/여행 콘텐츠/AI 일정 생성 지표를 보여준다", () => {
+  it("지역 슬라이더 컨트롤(이전/다음/일시정지, 카운터)을 보여준다", () => {
     render(<HeroSection />);
 
-    expect(screen.getByText("3곳")).toBeInTheDocument();
-    expect(screen.getByText("경상도 소도시")).toBeInTheDocument();
-    expect(screen.getByText("413개")).toBeInTheDocument();
-    expect(screen.getByText("여행 콘텐츠")).toBeInTheDocument();
-    expect(screen.getByText("30초")).toBeInTheDocument();
-    expect(screen.getByText("AI 일정 생성")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "이전 사진" }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("button", { name: "다음 사진" }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("button", { name: "자동 전환 일시정지" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("01")).toBeInTheDocument();
   });
 });

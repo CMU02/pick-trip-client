@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -281,12 +282,19 @@ describe("ItineraryResult", () => {
       total: 1,
     });
     const onReplaceItem = vi.fn();
+    // 대체 피커(AlternativePlacePicker)가 useQuery를 쓰므로 이 테스트만
+    // QueryClientProvider로 감싼다.
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
 
     render(
-      <ItineraryResult
-        data={{ days: [] }}
-        editor={makeEditor({ onReplaceItem })}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <ItineraryResult
+          data={{ days: [] }}
+          editor={makeEditor({ onReplaceItem })}
+        />
+      </QueryClientProvider>,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "대체 장소" }));

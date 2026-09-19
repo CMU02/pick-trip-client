@@ -90,28 +90,49 @@ function renderWithClient(ui: ReactElement) {
   );
 }
 
+const mockGenerateDays: ItineraryGenerateResponse["days"] = [
+  {
+    dayId: "day-1",
+    dayIndex: 0,
+    items: [
+      {
+        itemId: "item-1",
+        contentId: "content-1",
+        title: "쌍계사",
+        order: 0,
+        reason: "지역 대표 명소",
+        pinned: false,
+      },
+    ],
+  },
+];
+
 const mockGenerateResponse: ItineraryGenerateResponse = {
   title: "하동 1박 2일 여행",
   region: "HADONG",
   travelDate: "2026-08-01",
   duration: 1,
   adjustments: [],
-  days: [
+  days: mockGenerateDays,
+  // v2: travelModes를 지정하지 않은 실제 응답도 자동차 단일 variants를 채워
+  // 보낸다. 최상위 필드와 같은 값을 참조한다.
+  variants: [
     {
-      dayId: "day-1",
-      dayIndex: 0,
-      items: [
-        {
-          itemId: "item-1",
-          contentId: "content-1",
-          title: "쌍계사",
-          order: 0,
-          reason: "지역 대표 명소",
-          pinned: false,
-        },
-      ],
+      label: "자동차 힐링 루트",
+      travelMode: "CAR",
+      title: "하동 1박 2일 여행",
+      days: mockGenerateDays,
+      adjustments: [],
+      metrics: {
+        totalTravelMinutes: null,
+        totalWalkingMinutes: null,
+        totalTransitCost: null,
+        placeCount: null,
+        unavailableReasons: {},
+      },
     },
   ],
+  suggestions: [],
 };
 
 const mockSavedResponse: ItineraryResponse = {
@@ -216,6 +237,452 @@ describe("ItineraryClient", () => {
     expect(mockClearBasket).toHaveBeenCalledTimes(1);
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
+    // variants가 1개뿐이면 고를 필요가 없어 선택 화면 없이 곧바로 결과가 보인다.
+    expect(
+      screen.queryByText("어떤 루트로 일정을 만들까요?"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("시작 장소를 지정해 생성하면 결과 화면에서 그 장소에 출발 배지를 보여준다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText("시작 장소"),
+      "쌍계사",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockGenerateItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({ startContentId: "content-1" }),
+        undefined,
+      );
+    });
+
+    expect(await screen.findByText("출발")).toBeInTheDocument();
+  });
+
+  it("이동수단별 안(variants)이 여러 개면 먼저 카드 선택 화면이 뜨고, 고른 안의 일정을 결과 화면에서 보여준다", async () => {
+    const emptyMetrics = {
+      totalTravelMinutes: null,
+      totalWalkingMinutes: null,
+      totalTransitCost: null,
+      placeCount: null,
+      unavailableReasons: {},
+    };
+    const carDays: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-car-1",
+        dayIndex: 0,
+        items: [
+          {
+            itemId: "item-car-1",
+            contentId: "content-1",
+            title: "쌍계사",
+            order: 0,
+            reason: "",
+            pinned: false,
+          },
+        ],
+      },
+    ];
+    const transitDays: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-transit-1",
+        dayIndex: 0,
+        items: [
+          {
+            itemId: "item-transit-1",
+            contentId: "content-2",
+            title: "화개장터",
+            order: 0,
+            reason: "",
+            pinned: false,
+          },
+        ],
+      },
+    ];
+    const multiVariantResponse: ItineraryGenerateResponse = {
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      adjustments: [],
+      days: carDays,
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 1박 2일 여행",
+          days: carDays,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+        {
+          label: "대중교통 힐링 루트",
+          travelMode: "TRANSIT",
+          title: "하동 1박 2일 여행",
+          days: transitDays,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+      ],
+      suggestions: [],
+    };
+
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(multiVariantResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    // 안이 2개면 결과 화면 대신 먼저 카드 선택 화면이 뜬다 — 결과가 아직 안 보인다.
+    expect(
+      await screen.findByText("어떤 루트로 일정을 만들까요?"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "대중교통 힐링 루트" }),
+    );
+
+    // 고른 안(대중교통)의 일정만 결과 화면에 보인다.
+    expect(await screen.findByText("화개장터")).toBeInTheDocument();
+    expect(screen.queryByText("쌍계사")).not.toBeInTheDocument();
+  });
+
+  it("AI가 추가 제안한(addedByAi) 항목에 배지를 보여주고, 클릭하면 저장 전에 지운다", async () => {
+    const emptyMetrics = {
+      totalTravelMinutes: null,
+      totalWalkingMinutes: null,
+      totalTransitCost: null,
+      placeCount: null,
+      unavailableReasons: {},
+    };
+    const daysWithAiSuggestion: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-1",
+        dayIndex: 0,
+        items: [
+          {
+            itemId: "item-1",
+            contentId: "content-1",
+            title: "쌍계사",
+            order: 0,
+            reason: "지역 대표 명소",
+            pinned: false,
+          },
+          {
+            itemId: "item-2",
+            contentId: "content-2",
+            title: "화개장터",
+            order: 1,
+            reason: "같은 지역의 인기 콘텐츠예요",
+            pinned: false,
+            addedByAi: true,
+          },
+        ],
+      },
+    ];
+    const responseWithAiSuggestion: ItineraryGenerateResponse = {
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      adjustments: [],
+      days: daysWithAiSuggestion,
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 1박 2일 여행",
+          days: daysWithAiSuggestion,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+      ],
+      suggestions: [],
+    };
+
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(responseWithAiSuggestion);
+    mockSaveItinerary.mockResolvedValue(mockSavedResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(await screen.findByText("화개장터")).toBeInTheDocument();
+    expect(screen.getByText("AI 추천")).toBeInTheDocument();
+    expect(screen.getByText("같은 지역의 인기 콘텐츠예요")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "AI 추천 삭제" }));
+
+    // 확인 단계 없이 바로 지워진다.
+    expect(screen.queryByText("화개장터")).not.toBeInTheDocument();
+    expect(screen.getByText("쌍계사")).toBeInTheDocument();
+
+    // 저장 요청에도 지운 항목이 빠져 있어야 한다.
+    await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockSaveItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          days: [
+            expect.objectContaining({
+              items: [expect.objectContaining({ contentId: "content-1" })],
+            }),
+          ],
+        }),
+        undefined,
+      );
+    });
+  });
+
+  it("혼잡 기반 순서변경 제안을 수락하면 순서를 바꾸고, 저장 요청에도 바뀐 순서가 실린다", async () => {
+    const emptyMetrics = {
+      totalTravelMinutes: null,
+      totalWalkingMinutes: null,
+      totalTransitCost: null,
+      placeCount: null,
+      unavailableReasons: {},
+    };
+    const daysWithSuggestion: ItineraryGenerateResponse["days"] = [
+      {
+        dayId: "day-1",
+        dayIndex: 1,
+        items: [
+          {
+            itemId: "item-1",
+            contentId: "content-1",
+            title: "쌍계사",
+            order: 0,
+            reason: "",
+            pinned: false,
+          },
+          {
+            itemId: "item-2",
+            contentId: "content-2",
+            title: "화개장터",
+            order: 1,
+            reason: "",
+            pinned: false,
+          },
+        ],
+      },
+    ];
+    const responseWithSuggestion: ItineraryGenerateResponse = {
+      title: "하동 1박 2일 여행",
+      region: "HADONG",
+      travelDate: "2026-08-01",
+      duration: 1,
+      adjustments: [],
+      days: daysWithSuggestion,
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 1박 2일 여행",
+          days: daysWithSuggestion,
+          adjustments: [],
+          metrics: emptyMetrics,
+        },
+      ],
+      suggestions: [
+        {
+          type: "CONGESTION_REORDER",
+          message:
+            "'화개장터'는 지금 시간대가 붐벼요. '쌍계사'를 먼저 가보세요.",
+          dayIndex: 1,
+          contentId: "content-2",
+          swapWithContentId: "content-1",
+        },
+      ],
+    };
+
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(responseWithSuggestion);
+    mockSaveItinerary.mockResolvedValue(mockSavedResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "'화개장터'는 지금 시간대가 붐벼요. '쌍계사'를 먼저 가보세요.",
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "순서 바꾸기" }));
+
+    // 수락한 제안은 배너에서 사라진다.
+    expect(
+      screen.queryByRole("button", { name: "순서 바꾸기" }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole("button", { name: "저장" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "저장하기" }),
+    );
+
+    await waitFor(() => {
+      expect(mockSaveItinerary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          days: [
+            expect.objectContaining({
+              items: [
+                expect.objectContaining({ contentId: "content-2", order: 0 }),
+                expect.objectContaining({ contentId: "content-1", order: 1 }),
+              ],
+            }),
+          ],
+        }),
+        undefined,
+      );
+    });
+  });
+
+  it("제안이 없으면(suggestions 빈 배열) 혼잡 순서변경 배너를 보여주지 않는다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockResolvedValue(mockGenerateResponse);
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "일정 생성하기" }),
+    );
+
+    await screen.findByText("쌍계사");
+    expect(
+      screen.queryByRole("button", { name: "순서 바꾸기" }),
+    ).not.toBeInTheDocument();
   });
 
   it("미리보기 사이드바에 Kakao 길찾기 실도로 거리로 '이동 거리 합계' 카드를 표시한다", async () => {
@@ -455,9 +922,13 @@ describe("ItineraryClient", () => {
       title: "쌍계사",
       priority: "MUST_VISIT",
     });
+    const adjustments = ["'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."];
     mockGenerateItinerary.mockResolvedValue({
       ...mockGenerateResponse,
-      adjustments: ["'쌍계사'는 1일차 휴무여서 2일차로 옮겼습니다."],
+      adjustments,
+      // ItineraryClient는 variants[0]의 adjustments를 그린다 — 최상위만
+      // 바꾸면 화면에 반영되지 않는다.
+      variants: [{ ...mockGenerateResponse.variants[0], adjustments }],
     });
 
     renderWithClient(
@@ -613,19 +1084,25 @@ describe("ItineraryClient", () => {
       title: "쌍계사",
       priority: "MUST_VISIT",
     });
+    const daysWithNullPinned: ItineraryGenerateResponse["days"] = [
+      {
+        ...mockGenerateResponse.days[0],
+        items: [
+          {
+            ...mockGenerateResponse.days[0].items[0],
+            // 백엔드가 실제로는 pinned를 null로 내려보내는 경우가 있어 이를 재현한다.
+            pinned: null as unknown as boolean,
+          },
+        ],
+      },
+    ];
     mockGenerateItinerary.mockResolvedValue({
       ...mockGenerateResponse,
-      days: [
-        {
-          ...mockGenerateResponse.days[0],
-          items: [
-            {
-              ...mockGenerateResponse.days[0].items[0],
-              // 백엔드가 실제로는 pinned를 null로 내려보내는 경우가 있어 이를 재현한다.
-              pinned: null as unknown as boolean,
-            },
-          ],
-        },
+      days: daysWithNullPinned,
+      // ItineraryClient는 저장 시 variants[0]의 days를 실어 보낸다 — 최상위만
+      // 바꾸면 저장 요청에 반영되지 않는다.
+      variants: [
+        { ...mockGenerateResponse.variants[0], days: daysWithNullPinned },
       ],
     });
     mockSaveItinerary.mockResolvedValue(mockSavedResponse);
@@ -730,6 +1207,51 @@ describe("ItineraryClient", () => {
     expect(mockClearBasket).toHaveBeenCalled();
   });
 
+  it("시작 장소를 지정했는데 AUTH_REQUIRED로 실패하면, 로컬 목데이터 미리보기에는 출발 배지를 붙이지 않는다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockRejectedValue(
+      new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
+    );
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.selectOptions(
+      await screen.findByLabelText("시작 장소"),
+      "쌍계사",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    // buildLoginPreviewItinerary(로컬 목데이터)는 startContentId를 반영하지
+    // 않고 순번대로 날짜를 배분하므로, 배지를 표시하면 엉뚱한 장소가
+    // "출발"로 보일 수 있다 — 이 경로에서는 아예 안 보여야 한다.
+    await screen.findByText("쌍계사");
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
+  });
+
   it("로그인 미리보기에서 '로그인하고 계속하기'를 누르면 바구니를 복원한다", async () => {
     mockUpdateBasketConditions.mockRejectedValue(
       new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
@@ -813,6 +1335,40 @@ describe("ItineraryClient", () => {
           ],
         },
       ],
+      // itineraryService는 항상 variants를 최소 1개 채워 보장한다 — 이 픽스처도
+      // 그 계약을 따라야 ItineraryClient의 activeVariantOf가 정상 동작한다.
+      variants: [
+        {
+          label: "자동차 힐링 루트",
+          travelMode: "CAR",
+          title: "하동 여행",
+          days: [
+            {
+              dayId: "day-1",
+              dayIndex: 1,
+              items: [
+                {
+                  itemId: "i1",
+                  contentId: "content-1",
+                  title: "쌍계사",
+                  order: 0,
+                  reason: "대표 명소",
+                  pinned: false,
+                },
+              ],
+            },
+          ],
+          adjustments: [],
+          metrics: {
+            totalTravelMinutes: null,
+            totalWalkingMinutes: null,
+            totalTransitCost: null,
+            placeCount: null,
+            unavailableReasons: {},
+          },
+        },
+      ],
+      suggestions: [],
     });
 
     renderWithClient(
@@ -831,6 +1387,13 @@ describe("ItineraryClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("쌍계사")).toBeInTheDocument();
     expect(mockGenerateItinerary).toHaveBeenCalled();
+    // PreGenerateView를 거치지 않는 이 경로도 항상 전체 이동수단을 요청해야
+    // 한다 — 빠뜨리면 서버가 CAR 단일 안으로 되돌아가 카드 선택 화면이 다른
+    // 경로와 다르게 스킵된다(예전 버그).
+    expect(mockGenerateItinerary).toHaveBeenCalledWith(
+      { travelModes: ["CAR", "TRANSIT"] },
+      undefined,
+    );
   });
 
   it("generate가 AUTH_REQUIRED가 아닌 오류로 실패하면 기존처럼 오류 메시지를 표시한다", async () => {

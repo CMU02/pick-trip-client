@@ -1,5 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/errors";
 import * as contentServiceModule from "@/services/contentService";
@@ -7,13 +9,23 @@ import { AlternativePlacePicker } from "./AlternativePlacePicker";
 
 vi.mock("@/services/contentService");
 
+// useQuery로 바뀌어 QueryClientProvider가 필요하다.
+function renderWithClient(ui: ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
+  );
+}
+
 describe("AlternativePlacePicker", () => {
   const mockGetContents = vi.mocked(contentServiceModule.getContents);
 
   it("로딩 중에는 로딩 문구를 표시한다", () => {
     mockGetContents.mockReturnValue(new Promise(() => {}));
 
-    render(
+    renderWithClient(
       <AlternativePlacePicker
         region="HADONG"
         travelDate="2026-08-01"
@@ -29,7 +41,7 @@ describe("AlternativePlacePicker", () => {
   it("후보가 없으면 빈 상태 메시지를 표시한다", async () => {
     mockGetContents.mockResolvedValue({ contents: [], total: 0 });
 
-    render(
+    renderWithClient(
       <AlternativePlacePicker
         region="HADONG"
         travelDate="2026-08-01"
@@ -49,7 +61,7 @@ describe("AlternativePlacePicker", () => {
       new ApiError(500, "조회에 실패했습니다.", "INTERNAL_ERROR"),
     );
 
-    render(
+    renderWithClient(
       <AlternativePlacePicker
         region="HADONG"
         travelDate="2026-08-01"
@@ -76,7 +88,7 @@ describe("AlternativePlacePicker", () => {
       total: 1,
     });
 
-    render(
+    renderWithClient(
       <AlternativePlacePicker
         region="HADONG"
         travelDate="2026-08-01"
@@ -105,7 +117,7 @@ describe("AlternativePlacePicker", () => {
     mockGetContents.mockResolvedValue({ contents: [content], total: 1 });
     const onSelect = vi.fn();
 
-    render(
+    renderWithClient(
       <AlternativePlacePicker
         region="HADONG"
         travelDate="2026-08-01"
@@ -126,7 +138,7 @@ describe("AlternativePlacePicker", () => {
     mockGetContents.mockResolvedValue({ contents: [], total: 0 });
     const onClose = vi.fn();
 
-    render(
+    renderWithClient(
       <AlternativePlacePicker
         region="HADONG"
         travelDate="2026-08-01"
@@ -140,5 +152,36 @@ describe("AlternativePlacePicker", () => {
     await userEvent.click(screen.getByLabelText("닫기"));
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("같은 지역·날짜·기간으로 다시 열면 캐시를 재사용해 다시 요청하지 않는다", async () => {
+    mockGetContents.mockResolvedValue({ contents: [], total: 0 });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const props = {
+      region: "HADONG" as const,
+      travelDate: "2026-08-01",
+      duration: 1,
+      onSelect: vi.fn(),
+      onClose: vi.fn(),
+    };
+
+    const { unmount } = render(
+      <QueryClientProvider client={client}>
+        <AlternativePlacePicker {...props} />
+      </QueryClientProvider>,
+    );
+    await screen.findByText("추천할 대체 장소가 없습니다");
+    unmount();
+
+    render(
+      <QueryClientProvider client={client}>
+        <AlternativePlacePicker {...props} />
+      </QueryClientProvider>,
+    );
+    await screen.findByText("추천할 대체 장소가 없습니다");
+
+    expect(mockGetContents).toHaveBeenCalledTimes(1);
   });
 });

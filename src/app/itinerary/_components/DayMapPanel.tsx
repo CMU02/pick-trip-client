@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { dayTravelLabel } from "@/lib/itinerary";
-import type { Day } from "@/types/itinerary";
+import type { Day, TravelMode } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
 import { DayRouteLegs } from "./DayRouteLegs";
 import { CORAL, ItineraryMap } from "./ItineraryMap";
@@ -18,6 +18,9 @@ interface DayMapPanelProps {
     expanded: boolean;
     onToggle: () => void;
   };
+  // 선택된 일정안의 이동수단. 이동수단을 모르는 호출부(저장된 일정 재조회 등)는
+  // 기존과 같은 CAR 기본값을 쓴다.
+  travelMode?: TravelMode;
 }
 
 // 선택한 일차 하나만 보여주는 고정 지도 + 구간 목록 + 카카오맵 링크.
@@ -31,6 +34,7 @@ export function DayMapPanel({
   mapData,
   selectedDayIndex,
   expandable,
+  travelMode = "CAR",
 }: DayMapPanelProps) {
   const day = days[selectedDayIndex];
   const mapDay = day
@@ -49,7 +53,7 @@ export function DayMapPanel({
   const kakaoUrl = `https://map.kakao.com/link/to/${encodeURIComponent(
     last.title,
   )},${last.lat},${last.lng}`;
-  const travelLabel = dayTravelLabel(day, mapDay);
+  const travelLabel = dayTravelLabel(day, travelMode, mapDay);
   // DayMapPanel/day 뷰는 항상 코랄로 그린다(ItineraryMap이 day 뷰에 쓰는
   // CORAL 상수를 그대로 가져와 값이 어긋나지 않게 한다). dayIndex별 색으로
   // 바꾸면 AI 일정 생성 결과·공유 페이지의 지도 색까지 함께 바뀌므로 이번
@@ -118,7 +122,11 @@ export function DayMapPanel({
           </div>
         )}
 
-        <DayRouteLegs points={mapDay.points} route={mapDay.route} />
+        <DayRouteLegs
+          points={mapDay.points}
+          route={mapDay.route}
+          travelMode={travelMode}
+        />
 
         <a
           href={kakaoUrl}

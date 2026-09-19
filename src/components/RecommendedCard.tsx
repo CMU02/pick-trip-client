@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { ContentCardActions } from "@/components/ContentCardActions";
 import { ContentImage } from "@/components/ContentImage";
+import { VisitorStatsCaption } from "@/components/VisitorStatsCaption";
 import { CATEGORY_LABELS, type Content } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
 
@@ -48,6 +49,7 @@ export function RecommendedCard({ content, detailHref }: RecommendedCardProps) {
         <p className="line-clamp-2 text-sm text-foreground/80">
           {content.summary}
         </p>
+        <VisitorStatsCaption stats={content.visitorStats} />
       </div>
     </>
   );
