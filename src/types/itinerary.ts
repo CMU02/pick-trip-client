@@ -29,10 +29,16 @@ export interface ItineraryGenerateRequest {
   // 만들 일정안의 이동수단. 기본 ["CAR"], 중복 제거, 최대 4개. 지정한 수만큼
   // variants[]에 안이 하나씩 나온다.
   travelModes?: TravelMode[];
-  // 하루 시작 시각("HH:mm"). 백엔드 미지원 필드 — 별도 이슈에서 연동 예정.
-  // 그때까지 기본값(09:00)과 다른 값을 보내면 백엔드가 400으로 거부한다.
-  dayStartTime?: string;
+  // v3: 일차별 시작 시각("HH:mm"). 인덱스 = 일차(0 → 1일차). null이나 짧은
+  // 배열의 빈 자리는 기본 09:00. DAY_START_TIME_MIN~MAX 밖이면 서버가 400
+  // VALIDATION_FAILED로 거절(잘라내지 않음). 안 보내면 전부 09:00(기존과 동일).
+  dayStartTimes?: (string | null)[];
 }
+
+// v3: dayStartTimes 입력 UI가 고를 수 있는 범위. 벗어난 값은 서버가 400으로
+// 거절하므로, 선택지 자체를 이 범위로 제한해 오류를 사전에 막는다.
+export const DAY_START_TIME_MIN = "05:00";
+export const DAY_START_TIME_MAX = "18:00";
 
 // ── 저장/수정 요청 공용 (POST save, PATCH modify) ──────────────────
 export interface SaveItineraryRequest {

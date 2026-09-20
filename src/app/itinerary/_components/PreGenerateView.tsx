@@ -12,6 +12,8 @@ import type { BasketItem, BasketPriority } from "@/types/basket";
 import { CATEGORY_LABELS } from "@/types/content";
 import {
   ALL_TRAVEL_MODES,
+  DAY_START_TIME_MAX,
+  DAY_START_TIME_MIN,
   type ItineraryGenerateMode,
   type ItineraryGenerateRequest,
 } from "@/types/itinerary";
@@ -55,38 +57,41 @@ const MODE_OPTIONS: {
 ];
 
 const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
-// 백엔드 SchedulingPolicy.DAY_START와 동일한 기본값. 아직 백엔드가
-// dayStartTime을 모르므로, 이 값과 달라지면 요청에 실려 400을 받는다
-// (docs/plan/itinerary-day-start-time.md 참고 — 백엔드 연동 전까지 머지 보류).
-const DEFAULT_DAY_START_TIME = "09:00";
-const MIN_DAY_START_TIME = "06:00";
-const MAX_DAY_START_TIME = "20:00";
 
-// <input type="time">의 min/max는 트리거가 type="button"이라 브라우저
-// 제약 검증(reportValidity)을 안 거친다 — 필드를 비우거나(빈 문자열이
-// 브라우저에 따라 허용됨) 06:00~20:00 밖 값을 직접 입력할 수 있다. 값이
-// "HH:mm"(항상 0패딩) 형식일 때만 문자열 비교로 범위를 보장하므로, 빈
-// 값은 기본값으로, 범위를 벗어나면 가까운 경계로 클램프한다.
-function normalizeDayStartTime(value: string): string {
-  if (!value) return DEFAULT_DAY_START_TIME;
-  if (value < MIN_DAY_START_TIME) return MIN_DAY_START_TIME;
-  if (value > MAX_DAY_START_TIME) return MAX_DAY_START_TIME;
-  return value;
-}
+// v3: dayStartTimes 입력 UI가 고를 수 있는 선택지. DAY_START_TIME_MIN~MAX
+// 밖은 서버가 400으로 거절하므로, 선택지 자체를 그 범위(30분 간격)로 막는다.
+const DAY_START_TIME_OPTIONS: string[] = (() => {
+  const [minHour] = DAY_START_TIME_MIN.split(":").map(Number);
+  const [maxHour] = DAY_START_TIME_MAX.split(":").map(Number);
+  const options: string[] = [];
+  for (let h = minHour; h <= maxHour; h++) {
+    for (const m of [0, 30]) {
+      if (h === maxHour && m > 0) break;
+      options.push(
+        `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+      );
+    }
+  }
+  return options;
+})();
 
-// mode/startContentId/dayStartTime은 기본값과 다를 때만 싣지만, travelModes는
+// mode/startContentId/dayStartTimes는 기본값과 다를 때만 싣지만, travelModes는
 // 항상 전체를 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.
 function buildGenerateOptions(
   mode: ItineraryGenerateMode,
   startContentId: string,
-  dayStartTime: string,
+  dayCount: number,
+  dayStartTimeOverrides: Record<number, string>,
 ): ItineraryGenerateRequest {
   const options: ItineraryGenerateRequest = { travelModes: ALL_TRAVEL_MODES };
   if (mode !== DEFAULT_MODE) options.mode = mode;
   if (startContentId) options.startContentId = startContentId;
-  const normalizedDayStartTime = normalizeDayStartTime(dayStartTime);
-  if (normalizedDayStartTime !== DEFAULT_DAY_START_TIME)
-    options.dayStartTime = normalizedDayStartTime;
+  if (Object.keys(dayStartTimeOverrides).length > 0) {
+    options.dayStartTimes = Array.from(
+      { length: dayCount },
+      (_, i) => dayStartTimeOverrides[i] ?? null,
+    );
+  }
   return options;
 }
 
@@ -173,12 +178,15 @@ export function PreGenerateView({
 }: PreGenerateViewProps) {
   const { items, remove } = useBasket();
 
-  // 일정 생성 옵션. mode/startContentId/dayStartTime은 서버 기본값과
-  // 동일하게 시작한다. 이동수단은 사용자가 고르지 않고 항상 전체를
-  // 요청한다(ALL_TRAVEL_MODES).
+  // 일정 생성 옵션. mode/startContentId는 서버 기본값과 동일하게 시작한다.
+  // 이동수단은 사용자가 고르지 않고 항상 전체를 요청한다(ALL_TRAVEL_MODES).
   const [mode, setMode] = useState<ItineraryGenerateMode>(DEFAULT_MODE);
   const [startContentId, setStartContentId] = useState("");
-  const [dayStartTime, setDayStartTime] = useState(DEFAULT_DAY_START_TIME);
+  // v3: 일차 인덱스(0-based) → "HH:mm". 바꾼 일차만 담는다 — 비어 있으면
+  // dayStartTimes 자체를 생략해 기존과 동일한(전부 09:00) 요청을 보낸다.
+  const [dayStartTimeOverrides, setDayStartTimeOverrides] = useState<
+    Record<number, string>
+  >({});
   // 고른 시작 장소가 바구니에서 지워지면 select state는 그대로 남는다
   // (버그였다). 매 렌더 바구니와 대조해 사라진 값은 없는 셈 치고
   // "AI가 자동으로 정함"으로 되돌린다 — 별도 effect 없이 파생값으로 처리한다.
@@ -188,12 +196,29 @@ export function PreGenerateView({
     ? startContentId
     : "";
 
+  const parsedNights = Number(nights) || 0;
+  const dayCount = parsedNights + 1;
+  // dayCount를 넘는 일차의 override는 화면에서 이미 안 보이지만, nights
+  // 조건을 줄인 뒤 없이 요청을 만들 때 배열이 실제 일차 수와 어긋나지
+  // 않도록 여기서도 한 번 걸러낸다.
+  const validDayStartTimeOverrides = Object.fromEntries(
+    Object.entries(dayStartTimeOverrides).filter(
+      ([dayIndex]) => Number(dayIndex) < dayCount,
+    ),
+  );
+
   function handleGenerateClick() {
-    onGenerate(buildGenerateOptions(mode, validStartContentId, dayStartTime));
+    onGenerate(
+      buildGenerateOptions(
+        mode,
+        validStartContentId,
+        dayCount,
+        validDayStartTimeOverrides,
+      ),
+    );
   }
 
   const parsedRegions = regions.split(",").filter(Boolean) as Region[];
-  const parsedNights = Number(nights) || 0;
   const parsedCompanions = companions
     .split(",")
     .filter(Boolean) as CompanionCondition[];
@@ -208,7 +233,6 @@ export function PreGenerateView({
     ? parsedCompanions.map((c) => COMPANION_CONDITION_LABELS[c]).join(", ")
     : "없음";
 
-  const dayCount = parsedNights + 1;
   const perDay = Math.max(1, Math.round(items.length / dayCount));
   const canGenerate =
     regionLabel !== null && dateLabel !== null && items.length >= 2;
@@ -422,24 +446,44 @@ export function PreGenerateView({
             )}
 
             <div className="mt-4">
-              <label
-                htmlFor="day-start-time"
-                className="text-[13px] font-bold text-foreground"
-              >
-                출발 시간
-              </label>
-              <input
-                id="day-start-time"
-                type="time"
-                value={dayStartTime}
-                min="06:00"
-                max="20:00"
-                onChange={(e) => setDayStartTime(e.target.value)}
-                className="mt-2 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
-              />
-              <p className="mt-1.5 text-[11.5px] text-muted-foreground">
-                매일 이 시각부터 장소를 방문하도록 일정을 짭니다
-              </p>
+              <span className="text-[13px] font-bold text-foreground">
+                일차별 시작 시각
+              </span>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {Array.from({ length: dayCount }, (_, dayIndex) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: 일차는 dayIndex 자체가 식별자이자 표시값
+                  <div key={dayIndex}>
+                    <label
+                      htmlFor={`day-start-time-${dayIndex}`}
+                      className="text-[11.5px] font-semibold text-muted-foreground"
+                    >
+                      {dayIndex + 1}일차
+                    </label>
+                    <select
+                      id={`day-start-time-${dayIndex}`}
+                      value={dayStartTimeOverrides[dayIndex] ?? ""}
+                      onChange={(e) => {
+                        const { value } = e.target;
+                        setDayStartTimeOverrides((prev) => {
+                          if (!value) {
+                            const { [dayIndex]: _removed, ...rest } = prev;
+                            return rest;
+                          }
+                          return { ...prev, [dayIndex]: value };
+                        });
+                      }}
+                      className="mt-1 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
+                    >
+                      <option value="">AI 기본(09:00)</option>
+                      {DAY_START_TIME_OPTIONS.map((time) => (
+                        <option key={time} value={time}>
+                          {time}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 

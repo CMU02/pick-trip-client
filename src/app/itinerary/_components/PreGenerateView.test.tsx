@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -205,61 +205,32 @@ describe("PreGenerateView — 일정 생성 옵션", () => {
     });
   });
 
-  it("출발 시간 기본값은 09:00이고, 바꾸지 않으면 요청에 실리지 않는다", async () => {
+  it("v3: 일차 수만큼 시작 시각 select를 보여주고, 아무것도 안 바꾸면 dayStartTimes를 생략한다", async () => {
     render(<PreGenerateView {...baseProps} />);
 
-    expect(screen.getByLabelText("출발 시간")).toHaveValue("09:00");
+    // nights="1" → 1박 2일 → 1일차·2일차 두 개.
+    expect(screen.getByLabelText("1일차")).toBeInTheDocument();
+    expect(screen.getByLabelText("2일차")).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", { name: "일정 생성하기" }),
     );
-
     expect(baseProps.onGenerate).toHaveBeenCalledWith({
       travelModes: ["CAR", "TRANSIT"],
     });
   });
 
-  it("출발 시간을 바꾸면 dayStartTime을 함께 실어 보낸다", async () => {
+  it("v3: 일차 시작 시각을 고르면 나머지 일차는 null로 채운 dayStartTimes를 실어 보낸다", async () => {
     render(<PreGenerateView {...baseProps} />);
 
-    const input = screen.getByLabelText("출발 시간");
-    fireEvent.change(input, { target: { value: "10:30" } });
+    await userEvent.selectOptions(screen.getByLabelText("1일차"), "10:30");
     await userEvent.click(
       screen.getByRole("button", { name: "일정 생성하기" }),
     );
 
     expect(baseProps.onGenerate).toHaveBeenCalledWith({
       travelModes: ["CAR", "TRANSIT"],
-      dayStartTime: "10:30",
-    });
-  });
-
-  it("출발 시간을 비우면(트리거가 button이라 min/max가 강제되지 않음) 기본값 취급해 요청에 싣지 않는다", async () => {
-    render(<PreGenerateView {...baseProps} />);
-
-    const input = screen.getByLabelText("출발 시간");
-    fireEvent.change(input, { target: { value: "" } });
-    await userEvent.click(
-      screen.getByRole("button", { name: "일정 생성하기" }),
-    );
-
-    expect(baseProps.onGenerate).toHaveBeenCalledWith({
-      travelModes: ["CAR", "TRANSIT"],
-    });
-  });
-
-  it("출발 시간이 06:00~20:00 범위를 벗어나면 가까운 경계로 클램프해서 싣는다", async () => {
-    render(<PreGenerateView {...baseProps} />);
-
-    const input = screen.getByLabelText("출발 시간");
-    fireEvent.change(input, { target: { value: "03:00" } });
-    await userEvent.click(
-      screen.getByRole("button", { name: "일정 생성하기" }),
-    );
-
-    expect(baseProps.onGenerate).toHaveBeenCalledWith({
-      travelModes: ["CAR", "TRANSIT"],
-      dayStartTime: "06:00",
+      dayStartTimes: ["10:30", null],
     });
   });
 });
