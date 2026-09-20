@@ -1251,6 +1251,47 @@ describe("ItineraryClient", () => {
     expect(screen.getAllByText("10:30").length).toBeGreaterThan(0);
   });
 
+  it("v3: 시작 시각을 안 바꾸고 AUTH_REQUIRED로 실패하면, 로컬 미리보기에 방문 시각을 지어내지 않는다", async () => {
+    mockUpdateBasketConditions.mockResolvedValue({
+      basketId: "basket-1",
+      conditions: {
+        region: "HADONG",
+        travelDate: "2026-08-01",
+        duration: 1,
+        companions: [],
+      },
+      items: [],
+    });
+    mockAddBasketItem.mockResolvedValue({
+      itemId: "server-item-1",
+      contentId: "content-1",
+      title: "쌍계사",
+      priority: "MUST_VISIT",
+    });
+    mockGenerateItinerary.mockRejectedValue(
+      new ApiError(401, "로그인이 필요합니다.", "AUTH_REQUIRED"),
+    );
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "일정 생성하기" }),
+    );
+
+    // 이동·운영 시간을 모르는 근사치라, 사용자가 시작 시각을 건드리지 않았으면
+    // 진짜 일정처럼 보이는 시각표를 만들지 않고 "·" 자리표시만 남긴다.
+    await screen.findByText("쌍계사");
+    expect(screen.queryByText("09:00")).not.toBeInTheDocument();
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
+  });
+
   it("시작 장소를 지정했는데 AUTH_REQUIRED로 실패하면, 로컬 목데이터 미리보기에는 출발 배지를 붙이지 않는다", async () => {
     mockUpdateBasketConditions.mockResolvedValue({
       basketId: "basket-1",
@@ -1291,12 +1332,9 @@ describe("ItineraryClient", () => {
 
     // buildLoginPreviewItinerary(로컬 목데이터)는 startContentId를 반영하지
     // 않고 순번대로 날짜를 배분하므로, 배지를 표시하면 엉뚱한 장소가
-    // "출발"로 보일 수 있다 — 이 경로에서는 아예 안 보여야 한다. 일차 헤더의
-    // "출발 HH:mm"(가짜 시작 시각, DayCard)은 별개라 span으로 배지만 가려낸다.
+    // "출발"로 보일 수 있다 — 이 경로에서는 아예 안 보여야 한다.
     await screen.findByText("쌍계사");
-    expect(
-      screen.queryByText("출발", { selector: "span" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
   });
 
   it("로그인 미리보기에서 '로그인하고 계속하기'를 누르면 바구니를 복원한다", async () => {
