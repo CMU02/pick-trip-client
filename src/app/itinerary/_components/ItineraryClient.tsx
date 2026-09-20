@@ -325,6 +325,24 @@ function applyAcceptedSuggestions(
   return result;
 }
 
+// v3: dayStartTimes 미리보기용 가짜 스케줄링 상수. 실제 스케줄러가 아니라
+// "지정한 시작 시각이 반영된 것처럼" 보여주기 위한 근사치일 뿐이다 — 이동
+// 시간·운영 시간은 전혀 고려하지 않는다.
+const PREVIEW_DEFAULT_START_TIME = "09:00";
+const PREVIEW_VISIT_MINUTES = 90;
+const PREVIEW_TRAVEL_MINUTES = 15;
+
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(minutes: number): string {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 // 로그인 기능이 아직 구현되지 않아 generate가 401 AUTH_REQUIRED를 반환하는 동안,
 // 결과 화면 UX를 확인할 수 있도록 바구니 콘텐츠로 로컬 미리보기 데이터를 만든다.
 function buildLoginPreviewItinerary(
@@ -332,6 +350,7 @@ function buildLoginPreviewItinerary(
   region: Region,
   startDate: string,
   nights: number,
+  dayStartTimes?: (string | null)[],
 ): ItineraryGenerateResponse {
   const dayCount = nights + 1;
   // 백엔드는 dayIndex를 1부터 채번하므로(DayCard.tsx 참고) 미리보기도 동일하게 맞춘다.
@@ -341,8 +360,24 @@ function buildLoginPreviewItinerary(
     items: [] as ItineraryGenerateResponse["days"][number]["items"],
   }));
 
+  // 일차별로 흘러가는 가짜 시계. 스톱마다 고정 90분 체류 + 15분 이동을
+  // 가정해 지정한 시작 시각부터 순서대로 이어 붙인다.
+  const clockMinutesByDay = new Map<number, number>();
+  function nextTimeRange(dayIndex: number): {
+    startTime: string;
+    endTime: string;
+  } {
+    const dayStart = dayStartTimes?.[dayIndex] ?? PREVIEW_DEFAULT_START_TIME;
+    const start = clockMinutesByDay.get(dayIndex) ?? timeToMinutes(dayStart);
+    const end = start + PREVIEW_VISIT_MINUTES;
+    clockMinutesByDay.set(dayIndex, end + PREVIEW_TRAVEL_MINUTES);
+    return { startTime: minutesToTime(start), endTime: minutesToTime(end) };
+  }
+
   items.forEach((item, index) => {
-    const day = days[index % dayCount];
+    const dayIndex = index % dayCount;
+    const day = days[dayIndex];
+    const { startTime, endTime } = nextTimeRange(dayIndex);
     day.items.push({
       itemId: `preview-item-${index}`,
       contentId: item.content.id,
@@ -350,6 +385,8 @@ function buildLoginPreviewItinerary(
       order: day.items.length,
       reason: "담아주신 콘텐츠를 기반으로 만든 미리보기 일정입니다.",
       pinned: item.priority === "MUST",
+      startTime,
+      endTime,
     });
   });
 
@@ -662,6 +699,7 @@ export function ItineraryClient({
             parsedRegions[0],
             startDate,
             parsedNights,
+            options?.dayStartTimes,
           );
           // 로그인 이후 흐름과 동일하게 로컬 바구니를 비운다. 스냅샷은 ref에
           // 남겨 로그인/다시 생성으로 흐름을 이어갈 때만 복원한다.
