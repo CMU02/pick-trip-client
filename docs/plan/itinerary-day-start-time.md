@@ -67,7 +67,7 @@
 - [x] 옵션 미사용 시 기존 요청·응답과 동일함을 회귀 테스트로 고정
 - [x] 오르막 캡션이 0/undefined에서 렌더링되지 않음을 테스트로 고정
 - [x] 순서 변경(이동/삭제/대체/혼잡 제안 수락) 후 두 필드가 지워짐을 테스트로 고정
-- [ ] PR #145 설명에서 "머지 보류" 경고를 제거하고 실제 반영 내용으로 갱신
+- [x] PR #145 설명에서 "머지 보류" 경고를 제거하고 실제 반영 내용으로 갱신
 - [ ] 로그인 구현 시 `src/app/itinerary/_lib/loginPreviewSchedule.ts`와
       `ItineraryClient.buildLoginPreviewItinerary`를 함께 삭제 (401 미리보기
       전용 임시 코드)
