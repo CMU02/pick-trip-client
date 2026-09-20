@@ -58,6 +58,10 @@ const MODE_OPTIONS: {
 
 const DEFAULT_MODE: ItineraryGenerateMode = "STRICT";
 
+// 서버 기본값과 동일. select에 별도 "AI 기본" 표시 없이 이 시각 자체를
+// 선택지에 넣어 보여준다 — 이 값을 고르면 dayStartTimes에서 뺀다(기존과 동일).
+const DEFAULT_DAY_START_TIME = "09:00";
+
 // v3: dayStartTimes 입력 UI가 고를 수 있는 선택지. DAY_START_TIME_MIN~MAX
 // 밖은 서버가 400으로 거절하므로, 선택지 자체를 그 범위(30분 간격)로 막는다.
 const DAY_START_TIME_OPTIONS: string[] = (() => {
@@ -461,11 +465,14 @@ export function PreGenerateView({
                     </label>
                     <select
                       id={`day-start-time-${dayIndex}`}
-                      value={dayStartTimeOverrides[dayIndex] ?? ""}
+                      value={
+                        dayStartTimeOverrides[dayIndex] ??
+                        DEFAULT_DAY_START_TIME
+                      }
                       onChange={(e) => {
                         const { value } = e.target;
                         setDayStartTimeOverrides((prev) => {
-                          if (!value) {
+                          if (value === DEFAULT_DAY_START_TIME) {
                             const { [dayIndex]: _removed, ...rest } = prev;
                             return rest;
                           }
@@ -474,7 +481,6 @@ export function PreGenerateView({
                       }}
                       className="mt-1 w-full rounded-[13px] border-[1.5px] border-border bg-card px-3.5 py-3 text-[13.5px] font-semibold"
                     >
-                      <option value="">AI 기본(09:00)</option>
                       {DAY_START_TIME_OPTIONS.map((time) => (
                         <option key={time} value={time}>
                           {time}
