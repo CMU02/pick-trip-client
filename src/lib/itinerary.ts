@@ -168,6 +168,10 @@ export function clearDaySchedule(day: Day): Day {
       ...item,
       startTime: null,
       endTime: null,
+      // v3: "이전 스톱"이 순서 변경으로 달라져 값이 실제와 어긋난다. 지우면
+      // 조회 시 서버가 0(=표시 안 함)으로 내려준다. 재계산은 다시 생성 몫.
+      elevationGainMeters: undefined,
+      inclinePenaltyMinutes: undefined,
     })),
   };
 }
@@ -190,6 +194,23 @@ export function toSaveDays(days: Day[]): DayRequest[] {
       pinned: item.pinned ?? false,
       startTime: item.startTime ?? undefined,
       endTime: item.endTime ?? undefined,
+      elevationGainMeters: item.elevationGainMeters ?? undefined,
+      inclinePenaltyMinutes: item.inclinePenaltyMinutes ?? undefined,
     })),
   }));
+}
+
+/**
+ * "오르막 반영 +12분 · 상승 121m". inclinePenaltyMinutes가 0/undefined면
+ * null(=표시 안 함) — 평지·자동차·도보 아닌 구간과 구분하지 않는다(서버가
+ * 이미 같은 0으로 내려준다). 이 값은 startTime/endTime/totalTravelMinutes에
+ * 이미 반영된 분해값이라, 화면의 이동시간 합계에 더하면 안 된다.
+ */
+export function formatIncline(
+  inclinePenaltyMinutes?: number | null,
+  elevationGainMeters?: number | null,
+): string | null {
+  if (!inclinePenaltyMinutes || inclinePenaltyMinutes <= 0) return null;
+  const gain = Math.round(elevationGainMeters ?? 0);
+  return `오르막 반영 +${inclinePenaltyMinutes}분 · 상승 ${gain}m`;
 }

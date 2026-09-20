@@ -8,6 +8,7 @@ import {
   formatDayDate,
   formatDistanceKm,
   formatDuration,
+  formatIncline,
   formatTimeRange,
   formatTravelMinutes,
   hasEmptyDay,
@@ -309,6 +310,19 @@ describe("clearDaySchedule", () => {
     expect(cleared.items).toHaveLength(1);
     expect(cleared.items[0].contentId).toBe("c-1");
   });
+
+  it("v3: 순서가 어긋난 오르막 정보도 함께 지운다", () => {
+    const day = makeDay({
+      items: [
+        makeItem({ elevationGainMeters: 120.5, inclinePenaltyMinutes: 12 }),
+      ],
+    });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.items[0].elevationGainMeters).toBeUndefined();
+    expect(cleared.items[0].inclinePenaltyMinutes).toBeUndefined();
+  });
 });
 
 describe("toSaveDays", () => {
@@ -369,5 +383,35 @@ describe("toSaveDays", () => {
   it("빈 날도 그대로 남긴다(거르지 않음)", () => {
     const days = [makeDay({ items: [] })];
     expect(toSaveDays(days)[0].items).toEqual([]);
+  });
+
+  it("v3: 오르막 정보를 왕복시키고, 없으면 생략한다", () => {
+    const days = [
+      makeDay({
+        items: [
+          makeItem({ elevationGainMeters: 120.5, inclinePenaltyMinutes: 12 }),
+        ],
+      }),
+    ];
+
+    expect(toSaveDays(days)[0].items[0]).toMatchObject({
+      elevationGainMeters: 120.5,
+      inclinePenaltyMinutes: 12,
+    });
+    expect(
+      toSaveDays([makeDay()])[0].items[0].elevationGainMeters,
+    ).toBeUndefined();
+  });
+});
+
+describe("formatIncline", () => {
+  it("오르막 페널티가 있으면 캡션 문자열을 반환한다", () => {
+    expect(formatIncline(12, 120.5)).toBe("오르막 반영 +12분 · 상승 121m");
+  });
+
+  it("0이거나 없으면 null(캡션 숨김)", () => {
+    expect(formatIncline(0, 0)).toBeNull();
+    expect(formatIncline(null, null)).toBeNull();
+    expect(formatIncline(undefined, undefined)).toBeNull();
   });
 });
