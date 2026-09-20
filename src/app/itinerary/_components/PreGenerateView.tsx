@@ -23,6 +23,7 @@ import {
   type CompanionCondition,
 } from "@/types/travel-condition";
 
+import { buildDayStartTimeOptions } from "../_lib/dayStartTime";
 import { ErrorState } from "./ErrorState";
 
 interface PreGenerateViewProps {
@@ -64,20 +65,10 @@ const DEFAULT_DAY_START_TIME = "09:00";
 
 // v3: dayStartTimes 입력 UI가 고를 수 있는 선택지. DAY_START_TIME_MIN~MAX
 // 밖은 서버가 400으로 거절하므로, 선택지 자체를 그 범위(30분 간격)로 막는다.
-const DAY_START_TIME_OPTIONS: string[] = (() => {
-  const [minHour] = DAY_START_TIME_MIN.split(":").map(Number);
-  const [maxHour] = DAY_START_TIME_MAX.split(":").map(Number);
-  const options: string[] = [];
-  for (let h = minHour; h <= maxHour; h++) {
-    for (const m of [0, 30]) {
-      if (h === maxHour && m > 0) break;
-      options.push(
-        `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
-      );
-    }
-  }
-  return options;
-})();
+const DAY_START_TIME_OPTIONS = buildDayStartTimeOptions(
+  DAY_START_TIME_MIN,
+  DAY_START_TIME_MAX,
+);
 
 // mode/startContentId/dayStartTimes는 기본값과 다를 때만 싣지만, travelModes는
 // 항상 전체를 싣는다 — 그래야 결과 화면에 안 선택 카드가 항상 뜬다.
