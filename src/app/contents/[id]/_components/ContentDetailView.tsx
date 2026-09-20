@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { useBasket } from "@/hooks/useBasket";
 import { useFavoriteHeart } from "@/hooks/useFavoriteHeart";
 import { useRecentViews } from "@/hooks/useRecentViews";
-import { splitBrLines } from "@/lib/content";
+import { splitBrLines, visitorStatsDetailRow } from "@/lib/content";
 import { isValidKoreaCoord } from "@/lib/geo";
 import type { ContentDetail } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
@@ -125,6 +125,8 @@ export function ContentDetailView({
         ? "필요"
         : "불필요";
 
+  const visitorStatsRow = visitorStatsDetailRow(content.visitorStats);
+
   const rows: InfoRowProps[] = [
     { label: "지역", value: REGION_LABELS[content.region] },
     { label: "운영 시간", value: content.operatingHours },
@@ -132,6 +134,8 @@ export function ContentDetailView({
     { label: "주차", value: parkingText },
     { label: "예상 체류 시간", value: content.stayDuration },
     { label: "예약", value: reservationText },
+    // visitorStats가 없으면(개별 장소 통계·프록시 모두 없음) 행 자체를 뺀다.
+    ...(visitorStatsRow ? [visitorStatsRow] : []),
     // 백엔드가 내려주는 원본 값(TourAPI 등)과 무관하게, 실제 데이터 제공처인
     // 한국관광공사로 표시를 통일한다.
     ...(content.dataSource

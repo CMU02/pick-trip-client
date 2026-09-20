@@ -1,4 +1,4 @@
-import type { Day, DayRequest } from "@/types/itinerary";
+import type { Day, DayRequest, TravelMode } from "@/types/itinerary";
 import type { ItineraryMapDay } from "@/types/map";
 
 /**
@@ -39,6 +39,25 @@ export function formatTimeRange(
   return start || end || null;
 }
 
+/** "09:30" → 570(자정 기준 분). 값이 없거나 형식이 어긋나면 null. */
+export function timeToMinutes(time?: string | null): number | null {
+  if (!time) return null;
+  const [h, m] = time.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+/**
+ * 570 → "09:30". 하루(1440분)를 넘어도 자정으로 되감지 않는다 — 되감으면 앞
+ * 스톱보다 이른 시각으로 보여 시간이 거꾸로 흐르는 것처럼 된다. 하루를 넘는
+ * 값을 화면에 안 띄우는 건 호출부 몫이다.
+ */
+export function minutesToTime(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 /**
  * "09:30","11:00" → 90(분). 한쪽이라도 없거나 형식이 어긋나거나 0 이하면 null.
  * 장소 카드의 "머무는 시간"과 여행 요약의 "총 머무는 시간"이 같은 규칙을 쓰도록 공유한다.
@@ -47,11 +66,10 @@ export function stayMinutes(
   start?: string | null,
   end?: string | null,
 ): number | null {
-  if (!start || !end) return null;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
-  const diff = eh * 60 + em - (sh * 60 + sm);
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+  if (startMinutes === null || endMinutes === null) return null;
+  const diff = endMinutes - startMinutes;
   return diff > 0 ? diff : null;
 }
 
@@ -125,15 +143,19 @@ export function sumDayTravel(days: Day[]): {
 }
 
 /**
- * 한 날의 이동 합계 "34분 · 27.6km". Kakao 길찾기(실도로) route 결과가 있으면
- * 우선, 없으면 백엔드 스케줄러 값(day.totalTravel*)으로 폴백한다. 둘 다 없으면 null.
- * DayCard 헤더와 DayMapPanel 구간 헤더행이 같은 값을 쓰도록 공유한다.
+ * 한 날의 이동 합계 "34분 · 27.6km". CAR는 Kakao 길찾기(실도로) route 결과가
+ * 있으면 우선, 없으면 백엔드 스케줄러 값(day.totalTravel*)으로 폴백한다.
+ * TRANSIT은 Kakao route가 자동차 전용이라(도보 없음) 항상 백엔드 값을 쓴다 —
+ * 지도에 도로선은 그대로 그리되 숫자는 대중교통(도보+버스) 모델 값이어야
+ * 한다. 둘 다 없으면 null. DayCard 헤더와 DayMapPanel 구간 헤더행이 같은
+ * 값을 쓰도록 공유한다.
  */
 export function dayTravelLabel(
   day: Day,
+  travelMode: TravelMode,
   mapDay?: ItineraryMapDay | null,
 ): string | null {
-  const route = mapDay?.route ?? null;
+  const route = travelMode === "CAR" ? (mapDay?.route ?? null) : null;
   const duration = route
     ? formatTravelMinutes(Math.round(route.totalDurationSeconds / 60))
     : formatTravelMinutes(day.totalTravelMinutes);
@@ -147,6 +169,29 @@ export function dayTravelLabel(
 /** 장소가 0개인 날이 하나라도 있는지. 저장은 이런 날을 400으로 거부한다. */
 export function hasEmptyDay(days: Day[]): boolean {
   return days.some((day) => day.items.length === 0);
+}
+
+/**
+ * 서버는 저장(PATCH) 시 스케줄러를 다시 돌리지 않는다. 사용자가 순서를 바꾸거나
+ * 장소를 빼면 서버가 계산해준 방문 시각·이동 요약이 어긋나므로, 편집한 날의
+ * 그 값들을 지워 화면에서 잘못된 시각이 보이지 않게 한다. 재계산은 "다시 생성" 몫.
+ * useItineraryEditor(순서 이동)와 혼잡 기반 순서변경 제안 수락이 함께 쓴다.
+ */
+export function clearDaySchedule(day: Day): Day {
+  return {
+    ...day,
+    totalTravelMinutes: null,
+    totalTravelKm: null,
+    items: day.items.map((item) => ({
+      ...item,
+      startTime: null,
+      endTime: null,
+      // v3: "이전 스톱"이 순서 변경으로 달라져 값이 실제와 어긋난다. 지우면
+      // 조회 시 서버가 0(=표시 안 함)으로 내려준다. 재계산은 다시 생성 몫.
+      elevationGainMeters: undefined,
+      inclinePenaltyMinutes: undefined,
+    })),
+  };
 }
 
 /**
@@ -167,6 +212,23 @@ export function toSaveDays(days: Day[]): DayRequest[] {
       pinned: item.pinned ?? false,
       startTime: item.startTime ?? undefined,
       endTime: item.endTime ?? undefined,
+      elevationGainMeters: item.elevationGainMeters ?? undefined,
+      inclinePenaltyMinutes: item.inclinePenaltyMinutes ?? undefined,
     })),
   }));
+}
+
+/**
+ * "오르막 반영 +12분 · 상승 121m". inclinePenaltyMinutes가 0/undefined면
+ * null(=표시 안 함) — 평지·자동차·도보 아닌 구간과 구분하지 않는다(서버가
+ * 이미 같은 0으로 내려준다). 이 값은 startTime/endTime/totalTravelMinutes에
+ * 이미 반영된 분해값이라, 화면의 이동시간 합계에 더하면 안 된다.
+ */
+export function formatIncline(
+  inclinePenaltyMinutes?: number | null,
+  elevationGainMeters?: number | null,
+): string | null {
+  if (!inclinePenaltyMinutes || inclinePenaltyMinutes <= 0) return null;
+  const gain = Math.round(elevationGainMeters ?? 0);
+  return `오르막 반영 +${inclinePenaltyMinutes}분 · 상승 ${gain}m`;
 }

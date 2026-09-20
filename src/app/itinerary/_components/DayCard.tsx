@@ -7,7 +7,7 @@ import {
   formatDistanceKm,
   formatTravelMinutes,
 } from "@/lib/itinerary";
-import type { Day } from "@/types/itinerary";
+import type { Day, TravelMode } from "@/types/itinerary";
 import type { ItineraryMapDay } from "@/types/map";
 import { PlaceItem } from "./PlaceItem";
 
@@ -16,6 +16,11 @@ interface DayCardProps {
   // 이 날의 지도 데이터. 지도는 사이드바에서만 그리므로 여기서는 route(실도로
   // 구간값)만 쓴다 — 장소 사이 이동 구간 pill과 헤더 이동 합계.
   mapDay?: ItineraryMapDay;
+  // 선택된 일정안의 이동수단. Kakao 실도로 길찾기는 자동차 전용이라 TRANSIT일
+  // 때는 구간 pill(정밀한 leg 데이터 없음)을 숨기고 헤더 합계도 백엔드
+  // 대중교통 모델 값을 쓴다. 저장된 일정 재조회처럼 이동수단을 모르는 경로는
+  // 기존과 같은 CAR 기본값을 쓴다.
+  travelMode?: TravelMode;
   onMoveItem?: (
     dayId: string,
     itemId: string,
@@ -24,6 +29,10 @@ interface DayCardProps {
   onRemoveItem?: (dayId: string, itemId: string) => void;
   onTogglePinned?: (dayId: string, itemId: string) => void;
   onOpenReplacePicker?: (dayId: string, itemId: string) => void;
+  onDismissAiSuggestion?: (dayId: string, itemId: string) => void;
+  // 일정 생성 요청에 startContentId로 지정한 장소의 contentId. 신규 생성
+  // 직후 미리보기 화면에서만 넘어온다.
+  startContentId?: string;
 }
 
 export function DayCard({
@@ -33,11 +42,16 @@ export function DayCard({
   onRemoveItem,
   onTogglePinned,
   onOpenReplacePicker,
+  onDismissAiSuggestion,
+  startContentId,
+  travelMode = "CAR",
 }: DayCardProps) {
   // 백엔드는 dayIndex를 1부터 채번한다.
   const dayNumber = day.dayIndex;
   const dateLabel = formatDayDate(day.date);
-  const route = mapDay?.route ?? null;
+  // 구간 pill은 Kakao 실도로 길찾기(자동차 전용) 기반이라 CAR에서만 그린다.
+  // TRANSIT은 구간별(leg) 도보/버스 분류 데이터가 없어 하루 합계만 보여준다.
+  const route = travelMode === "CAR" ? (mapDay?.route ?? null) : null;
   // route.segments 는 좌표가 해석된 지점(points) 사이 구간이다. 좌표가 빠진
   // 장소가 있으면 segments 인덱스가 items 인덱스와 어긋나므로, 전부 해석된
   // 경우에만 장소 사이 구간 pill을 그린다.
@@ -46,8 +60,11 @@ export function DayCard({
 
   const departure = day.items[0]?.startTime ?? null;
 
-  // 이동 합계: Kakao 길찾기(실도로) 결과 우선, 없으면 백엔드 스케줄러 값.
-  const travelLabel = dayTravelLabel(day, mapDay);
+  // 이동 합계: CAR는 Kakao 길찾기(실도로) 결과 우선, 없으면 백엔드 스케줄러
+  // 값. TRANSIT은 항상 백엔드 대중교통 모델 값.
+  const travelLabel = dayTravelLabel(day, travelMode, mapDay);
+  const travelHeaderLabel =
+    travelMode === "CAR" ? "차량 이동" : "대중교통 이동";
 
   const dayNotes = day.dayNotes ?? [];
 
@@ -81,7 +98,9 @@ export function DayCard({
             )}
             {travelLabel && (
               <div>
-                <p className="text-[11px] text-muted-foreground">차량 이동</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {travelHeaderLabel}
+                </p>
                 <p className="text-[15px] font-extrabold tabular-nums tracking-[-0.02em] text-foreground">
                   {travelLabel}
                 </p>
@@ -128,6 +147,11 @@ export function DayCard({
                   item={item}
                   isFirst={index === 0}
                   isLast={index === day.items.length - 1}
+                  isStartPoint={
+                    startContentId !== undefined &&
+                    index === 0 &&
+                    item.contentId === startContentId
+                  }
                   onMoveUp={
                     onMoveItem
                       ? () => onMoveItem(day.dayId, item.itemId, "up")
@@ -151,6 +175,11 @@ export function DayCard({
                   onOpenReplacePicker={
                     onOpenReplacePicker
                       ? () => onOpenReplacePicker(day.dayId, item.itemId)
+                      : undefined
+                  }
+                  onDismissAiSuggestion={
+                    onDismissAiSuggestion
+                      ? () => onDismissAiSuggestion(day.dayId, item.itemId)
                       : undefined
                   }
                 />

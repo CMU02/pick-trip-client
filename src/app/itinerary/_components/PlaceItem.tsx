@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 import { Icon } from "@/components/ui/icon";
-import { formatTravelMinutes, stayMinutes } from "@/lib/itinerary";
+import {
+  formatIncline,
+  formatTravelMinutes,
+  stayMinutes,
+} from "@/lib/itinerary";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/types/itinerary";
 
@@ -11,11 +15,18 @@ interface PlaceItemProps {
   item: Item;
   isFirst?: boolean;
   isLast?: boolean;
+  // 일정 생성 요청에 startContentId로 지정한 장소인지. 신규 생성 직후
+  // 미리보기 화면에서만 안다(저장된 일정 재조회 경로는 원래 요청값을 모른다).
+  isStartPoint?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   onRemove?: () => void;
   onTogglePinned?: () => void;
   onOpenReplacePicker?: () => void;
+  // AI 추천(addedByAi) 배지를 저장 전 바로 지우는 전용 액션. 일반 삭제
+  // (onRemove, 확인 단계 있음)와 별개로 미리보기(저장 전) 화면에서만 쓴다 —
+  // 저장 후 화면은 이미 있는 삭제 버튼을 그대로 쓴다.
+  onDismissAiSuggestion?: () => void;
 }
 
 // 시간축 타임라인의 한 행. 3열 그리드(62px 시각 / 26px 번호원·레일 / 1fr 카드)에
@@ -24,11 +35,13 @@ export function PlaceItem({
   item,
   isFirst,
   isLast,
+  isStartPoint,
   onMoveUp,
   onMoveDown,
   onRemove,
   onTogglePinned,
   onOpenReplacePicker,
+  onDismissAiSuggestion,
 }: PlaceItemProps) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const editable = Boolean(
@@ -36,6 +49,10 @@ export function PlaceItem({
   );
   const stay = stayMinutes(item.startTime, item.endTime);
   const stayLabel = stay ? formatTravelMinutes(stay) : null;
+  const inclineLabel = formatIncline(
+    item.inclinePenaltyMinutes,
+    item.elevationGainMeters,
+  );
   const notes = item.notes ?? [];
 
   return (
@@ -93,13 +110,52 @@ export function PlaceItem({
                     고정
                   </span>
                 )}
-              </div>
-              {stayLabel && (
-                <div className="mt-1">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-0.5 text-[11.5px] font-semibold text-foreground/70">
-                    <Icon name="clock" size={11} className="shrink-0" />
-                    머무는 시간 {stayLabel}
+                {isStartPoint && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
+                    <Icon name="compass-outline" size={11} />
+                    출발
                   </span>
+                )}
+                {/* addedByAi/addedForRest는 동시에 true가 되지 않는다(서버 계약). */}
+                {item.addedByAi &&
+                  (onDismissAiSuggestion ? (
+                    <button
+                      type="button"
+                      onClick={onDismissAiSuggestion}
+                      aria-label="AI 추천 삭제"
+                      className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 transition-colors hover:bg-violet-100"
+                    >
+                      <Icon name="wand" size={11} />
+                      AI 추천
+                      <Icon name="close" size={10} />
+                    </button>
+                  ) : (
+                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                      <Icon name="wand" size={11} />
+                      AI 추천
+                    </span>
+                  ))}
+                {item.addedForRest && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700">
+                    <Icon name="clock" size={11} />
+                    휴식
+                  </span>
+                )}
+              </div>
+              {(stayLabel || inclineLabel) && (
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {stayLabel && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-0.5 text-[11.5px] font-semibold text-foreground/70">
+                      <Icon name="clock" size={11} className="shrink-0" />
+                      머무는 시간 {stayLabel}
+                    </span>
+                  )}
+                  {inclineLabel && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-[11.5px] font-semibold text-orange-700">
+                      <Icon name="trending-up" size={11} className="shrink-0" />
+                      {inclineLabel}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

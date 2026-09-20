@@ -2,9 +2,13 @@ import { authHeaders } from "@/lib/http";
 import { apiClient } from "@/services/apiClient";
 import type {
   Day,
+  ItineraryGenerateRequest,
   ItineraryGenerateResponse,
   ItineraryResponse,
+  ItineraryVariant,
+  ItineraryVariantMetrics,
   RawGeneratedDay,
+  RawGeneratedVariant,
   RawItineraryGenerateResponse,
   SaveItineraryRequest,
 } from "@/types/itinerary";
@@ -44,25 +48,88 @@ function withSyntheticIds(days: RawGeneratedDay[]): Day[] {
       startTime: item.startTime ?? null,
       endTime: item.endTime ?? null,
       notes: item.notes ?? [],
+      addedByAi: item.addedByAi,
+      addedForRest: item.addedForRest,
+      // v3: 구버전 백엔드는 안 보내므로 "해당 없음"과 같은 뜻인 0으로 채운다.
+      elevationGainMeters: item.elevationGainMeters ?? 0,
+      inclinePenaltyMinutes: item.inclinePenaltyMinutes ?? 0,
     })),
   }));
 }
 
-// generate는 요청 바디를 받지 않는다 — 서버에 저장된 사용자의 바구니/조건을 읽어 생성한다.
-// 호출 전에 basketService로 바구니/조건을 서버에 반영해야 한다.
+// 모든 안이 같은 키 집합을 반환한다는 백엔드 계약(pick-trip-server 저장소
+// .agents/docs/api-endpoints.md)에 맞춰, variants가 아예 없을 때(구버전
+// 백엔드·로컬 목데이터) 최상위 필드로 합성하는 기본 안의 metrics는 전부
+// 산출 불가로 채운다.
+const UNKNOWN_METRICS: ItineraryVariantMetrics = {
+  totalTravelMinutes: null,
+  totalWalkingMinutes: null,
+  totalTransitCost: null,
+  placeCount: null,
+  unavailableReasons: {},
+};
+
+function hydrateVariant(variant: RawGeneratedVariant): ItineraryVariant {
+  return {
+    label: variant.label,
+    travelMode: variant.travelMode,
+    title: variant.title,
+    days: withSyntheticIds(variant.days),
+    adjustments: variant.adjustments ?? [],
+    // 구버전 백엔드가 개별 variant에 metrics를 채우지 않고 보낼 수 있다 —
+    // 없으면 산출 불가로 채워 VariantSelector·TripSummary의 metrics 접근이
+    // TypeError로 화면 전체를 크래시시키지 않게 한다.
+    metrics: variant.metrics ?? UNKNOWN_METRICS,
+  };
+}
+
+// v2 이전 백엔드나 variants를 채우지 않는 로컬 목데이터를 위한 폴백. 실제
+// 요청 바디 없이 호출했을 때 서버가 이미 자동차 단일 variants를 채워 보내므로
+// 정상 운영에서는 거치지 않는다.
+function fallbackVariant(
+  data: RawItineraryGenerateResponse,
+): RawGeneratedVariant {
+  return {
+    label: "자동차 힐링 루트",
+    travelMode: "CAR",
+    title: data.title,
+    days: data.days,
+    adjustments: data.adjustments ?? [],
+    metrics: UNKNOWN_METRICS,
+  };
+}
+
+// generate는 선택 요청 바디(mode/startContentId/travelModes)를 받는다. 바디를
+// 보내지 않으면 서버에 저장된 사용자의 바구니/조건만 읽어 기존과 동일하게
+// (자동차 단일안) 생성한다. 호출 전에 basketService로 바구니/조건을 서버에
+// 반영해야 한다.
 export async function generateItinerary(
+  options?: ItineraryGenerateRequest,
   accessToken?: string,
 ): Promise<ItineraryGenerateResponse> {
   const { data } = await apiClient.post<RawItineraryGenerateResponse>(
     "/api/v1/itineraries/generate",
-    undefined,
+    options,
     { headers: authHeaders(accessToken) },
   );
+
+  const rawVariants =
+    data.variants && data.variants.length > 0
+      ? data.variants
+      : [fallbackVariant(data)];
+  const variants = rawVariants.map(hydrateVariant);
+  // title/days/adjustments는 variants[0]의 복제라는 백엔드 계약과 동일하게,
+  // 별도로 다시 옮기지 않고 같은 값을 그대로 참조한다.
+  const [firstVariant] = variants;
+
   return {
     ...data,
     duration: serverDurationToNights(data.duration),
-    days: withSyntheticIds(data.days),
-    adjustments: data.adjustments ?? [],
+    title: firstVariant.title,
+    days: firstVariant.days,
+    adjustments: firstVariant.adjustments,
+    variants,
+    suggestions: data.suggestions ?? [],
   };
 }
 

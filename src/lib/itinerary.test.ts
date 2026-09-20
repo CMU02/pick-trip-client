@@ -3,17 +3,21 @@ import { describe, expect, it } from "vitest";
 import type { Day } from "@/types/itinerary";
 
 import {
+  clearDaySchedule,
   dayTravelLabel,
   formatDayDate,
   formatDistanceKm,
   formatDuration,
+  formatIncline,
   formatTimeRange,
   formatTravelMinutes,
   hasEmptyDay,
+  minutesToTime,
   stayMinutes,
   sumDayTravel,
   sumRouteTravel,
   sumStayMinutes,
+  timeToMinutes,
   toSaveDays,
 } from "./itinerary";
 
@@ -35,9 +39,10 @@ const makeDay = (overrides: Partial<Day> = {}): Day => ({
 });
 
 describe("dayTravelLabel", () => {
-  it("route가 있으면 route 거리·시간을 쓴다", () => {
+  it("CAR는 route가 있으면 route 거리·시간을 쓴다", () => {
     const label = dayTravelLabel(
       makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+      "CAR",
       {
         dayIndex: 1,
         points: [],
@@ -52,9 +57,12 @@ describe("dayTravelLabel", () => {
     expect(label).toBe("20분 · 8.3km");
   });
 
-  it("route가 없으면 day.totalTravel* 로 폴백한다", () => {
+  it("CAR는 route가 없으면 day.totalTravel* 로 폴백한다", () => {
     expect(
-      dayTravelLabel(makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 })),
+      dayTravelLabel(
+        makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+        "CAR",
+      ),
     ).toBe("1시간 15분 · 12.4km");
   });
 
@@ -62,8 +70,27 @@ describe("dayTravelLabel", () => {
     expect(
       dayTravelLabel(
         makeDay({ totalTravelMinutes: null, totalTravelKm: null }),
+        "CAR",
       ),
     ).toBeNull();
+  });
+
+  it("TRANSIT은 route가 있어도 항상 day.totalTravel* 로 백엔드 대중교통 모델 값을 쓴다", () => {
+    const label = dayTravelLabel(
+      makeDay({ totalTravelMinutes: 75, totalTravelKm: 12.4 }),
+      "TRANSIT",
+      {
+        dayIndex: 1,
+        points: [],
+        route: {
+          totalDistanceMeters: 8300,
+          totalDurationSeconds: 1200,
+          segments: [],
+          path: [],
+        },
+      },
+    );
+    expect(label).toBe("1시간 15분 · 12.4km");
   });
 });
 
@@ -103,6 +130,34 @@ describe("sumRouteTravel", () => {
         { dayIndex: 2, points: [], route: null },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("timeToMinutes", () => {
+  it('"HH:mm"을 자정 기준 분으로 바꾼다', () => {
+    expect(timeToMinutes("00:00")).toBe(0);
+    expect(timeToMinutes("09:30")).toBe(570);
+    expect(timeToMinutes("23:59")).toBe(1439);
+  });
+
+  it("값이 없거나 형식이 어긋나면 null", () => {
+    expect(timeToMinutes(null)).toBeNull();
+    expect(timeToMinutes(undefined)).toBeNull();
+    expect(timeToMinutes("")).toBeNull();
+    expect(timeToMinutes("아침")).toBeNull();
+  });
+});
+
+describe("minutesToTime", () => {
+  it('분을 "HH:mm"으로 바꾼다', () => {
+    expect(minutesToTime(0)).toBe("00:00");
+    expect(minutesToTime(570)).toBe("09:30");
+    expect(minutesToTime(1439)).toBe("23:59");
+  });
+
+  it("하루를 넘는 값은 자정으로 되감지 않고 그대로 이어 센다", () => {
+    // 되감으면 "00:30"이 되어 앞 스톱보다 이른 시각으로 보인다(v3 미리보기 버그).
+    expect(minutesToTime(1470)).toBe("24:30");
   });
 });
 
@@ -256,6 +311,50 @@ describe("hasEmptyDay", () => {
   });
 });
 
+describe("clearDaySchedule", () => {
+  it("이동 요약과 각 항목의 방문 시각을 지운다", () => {
+    const day = makeDay({
+      totalTravelMinutes: 20,
+      totalTravelKm: 3.5,
+      items: [
+        makeItem({ startTime: "09:00", endTime: "10:30" }),
+        makeItem({ itemId: "item-2", startTime: "11:00", endTime: "12:00" }),
+      ],
+    });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.totalTravelMinutes).toBeNull();
+    expect(cleared.totalTravelKm).toBeNull();
+    expect(
+      cleared.items.every((i) => i.startTime === null && i.endTime === null),
+    ).toBe(true);
+  });
+
+  it("dayIndex·items 순서 등 나머지 필드는 그대로 둔다", () => {
+    const day = makeDay({ dayIndex: 3 });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.dayIndex).toBe(3);
+    expect(cleared.items).toHaveLength(1);
+    expect(cleared.items[0].contentId).toBe("c-1");
+  });
+
+  it("v3: 순서가 어긋난 오르막 정보도 함께 지운다", () => {
+    const day = makeDay({
+      items: [
+        makeItem({ elevationGainMeters: 120.5, inclinePenaltyMinutes: 12 }),
+      ],
+    });
+
+    const cleared = clearDaySchedule(day);
+
+    expect(cleared.items[0].elevationGainMeters).toBeUndefined();
+    expect(cleared.items[0].inclinePenaltyMinutes).toBeUndefined();
+  });
+});
+
 describe("toSaveDays", () => {
   it("방문 시각·이동 요약을 왕복시키고 null은 생략한다", () => {
     const days = [
@@ -314,5 +413,35 @@ describe("toSaveDays", () => {
   it("빈 날도 그대로 남긴다(거르지 않음)", () => {
     const days = [makeDay({ items: [] })];
     expect(toSaveDays(days)[0].items).toEqual([]);
+  });
+
+  it("v3: 오르막 정보를 왕복시키고, 없으면 생략한다", () => {
+    const days = [
+      makeDay({
+        items: [
+          makeItem({ elevationGainMeters: 120.5, inclinePenaltyMinutes: 12 }),
+        ],
+      }),
+    ];
+
+    expect(toSaveDays(days)[0].items[0]).toMatchObject({
+      elevationGainMeters: 120.5,
+      inclinePenaltyMinutes: 12,
+    });
+    expect(
+      toSaveDays([makeDay()])[0].items[0].elevationGainMeters,
+    ).toBeUndefined();
+  });
+});
+
+describe("formatIncline", () => {
+  it("오르막 페널티가 있으면 캡션 문자열을 반환한다", () => {
+    expect(formatIncline(12, 120.5)).toBe("오르막 반영 +12분 · 상승 121m");
+  });
+
+  it("0이거나 없으면 null(캡션 숨김)", () => {
+    expect(formatIncline(0, 0)).toBeNull();
+    expect(formatIncline(null, null)).toBeNull();
+    expect(formatIncline(undefined, undefined)).toBeNull();
   });
 });

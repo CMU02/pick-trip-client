@@ -33,6 +33,75 @@ describe("DayCard", () => {
     expect(screen.getByText("2일차")).toBeInTheDocument();
   });
 
+  it("startContentId와 일치하는 첫 항목에만 출발 배지를 붙인다", () => {
+    render(
+      <DayCard
+        day={makeDay({
+          items: [
+            {
+              itemId: "item-1",
+              contentId: "content-1",
+              title: "쌍계사",
+              order: 0,
+              reason: "",
+              pinned: false,
+            },
+            {
+              itemId: "item-2",
+              contentId: "content-2",
+              title: "화개장터",
+              order: 1,
+              reason: "",
+              pinned: false,
+            },
+          ],
+        })}
+        startContentId="content-1"
+      />,
+    );
+
+    const badges = screen.getAllByText("출발");
+    expect(badges).toHaveLength(1);
+  });
+
+  it("첫 항목이 아니면 contentId가 같아도 출발 배지를 붙이지 않는다", () => {
+    // 시작 장소를 나중에(둘째 항목으로) 다시 방문하는 경우를 흉내낸다 —
+    // "출발"은 그 날의 첫 스톱 자리에만 붙어야 한다.
+    render(
+      <DayCard
+        day={makeDay({
+          items: [
+            {
+              itemId: "item-1",
+              contentId: "content-1",
+              title: "쌍계사",
+              order: 0,
+              reason: "",
+              pinned: false,
+            },
+            {
+              itemId: "item-2",
+              contentId: "content-2",
+              title: "화개장터",
+              order: 1,
+              reason: "",
+              pinned: false,
+            },
+          ],
+        })}
+        startContentId="content-2"
+      />,
+    );
+
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
+  });
+
+  it("startContentId가 없으면 출발 배지를 렌더하지 않는다", () => {
+    render(<DayCard day={makeDay()} />);
+
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
+  });
+
   it("day의 모든 장소를 렌더한다", () => {
     render(
       <DayCard
@@ -132,6 +201,33 @@ describe("DayCard", () => {
     await userEvent.click(downButtons[0]);
 
     expect(onMoveItem).toHaveBeenCalledWith("day-9", "item-2", "down");
+  });
+
+  it("AI 추천 배지 클릭 시 dayId/itemId를 바인딩해 onDismissAiSuggestion을 호출한다", async () => {
+    const onDismissAiSuggestion = vi.fn();
+    render(
+      <DayCard
+        day={makeDay({
+          dayId: "day-9",
+          items: [
+            {
+              itemId: "item-1",
+              contentId: "content-1",
+              title: "쌍계사",
+              order: 0,
+              reason: "",
+              pinned: false,
+              addedByAi: true,
+            },
+          ],
+        })}
+        onDismissAiSuggestion={onDismissAiSuggestion}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "AI 추천 삭제" }));
+
+    expect(onDismissAiSuggestion).toHaveBeenCalledWith("day-9", "item-1");
   });
 
   it("편집 콜백이 없으면 컨트롤 버튼을 렌더하지 않는다", () => {

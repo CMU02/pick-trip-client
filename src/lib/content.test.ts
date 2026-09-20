@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "@/lib/errors";
-import type { Content } from "@/types/content";
+import type { Content, VisitorStats } from "@/types/content";
 
 import {
   filterContentsByIds,
@@ -11,6 +11,8 @@ import {
   sortContentsByCategory,
   splitBrLines,
   splitPageSizeAcrossRegions,
+  visitorStatsCaption,
+  visitorStatsDetailRow,
 } from "./content";
 
 const makeContent = (overrides: Partial<Content> = {}): Content => ({
@@ -243,5 +245,67 @@ describe("getContentFetchErrorMessage", () => {
     expect(getContentFetchErrorMessage(new Error("unexpected"))).toBe(
       "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
     );
+  });
+});
+
+const regionStats: VisitorStats = {
+  totalVisitors: 608_859,
+  dailyAverageVisitors: 19_640,
+  period: "2026-07~2026-08",
+  source: "한국관광공사 지역별 방문자수",
+  baseDate: "2026-08-31",
+  approximate: true,
+};
+
+const proxyStats: VisitorStats = {
+  totalVisitors: 12,
+  dailyAverageVisitors: null,
+  period: null,
+  source: "PickTrip 내부 지표",
+  baseDate: "2026-08-31",
+  approximate: true,
+};
+
+describe("visitorStatsCaption", () => {
+  it("visitorStats가 없으면 null", () => {
+    expect(visitorStatsCaption(null)).toBeNull();
+    expect(visitorStatsCaption(undefined)).toBeNull();
+  });
+
+  it("지역 통계면 '지역 방문자 N명 · 지역 기준 근사값'", () => {
+    expect(visitorStatsCaption(regionStats)).toBe(
+      "지역 방문자 608,859명 · 지역 기준 근사값",
+    );
+  });
+
+  it("자체 프록시면 방문자수 대신 담긴 횟수로 표기한다", () => {
+    expect(visitorStatsCaption(proxyStats)).toBe("여행자들이 12번 담았어요");
+  });
+});
+
+describe("visitorStatsDetailRow", () => {
+  it("visitorStats가 없으면 null", () => {
+    expect(visitorStatsDetailRow(null)).toBeNull();
+  });
+
+  it("지역 통계면 라벨 '지역 방문자수', 값에 기간과 '지역 기준 근사값'을 담는다", () => {
+    expect(visitorStatsDetailRow(regionStats)).toEqual({
+      label: "지역 방문자수",
+      value: "608,859명 (2026-07~2026-08 누적) · 지역 기준 근사값",
+    });
+  });
+
+  it("period가 없으면 기간 표기 없이 값을 만든다", () => {
+    expect(visitorStatsDetailRow({ ...regionStats, period: null })).toEqual({
+      label: "지역 방문자수",
+      value: "608,859명 · 지역 기준 근사값",
+    });
+  });
+
+  it("자체 프록시면 라벨 '관심도'로 담긴 횟수를 표기한다", () => {
+    expect(visitorStatsDetailRow(proxyStats)).toEqual({
+      label: "관심도",
+      value: "여행 일정에 12번 담김",
+    });
   });
 });

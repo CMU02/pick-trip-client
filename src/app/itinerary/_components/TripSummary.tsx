@@ -33,6 +33,10 @@ interface TripSummaryProps {
   departureTime?: string | null;
   // 생성/저장 결과의 일자 배열. 넘기면 일정 규모·하루 평균·총 머무는 시간 행을 더한다.
   days?: Day[];
+  // 선택된 일정안의 도보 시간(분) 합. 백엔드가 안(variant) 단위로만 계산해
+  // 일자별 분해는 없다 — 여행 전체 총합으로 표시한다. CAR은 항상 0이라(또는
+  // 미지정) 자동으로 숨는다.
+  walkingMinutes?: number | null;
 }
 
 const PRIORITY_ORDER: (BasketPriority | null)[] = [
@@ -53,10 +57,12 @@ export function TripSummary({
   travelSummary,
   departureTime,
   days,
+  walkingMinutes,
 }: TripSummaryProps) {
   const displayCount = itemCount ?? items.length;
   const travelDuration = formatTravelMinutes(travelSummary?.totalMinutes);
   const travelDistance = formatDistanceKm(travelSummary?.totalKm);
+  const walkingDuration = formatTravelMinutes(walkingMinutes);
 
   // days가 오면 파생 요약 행을 계산한다.
   const summaryDays = days ?? [];
@@ -159,6 +165,14 @@ export function TripSummary({
             <dt className="text-muted-foreground">총 이동 거리</dt>
             <dd className="text-right font-bold text-foreground">
               {travelDistance}
+            </dd>
+          </div>
+        )}
+        {walkingDuration && (
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-muted-foreground">총 도보 시간</dt>
+            <dd className="text-right font-bold text-foreground">
+              {walkingDuration}
             </dd>
           </div>
         )}

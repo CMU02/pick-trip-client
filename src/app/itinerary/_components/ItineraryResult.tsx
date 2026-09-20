@@ -8,7 +8,7 @@ import { useItineraryMapData } from "@/hooks/useItineraryMapData";
 import type { ParsedApiError } from "@/lib/errors";
 import { hasEmptyDay } from "@/lib/itinerary";
 import type { Content } from "@/types/content";
-import type { Day } from "@/types/itinerary";
+import type { Day, TravelMode } from "@/types/itinerary";
 import type { ItineraryMapData } from "@/types/map";
 import type { Region } from "@/types/region";
 import { AdjustmentsNotice } from "./AdjustmentsNotice";
@@ -51,6 +51,17 @@ interface ItineraryResultProps {
   // 직접 렌더할 때 true — 여기서는 중복 렌더를 막는다. 단독 렌더(공유·저장 목록)는
   // false(기본)로 두고 이 컴포넌트가 그린다.
   hideAdjustments?: boolean;
+  // AI 추천(addedByAi) 배지를 저장 전 바로 지우는 전용 액션. editor와 무관하게
+  // 저장 전 미리보기 화면(editor 없음)에서도 쓸 수 있게 별도로 둔다.
+  onDismissAiSuggestion?: (dayId: string, itemId: string) => void;
+  // 일정 생성 요청에 startContentId로 지정한 장소의 contentId. 신규 생성
+  // 직후 미리보기 화면에서만 넘어온다 — 저장된 일정 재조회 경로는 원래
+  // 요청값을 모르므로 생략한다.
+  startContentId?: string;
+  // 선택된 일정안의 이동수단. 저장된 일정 재조회·공유 페이지처럼 이동수단을
+  // 모르는 경로는 기존과 같은 CAR 기본값을 쓴다(백엔드가 저장 응답에
+  // travelMode를 담지 않는다).
+  travelMode?: TravelMode;
 }
 
 export function ItineraryResult({
@@ -62,6 +73,9 @@ export function ItineraryResult({
   onSelectDay,
   hideMap = false,
   hideAdjustments = false,
+  onDismissAiSuggestion,
+  startContentId,
+  travelMode = "CAR",
 }: ItineraryResultProps) {
   const [replaceTarget, setReplaceTarget] = useState<{
     dayId: string;
@@ -88,6 +102,10 @@ export function ItineraryResult({
   const dayIndex =
     days.length === 0 ? 0 : Math.min(Math.max(rawIndex, 0), days.length - 1);
   const selectedDay = days[dayIndex];
+  // "출발" 배지는 여행 전체에서 시작 장소로 고정한 그 한 자리에만 붙어야
+  // 한다. 첫째 날이 아니면 startContentId를 아예 넘기지 않는다 — 같은
+  // 콘텐츠를 나중에 다시 방문해도 그 항목까지 배지가 붙는 걸 막는다.
+  const isFirstDay = days.length > 0 && selectedDay === days[0];
 
   return (
     <section>
@@ -125,12 +143,16 @@ export function ItineraryResult({
                   ? (dayId, itemId) => setReplaceTarget({ dayId, itemId })
                   : undefined
               }
+              onDismissAiSuggestion={onDismissAiSuggestion}
+              startContentId={isFirstDay ? startContentId : undefined}
+              travelMode={travelMode}
             />
           </div>
           {hasAnyRoute && !hideMap && (
             <p className="mt-3.5 px-0.5 text-[12px] leading-relaxed text-muted-foreground">
-              이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로
-              기준입니다. 순서를 바꾸면 다시 계산돼요.
+              {travelMode === "CAR"
+                ? "이동 시간·거리는 카카오 모빌리티 자동차 길찾기 실제 도로 기준입니다. 순서를 바꾸면 다시 계산돼요."
+                : "이동 시간·거리는 도보·대중교통 소요시간 근사치예요(실제 노선·배차는 반영하지 않아요). 지도의 경로선은 참고용 도로 기준이에요."}
             </p>
           )}
           {!hideMap && (
@@ -139,6 +161,7 @@ export function ItineraryResult({
                 days={days}
                 mapData={resolvedMapData}
                 selectedDayIndex={dayIndex}
+                travelMode={travelMode}
               />
             </div>
           )}

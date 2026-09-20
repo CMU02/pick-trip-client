@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ContentImage } from "@/components/ContentImage";
 import { Button } from "@/components/ui/button";
+import { VisitorStatsCaption } from "@/components/VisitorStatsCaption";
 import { CATEGORY_LABELS, type Content } from "@/types/content";
 import { REGION_LABELS } from "@/types/region";
 
@@ -42,6 +43,7 @@ export function ExploreCard({ content }: ExploreCardProps) {
           <p className="line-clamp-2 text-sm text-foreground/80">
             {content.summary}
           </p>
+          <VisitorStatsCaption stats={content.visitorStats} />
         </div>
       </Link>
 

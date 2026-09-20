@@ -65,6 +65,33 @@ describe("PlaceItem", () => {
     expect(screen.queryByText(/머무는 시간/)).not.toBeInTheDocument();
   });
 
+  it("v3: inclinePenaltyMinutes가 0보다 크면 오르막 캡션을 표시한다", () => {
+    render(
+      <PlaceItem
+        item={makeItem({
+          elevationGainMeters: 120.5,
+          inclinePenaltyMinutes: 12,
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText("오르막 반영 +12분 · 상승 121m"),
+    ).toBeInTheDocument();
+  });
+
+  it("v3: inclinePenaltyMinutes가 0이거나 없으면 오르막 캡션을 표시하지 않는다", () => {
+    const { rerender } = render(
+      <PlaceItem
+        item={makeItem({ elevationGainMeters: 0, inclinePenaltyMinutes: 0 })}
+      />,
+    );
+    expect(screen.queryByText(/오르막 반영/)).not.toBeInTheDocument();
+
+    rerender(<PlaceItem item={makeItem()} />);
+    expect(screen.queryByText(/오르막 반영/)).not.toBeInTheDocument();
+  });
+
   it("방문 시각이 없어도 시각 열 placeholder를 유지한다", () => {
     render(<PlaceItem item={makeItem({ startTime: null, endTime: null })} />);
 
@@ -174,5 +201,68 @@ describe("PlaceItem", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "정말 삭제?" }));
     expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it("addedByAi=true이면 AI 추천 배지를 표시한다", () => {
+    render(<PlaceItem item={makeItem({ addedByAi: true })} />);
+
+    expect(screen.getByText("AI 추천")).toBeInTheDocument();
+  });
+
+  it("onDismissAiSuggestion이 없으면 AI 추천 배지는 버튼이 아니다", () => {
+    render(<PlaceItem item={makeItem({ addedByAi: true })} />);
+
+    expect(
+      screen.queryByRole("button", { name: "AI 추천 삭제" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("AI 추천 배지 클릭 시 onDismissAiSuggestion을 바로 호출한다(확인 단계 없음)", async () => {
+    const onDismissAiSuggestion = vi.fn();
+    render(
+      <PlaceItem
+        item={makeItem({ addedByAi: true })}
+        onDismissAiSuggestion={onDismissAiSuggestion}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "AI 추천 삭제" }));
+
+    expect(onDismissAiSuggestion).toHaveBeenCalledTimes(1);
+  });
+
+  it("addedForRest=true이면 휴식 배지와 reason(삽입 사유)을 표시한다", () => {
+    render(
+      <PlaceItem
+        item={makeItem({
+          addedForRest: true,
+          reason: "누적 도보 시간이 90분을 넘어 휴식을 추가했어요",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("휴식")).toBeInTheDocument();
+    expect(
+      screen.getByText("누적 도보 시간이 90분을 넘어 휴식을 추가했어요"),
+    ).toBeInTheDocument();
+  });
+
+  it("addedByAi와 addedForRest가 둘 다 없으면 두 배지 모두 렌더하지 않는다", () => {
+    render(<PlaceItem item={makeItem()} />);
+
+    expect(screen.queryByText("AI 추천")).not.toBeInTheDocument();
+    expect(screen.queryByText("휴식")).not.toBeInTheDocument();
+  });
+
+  it("isStartPoint=true이면 출발 배지를 표시한다", () => {
+    render(<PlaceItem item={makeItem()} isStartPoint />);
+
+    expect(screen.getByText("출발")).toBeInTheDocument();
+  });
+
+  it("isStartPoint가 없으면 출발 배지를 렌더하지 않는다", () => {
+    render(<PlaceItem item={makeItem()} />);
+
+    expect(screen.queryByText("출발")).not.toBeInTheDocument();
   });
 });
