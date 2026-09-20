@@ -12,10 +12,12 @@ import {
   formatTimeRange,
   formatTravelMinutes,
   hasEmptyDay,
+  minutesToTime,
   stayMinutes,
   sumDayTravel,
   sumRouteTravel,
   sumStayMinutes,
+  timeToMinutes,
   toSaveDays,
 } from "./itinerary";
 
@@ -128,6 +130,34 @@ describe("sumRouteTravel", () => {
         { dayIndex: 2, points: [], route: null },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("timeToMinutes", () => {
+  it('"HH:mm"을 자정 기준 분으로 바꾼다', () => {
+    expect(timeToMinutes("00:00")).toBe(0);
+    expect(timeToMinutes("09:30")).toBe(570);
+    expect(timeToMinutes("23:59")).toBe(1439);
+  });
+
+  it("값이 없거나 형식이 어긋나면 null", () => {
+    expect(timeToMinutes(null)).toBeNull();
+    expect(timeToMinutes(undefined)).toBeNull();
+    expect(timeToMinutes("")).toBeNull();
+    expect(timeToMinutes("아침")).toBeNull();
+  });
+});
+
+describe("minutesToTime", () => {
+  it('분을 "HH:mm"으로 바꾼다', () => {
+    expect(minutesToTime(0)).toBe("00:00");
+    expect(minutesToTime(570)).toBe("09:30");
+    expect(minutesToTime(1439)).toBe("23:59");
+  });
+
+  it("하루를 넘는 값은 자정으로 되감지 않고 그대로 이어 센다", () => {
+    // 되감으면 "00:30"이 되어 앞 스톱보다 이른 시각으로 보인다(v3 미리보기 버그).
+    expect(minutesToTime(1470)).toBe("24:30");
   });
 });
 

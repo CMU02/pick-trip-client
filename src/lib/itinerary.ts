@@ -39,6 +39,25 @@ export function formatTimeRange(
   return start || end || null;
 }
 
+/** "09:30" → 570(자정 기준 분). 값이 없거나 형식이 어긋나면 null. */
+export function timeToMinutes(time?: string | null): number | null {
+  if (!time) return null;
+  const [h, m] = time.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+/**
+ * 570 → "09:30". 하루(1440분)를 넘어도 자정으로 되감지 않는다 — 되감으면 앞
+ * 스톱보다 이른 시각으로 보여 시간이 거꾸로 흐르는 것처럼 된다. 하루를 넘는
+ * 값을 화면에 안 띄우는 건 호출부 몫이다.
+ */
+export function minutesToTime(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 /**
  * "09:30","11:00" → 90(분). 한쪽이라도 없거나 형식이 어긋나거나 0 이하면 null.
  * 장소 카드의 "머무는 시간"과 여행 요약의 "총 머무는 시간"이 같은 규칙을 쓰도록 공유한다.
@@ -47,11 +66,10 @@ export function stayMinutes(
   start?: string | null,
   end?: string | null,
 ): number | null {
-  if (!start || !end) return null;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
-  const diff = eh * 60 + em - (sh * 60 + sm);
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+  if (startMinutes === null || endMinutes === null) return null;
+  const diff = endMinutes - startMinutes;
   return diff > 0 ? diff : null;
 }
 
