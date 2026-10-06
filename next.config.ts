@@ -14,23 +14,37 @@ const IMAGE_HOSTS =
   "https://tong.visitkorea.or.kr http://tong.visitkorea.or.kr";
 
 // Kakao 지도 SDK 예외. SDK 진입점은 dapi.kakao.com 이고, 이후 지도 엔진
-// 스크립트·스타일·래스터 타일·마커 스프라이트를 Daum CDN(*.daumcdn.net)에서
-// 받아온다. 길찾기(apis-navi.kakaomobility.com)는 서버 Route Handler
-// (/api/directions)에서만 호출하므로 REST 키가 브라우저에 노출되지 않고
-// connect-src 도 dapi.kakao.com 만 열면 된다. JS 키는 Kakao 콘솔에서 도메인
-// 제한을 건다.
+// 스크립트·스타일·래스터 타일·마커 스프라이트를 Kakao CDN에서 받아온다.
+// 길찾기(apis-navi.kakaomobility.com)는 서버 Route Handler(/api/directions)에서만
+// 호출하므로 REST 키가 브라우저에 노출되지 않고 connect-src 도 dapi.kakao.com 만
+// 열면 된다. JS 키는 Kakao 콘솔에서 도메인 제한을 건다.
+//
+// 호스트는 sdk.js(4.5.28)가 실제로 참조하는 값에서 뽑았다. 엔진·부가 라이브러리·
+// 로드뷰 스크립트는 RESOURCE_DOMAIN.STATIC(t1.kakaocdn.net), 래스터 타일은
+// mts.kakaocdn.net, 스카이뷰 타일은 map.kakaocdn.net, 실시간 교통 오버레이는
+// ctt-image.kakaocdn.net 이다. 과거 *.daumcdn.net 만 열어 두어 엔진 스크립트가
+// script-src-elem 위반으로 차단돼 kakao.maps.load 콜백이 끝내 오지 않았고,
+// 화면이 "지도를 불러오는 중…"에 영구히 머물렀다. daumcdn 항목은 구버전 SDK
+// 경로가 남아 있을 수 있어 호환용으로 함께 둔다.
+//
 // SDK 진입점(dapi.kakao.com)은 https지만, 그 다음 로드하는 지도 엔진
-// 스크립트·스타일(t1.daumcdn.net)은 프로토콜 상대 URL이라 페이지 origin을
-// 따라간다. https가 없는 dev(http://localhost)에서는 http로 요청되므로
-// script-src/style-src에도 http 스킴을 함께 열어야 kakao.maps.load가 끝난다.
-const KAKAO_SCRIPT_HOSTS = `https://dapi.kakao.com https://t1.daumcdn.net https://*.daumcdn.net${
-  isDev ? " http://t1.daumcdn.net http://*.daumcdn.net" : ""
+// 스크립트·스타일은 프로토콜 상대 URL이라 페이지 origin을 따라간다. https가
+// 없는 dev(http://localhost)에서는 http로 요청되므로 script-src/style-src에도
+// http 스킴을 함께 열어야 kakao.maps.load가 끝난다.
+const KAKAO_SCRIPT_HOSTS = `https://dapi.kakao.com https://t1.kakaocdn.net https://t1.daumcdn.net https://*.daumcdn.net${
+  isDev
+    ? " http://t1.kakaocdn.net http://t1.daumcdn.net http://*.daumcdn.net"
+    : ""
 }`;
-const KAKAO_STYLE_HOSTS = `https://t1.daumcdn.net https://*.daumcdn.net${
-  isDev ? " http://t1.daumcdn.net http://*.daumcdn.net" : ""
+const KAKAO_STYLE_HOSTS = `https://t1.kakaocdn.net https://t1.daumcdn.net https://*.daumcdn.net${
+  isDev
+    ? " http://t1.kakaocdn.net http://t1.daumcdn.net http://*.daumcdn.net"
+    : ""
 }`;
-const KAKAO_IMG_HOSTS = `https://*.daumcdn.net https://t1.daumcdn.net https://dapi.kakao.com${
-  isDev ? " http://*.daumcdn.net" : ""
+const KAKAO_IMG_HOSTS = `https://mts.kakaocdn.net https://map.kakaocdn.net https://ctt-image.kakaocdn.net https://t1.kakaocdn.net https://*.daumcdn.net https://t1.daumcdn.net https://dapi.kakao.com${
+  isDev
+    ? " http://mts.kakaocdn.net http://map.kakaocdn.net http://ctt-image.kakaocdn.net http://t1.kakaocdn.net http://*.daumcdn.net"
+    : ""
 }`;
 const KAKAO_CONNECT_HOSTS = "https://dapi.kakao.com";
 
