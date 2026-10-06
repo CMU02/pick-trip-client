@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cache } from "react";
 
 import { ItineraryResult } from "@/app/itinerary/_components/ItineraryResult";
+import { KakaoMapsPreload } from "@/components/layout/KakaoMapsPreload";
 import { Button } from "@/components/ui/button";
 import { toLatLng } from "@/lib/geo";
 import { fetchKakaoDirections } from "@/lib/kakaoDirections";
@@ -96,6 +97,9 @@ export default async function SharePage({ params }: SharePageProps) {
 
     return (
       <main className="min-h-full bg-[oklch(0.985_0.008_30)]">
+        {/* 이 화면은 바로 일차 지도를 그린다. 하이드레이션을 기다리지 않고
+            HTML 파싱 시점부터 Kakao Maps SDK를 받기 시작하게 한다. */}
+        <KakaoMapsPreload />
         <section className="bg-gradient-to-br from-[oklch(0.63_0.2_30)] to-[oklch(0.53_0.2_16)] px-4 py-12 text-white">
           <div className="mx-auto max-w-[900px]">
             <div className="flex items-center gap-2">

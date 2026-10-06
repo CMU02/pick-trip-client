@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-
+import { KakaoMapsPreload } from "@/components/layout/KakaoMapsPreload";
 import { getContentFetchErrorMessage } from "@/lib/content";
 import { parseApiError } from "@/lib/errors";
+import { isValidKoreaCoord } from "@/lib/geo";
 import { SITE_URL } from "@/lib/site";
 import { getContentById } from "@/services/contentService";
 import { REGION_LABELS } from "@/types/region";
@@ -95,11 +96,19 @@ export default async function ContentDetailPage({
   }
 
   return (
-    <ContentDetailView
-      content={content}
-      showBasketAction={from !== "explore"}
-      backHref={from === "explore" ? "/explore" : undefined}
-      fromParam={from}
-    />
+    <>
+      {/* 좌표가 있을 때만 상세 화면이 지도를 그린다(ContentDetailView의
+          hasCoord). 하이드레이션을 기다리지 않고 HTML 파싱 시점부터 Kakao
+          Maps SDK를 받기 시작하게 한다. */}
+      {isValidKoreaCoord(content.latitude, content.longitude) && (
+        <KakaoMapsPreload />
+      )}
+      <ContentDetailView
+        content={content}
+        showBasketAction={from !== "explore"}
+        backHref={from === "explore" ? "/explore" : undefined}
+        fromParam={from}
+      />
+    </>
   );
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { KakaoMapsPreload } from "@/components/layout/KakaoMapsPreload";
+
 import { ItineraryClient } from "./_components/ItineraryClient";
 
 // 입력한 조건에 따라 매번 달라지는 개인화 결과라 검색 결과에 노출될 이유가 없다.
@@ -32,6 +34,9 @@ export default async function ItineraryPage({
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8">
+      {/* 생성 결과가 나오면 곧바로 일차 지도를 그린다. 하이드레이션을
+          기다리지 않고 HTML 파싱 시점부터 SDK를 받기 시작하게 한다. */}
+      <KakaoMapsPreload />
       <ItineraryClient
         regions={regions}
         startDate={startDate}
