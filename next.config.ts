@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { KAKAO_MAPS_CDN_HOST, KAKAO_MAPS_SDK_HOST } from "./src/lib/kakaoMap";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
@@ -31,22 +33,23 @@ const IMAGE_HOSTS =
 // 스크립트·스타일은 프로토콜 상대 URL이라 페이지 origin을 따라간다. https가
 // 없는 dev(http://localhost)에서는 http로 요청되므로 script-src/style-src에도
 // http 스킴을 함께 열어야 kakao.maps.load가 끝난다.
-const KAKAO_SCRIPT_HOSTS = `https://dapi.kakao.com https://t1.kakaocdn.net https://t1.daumcdn.net https://*.daumcdn.net${
+//
+// SDK·엔진 CDN 호스트는 프리로드(KakaoMapsPreload)·로더와 같은 상수에서 가져온다.
+// 한쪽만 바뀌어 CSP가 엔진 스크립트를 다시 막는 일이 없게 하기 위해서다.
+const SDK = KAKAO_MAPS_SDK_HOST;
+const CDN = KAKAO_MAPS_CDN_HOST;
+const KAKAO_SCRIPT_HOSTS = `https://${SDK} https://${CDN} https://t1.daumcdn.net https://*.daumcdn.net${
+  isDev ? ` http://${CDN} http://t1.daumcdn.net http://*.daumcdn.net` : ""
+}`;
+const KAKAO_STYLE_HOSTS = `https://${CDN} https://t1.daumcdn.net https://*.daumcdn.net${
+  isDev ? ` http://${CDN} http://t1.daumcdn.net http://*.daumcdn.net` : ""
+}`;
+const KAKAO_IMG_HOSTS = `https://mts.kakaocdn.net https://map.kakaocdn.net https://ctt-image.kakaocdn.net https://${CDN} https://*.daumcdn.net https://t1.daumcdn.net https://${SDK}${
   isDev
-    ? " http://t1.kakaocdn.net http://t1.daumcdn.net http://*.daumcdn.net"
+    ? ` http://mts.kakaocdn.net http://map.kakaocdn.net http://ctt-image.kakaocdn.net http://${CDN} http://*.daumcdn.net`
     : ""
 }`;
-const KAKAO_STYLE_HOSTS = `https://t1.kakaocdn.net https://t1.daumcdn.net https://*.daumcdn.net${
-  isDev
-    ? " http://t1.kakaocdn.net http://t1.daumcdn.net http://*.daumcdn.net"
-    : ""
-}`;
-const KAKAO_IMG_HOSTS = `https://mts.kakaocdn.net https://map.kakaocdn.net https://ctt-image.kakaocdn.net https://t1.kakaocdn.net https://*.daumcdn.net https://t1.daumcdn.net https://dapi.kakao.com${
-  isDev
-    ? " http://mts.kakaocdn.net http://map.kakaocdn.net http://ctt-image.kakaocdn.net http://t1.kakaocdn.net http://*.daumcdn.net"
-    : ""
-}`;
-const KAKAO_CONNECT_HOSTS = "https://dapi.kakao.com";
+const KAKAO_CONNECT_HOSTS = `https://${SDK}`;
 
 // 브라우저 리소스는 Kakao 지도(위 KAKAO_* 예외)를 빼면 전부 same-origin이다.
 // - 스크립트/스타일: Next.js와 next/font가 셀프 호스팅한다. (Kakao 지도 SDK만 외부 CDN)
