@@ -4,12 +4,12 @@ import { cache } from "react";
 import { KakaoMapsPreload } from "@/components/layout/KakaoMapsPreload";
 import { getContentFetchErrorMessage } from "@/lib/content";
 import { parseApiError } from "@/lib/errors";
-import { isValidKoreaCoord } from "@/lib/geo";
 import { SITE_URL } from "@/lib/site";
 import { getContentById } from "@/services/contentService";
 import { REGION_LABELS } from "@/types/region";
 
 import { ContentDetailView } from "./_components/ContentDetailView";
+import { hasContentCoord } from "./_lib/contentCoord";
 import { buildContentJsonLd } from "./_lib/contentJsonLd";
 
 type Props = {
@@ -100,12 +100,10 @@ export default async function ContentDetailPage({
 
   return (
     <>
-      {/* 좌표가 있을 때만 상세 화면이 지도를 그린다(ContentDetailView의
-          hasCoord). 하이드레이션을 기다리지 않고 HTML 파싱 시점부터 Kakao
-          Maps SDK를 받기 시작하게 한다. */}
-      {isValidKoreaCoord(content.latitude, content.longitude) && (
-        <KakaoMapsPreload />
-      )}
+      {/* 좌표가 있을 때만 상세 화면이 지도를 그린다. ContentDetailView와 같은
+          판정(hasContentCoord)을 써서 조건이 어긋나지 않게 한다. 하이드레이션을
+          기다리지 않고 HTML 파싱 시점부터 Kakao Maps SDK를 받기 시작하게 한다. */}
+      {hasContentCoord(content) && <KakaoMapsPreload />}
 
       {/* JSON-LD TouristAttraction. TourAPI 원본 텍스트가 그대로 실리지만,
           React가 문자열 children 안의 </script> 시퀀스를 s 로 중화해
