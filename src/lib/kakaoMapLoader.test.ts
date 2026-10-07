@@ -45,21 +45,26 @@ describe("loadKakaoMaps", () => {
     await expect(promise).resolves.toBeUndefined();
   });
 
-  it("문서에 이미 있는 SDK 스크립트를 재사용해 두 번 받지 않는다", async () => {
-    // preinit 으로 서버가 HTML 에 먼저 끼워 넣은 스크립트. 우리가 붙인 게
-    // 아니라 id 가 없다.
-    const preinited = document.createElement("script");
-    preinited.async = true;
-    preinited.src = SDK_SRC;
-    document.head.appendChild(preinited);
+  it("SSR 프리로드 태그는 결과를 알 수 없으므로 새 태그로 바꿔 붙인다", async () => {
+    // KakaoMapsPreload 가 HTML 에 실어 보낸 태그. HTML 파싱 중에 실행되므로
+    // 하이드레이션 전에 이미 실패했다면 지금 붙이는 error 리스너는 호출되지
+    // 않는다. 그 태그를 기다리면 상한까지 스피너에 머문다.
+    const preloaded = document.createElement("script");
+    preloaded.async = true;
+    preloaded.id = "kakao-maps-sdk";
+    preloaded.src = SDK_SRC;
+    document.head.appendChild(preloaded);
 
     const { loadKakaoMaps } = await import("./kakaoMapLoader");
     const promise = loadKakaoMaps();
 
-    expect(sdkScripts()).toHaveLength(1);
+    const scripts = sdkScripts();
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]).not.toBe(preloaded);
+    expect(scripts[0].id).toBe("kakao-maps-sdk");
 
     installMapsStub((cb) => cb());
-    preinited.dispatchEvent(new Event("load"));
+    scripts[0].dispatchEvent(new Event("load"));
 
     await expect(promise).resolves.toBeUndefined();
   });
@@ -87,19 +92,91 @@ describe("loadKakaoMaps", () => {
     await rejected;
   });
 
-  it("타임아웃 뒤 다시 호출하면 새로 로드를 시도한다", async () => {
+  it("상한에 sdk.js 다운로드 시간은 넣지 않는다", async () => {
     vi.useFakeTimers();
     const { loadKakaoMaps } = await import("./kakaoMapLoader");
 
+    const promise = loadKakaoMaps();
+    // 느린 회선에서 sdk.js 받는 데만 상한보다 오래 걸린 상황.
+    await vi.advanceTimersByTimeAsync(20_000);
+
+    installMapsStub((cb) => cb());
+    sdkScripts()[0].dispatchEvent(new Event("load"));
+
+    await expect(promise).resolves.toBeUndefined();
+  });
+
+  it("상한을 넘긴 뒤 초기화가 끝나면 구독자에게 알리고 다음 호출은 바로 성공한다", async () => {
+    vi.useFakeTimers();
+    const { loadKakaoMaps, onKakaoMapsLateReady } = await import(
+      "./kakaoMapLoader"
+    );
+    const lateReady = vi.fn();
+    onKakaoMapsLateReady(lateReady);
+
+    const promise = loadKakaoMaps();
+    let finishInit = () => {};
+    installMapsStub((cb) => {
+      finishInit = cb;
+    });
+    sdkScripts()[0].dispatchEvent(new Event("load"));
+
+    const rejected = expect(promise).rejects.toThrow(/timed out/i);
+    await vi.advanceTimersByTimeAsync(15_000);
+    await rejected;
+    expect(lateReady).not.toHaveBeenCalled();
+
+    // 느린 회선에서 본체(kakao.js)가 상한 뒤에야 끝난 경우.
+    finishInit();
+
+    expect(lateReady).toHaveBeenCalledTimes(1);
+    await expect(loadKakaoMaps()).resolves.toBeUndefined();
+  });
+
+  it("구독을 해제하면 늦은 초기화 알림을 받지 않는다", async () => {
+    vi.useFakeTimers();
+    const { loadKakaoMaps, onKakaoMapsLateReady } = await import(
+      "./kakaoMapLoader"
+    );
+    const lateReady = vi.fn();
+    const unsubscribe = onKakaoMapsLateReady(lateReady);
+
+    const promise = loadKakaoMaps();
+    let finishInit = () => {};
+    installMapsStub((cb) => {
+      finishInit = cb;
+    });
+    sdkScripts()[0].dispatchEvent(new Event("load"));
+
+    const rejected = expect(promise).rejects.toThrow(/timed out/i);
+    await vi.advanceTimersByTimeAsync(15_000);
+    await rejected;
+
+    unsubscribe();
+    finishInit();
+
+    expect(lateReady).not.toHaveBeenCalled();
+  });
+
+  it("타임아웃 뒤 다시 호출하면 새 프라미스로 다시 기다린다", async () => {
+    vi.useFakeTimers();
+    const { loadKakaoMaps } = await import("./kakaoMapLoader");
+
+    const pending: (() => void)[] = [];
     const first = loadKakaoMaps();
+    installMapsStub((cb) => {
+      pending.push(cb);
+    });
+    sdkScripts()[0].dispatchEvent(new Event("load"));
+
     const rejected = expect(first).rejects.toThrow(/timed out/i);
     await vi.advanceTimersByTimeAsync(15_000);
     await rejected;
 
     // 버려진 프라미스를 재사용하면 두 번째 호출이 즉시 실패해버린다.
     const second = loadKakaoMaps();
-    installMapsStub((cb) => cb());
-    sdkScripts()[0].dispatchEvent(new Event("load"));
+    expect(pending).toHaveLength(2);
+    pending[1]();
 
     await expect(second).resolves.toBeUndefined();
   });
