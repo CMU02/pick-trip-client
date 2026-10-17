@@ -11,6 +11,7 @@ import {
 } from "vitest";
 import { ApiError } from "@/lib/errors";
 import { FAVORITES_QUERY_KEY } from "@/lib/queryKeys";
+import { useBasketStore } from "@/stores/basketStore";
 import type { UserMeResponse } from "@/types/auth";
 import { AuthProvider, useAuth } from "./useAuth";
 
@@ -62,6 +63,51 @@ describe("useAuth", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("로그인 직후 비회원 바구니 정리", () => {
+    const basketItem = {
+      content: {
+        id: "c1",
+        name: "쌍계사",
+        region: "HADONG" as const,
+        imageUrl: null,
+        address: "경남 하동군",
+      },
+      addedAt: 1,
+      priority: "MUST" as const,
+      desiredStayMinutes: 90,
+    };
+
+    beforeEach(() => {
+      mockPost.mockResolvedValue(
+        sessionData({ accessToken: "access-1", user: mockUser }),
+      );
+      useBasketStore.getState().save([basketItem]);
+    });
+
+    afterEach(() => {
+      // biome-ignore lint/suspicious/noDocumentCookie: 테스트에서 표식 쿠키를 직접 심고 지운다
+      document.cookie = "pt_just_logged_in=; max-age=0; path=/";
+      useBasketStore.getState().clear();
+    });
+
+    it("로그인 표식 쿠키가 있으면 바구니를 비우고 표식을 지운다", async () => {
+      // biome-ignore lint/suspicious/noDocumentCookie: 테스트에서 표식 쿠키를 직접 심고 지운다
+      document.cookie = "pt_just_logged_in=1; path=/";
+
+      renderHook(() => useAuth(), { wrapper: createWrapper() });
+
+      expect(useBasketStore.getState().items).toEqual([]);
+      expect(localStorage.getItem("pick-trip-basket")).toBeNull();
+      expect(document.cookie).not.toContain("pt_just_logged_in");
+    });
+
+    it("표식이 없으면(이미 로그인된 상태의 일반 로드) 바구니를 건드리지 않는다", async () => {
+      renderHook(() => useAuth(), { wrapper: createWrapper() });
+
+      expect(useBasketStore.getState().items).toEqual([basketItem]);
+    });
   });
 
   it("useAuth를 AuthProvider 밖에서 쓰면 에러를 던진다", () => {

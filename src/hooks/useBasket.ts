@@ -14,6 +14,7 @@ export function useBasket() {
   }, [hydrate]);
 
   const items = useBasketStore((s) => s.items);
+  const hydrated = useBasketStore((s) => s.hydrated);
   const add = useBasketStore((s) => s.add);
   const remove = useBasketStore((s) => s.remove);
   const isInBasket = useBasketStore((s) => s.isInBasket);
@@ -24,6 +25,7 @@ export function useBasket() {
 
   return {
     items,
+    hydrated,
     add,
     remove,
     isInBasket,

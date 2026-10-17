@@ -6,6 +6,20 @@ export const OAUTH_NEXT_COOKIE = "pt_oauth_next";
 // 로그인 개시 시 프론트가 생성해 백엔드 인가 state에 바인딩하는 난수.
 // 콜백 교환에서 code와 함께 검증해 login CSRF를 막는 개시 바인딩 값이다.
 export const OAUTH_NONCE_COOKIE = "pt_oauth_nonce";
+// 로그인 성공 직후 첫 페이지 로드에서만 클라이언트가 읽고 지우는 1회용 표식.
+// 로그인 전(비회원) 바구니를 비우는 트리거로, 이미 로그인된 사용자의 일반
+// 페이지 로드와 구분하려고 둔다. 클라이언트 JS가 읽어야 해서 httpOnly가 아니다.
+export const LOGIN_MARKER_COOKIE = "pt_just_logged_in";
+
+export function loginMarkerCookieOptions() {
+  return {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 60,
+  };
+}
 
 // OAuth 왕복(백엔드 → 소셜 인가 화면 → 백엔드 콜백 → /auth/callback) 동안만
 // 유효하면 되는 짧은 TTL. state 검증은 백엔드가 자체 쿠키로 처리하므로

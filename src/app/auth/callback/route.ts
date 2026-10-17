@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import {
   AUTH_COOKIE_PATH,
+  LOGIN_MARKER_COOKIE,
+  loginMarkerCookieOptions,
   OAUTH_NEXT_COOKIE,
   OAUTH_NONCE_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -59,6 +61,7 @@ export async function GET(request: NextRequest) {
       tokens.refreshToken,
       refreshTokenCookieOptions(),
     );
+    response.cookies.set(LOGIN_MARKER_COOKIE, "1", loginMarkerCookieOptions());
     return response;
   } catch {
     return redirectToLoginError();
