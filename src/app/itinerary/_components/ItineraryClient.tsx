@@ -531,7 +531,12 @@ export function ItineraryClient({
   const [requestedStartContentId, setRequestedStartContentId] = useState<
     string | undefined
   >(undefined);
-  const { items, clear: clearBasket, save: saveBasket } = useBasket();
+  const {
+    items,
+    hydrated: basketHydrated,
+    clear: clearBasket,
+    save: saveBasket,
+  } = useBasket();
   const { add: addSavedItinerary } = useSavedItineraries();
   const setMapSnapshot = useItineraryMapSnapshotStore((s) => s.set);
   const { runAuthed } = useAuth();
@@ -716,7 +721,19 @@ export function ItineraryClient({
   useEffect(() => {
     if (!autoResume || autoResumeTriggered.current) return;
     if (phase.status !== "idle") return;
-    if (items.length < 2) return;
+    // 바구니가 로드되기 전의 빈 배열을 "비어 있음"으로 오판하지 않는다.
+    if (!basketHydrated) return;
+    // 로그인 시 비회원 바구니를 비우므로 비어 있을 수 있다 — 빈 바구니로
+    // generate를 쏘지 않고, 남은 임시 옵션만 지운 채 기본 화면에 머문다.
+    if (items.length < 2) {
+      autoResumeTriggered.current = true;
+      try {
+        sessionStorage.removeItem(PENDING_GENERATE_OPTIONS_KEY);
+      } catch {
+        // 접근 실패는 무시한다.
+      }
+      return;
+    }
     autoResumeTriggered.current = true;
 
     let options: ItineraryGenerateRequest = { travelModes: ALL_TRAVEL_MODES };
@@ -728,7 +745,7 @@ export function ItineraryClient({
       // 접근/파싱 실패는 기본 옵션으로 대체한다.
     }
     handleGenerate(options);
-  }, [autoResume, phase.status, items.length]);
+  }, [autoResume, phase.status, items.length, basketHydrated]);
 
   // 선택 화면(VariantSelector)에서 안을 하나 확정한다. 이후 결과 화면은
   // 이 안의 days/adjustments만 보여준다.

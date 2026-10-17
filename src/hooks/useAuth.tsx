@@ -1,10 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useLayoutEffect, useMemo } from "react";
+import { LOGIN_MARKER_COOKIE } from "@/lib/authCookies";
 import { parseApiError } from "@/lib/errors";
 import { FAVORITES_QUERY_KEY, SESSION_QUERY_KEY } from "@/lib/queryKeys";
 import { apiClient } from "@/services/apiClient";
+import { useBasketStore } from "@/stores/basketStore";
 import type { UserMeResponse } from "@/types/auth";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -33,6 +35,18 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient();
+
+  // OAuth 콜백이 심은 1회용 표식이 있으면 방금 로그인한 것이므로, 비회원일 때
+  // 담은 바구니(우선순위·체류시간 포함)를 비운다. 표식은 읽자마자 지운다.
+  // layout effect라 자식의 바구니 hydrate(passive effect)·autoResume보다 먼저
+  // 실행돼, 비워진 상태가 그대로 로드된다.
+  useLayoutEffect(() => {
+    const marker = `${LOGIN_MARKER_COOKIE}=`;
+    if (!document.cookie.split("; ").some((c) => c.startsWith(marker))) return;
+    // biome-ignore lint/suspicious/noDocumentCookie: 표식 쿠키 삭제는 동기 접근이 필요해 Cookie Store API 대신 쓴다
+    document.cookie = `${marker}; max-age=0; path=/`;
+    useBasketStore.getState().clear();
+  }, []);
 
   // 세션은 서버 상태이므로 React Query로 캐싱한다. staleTime을 무한으로 두어
   // 명시적 refresh/logout이 있을 때만 갱신한다.

@@ -20,11 +20,14 @@ const {
   mockClearBasket,
   mockSaveBasket,
   mockUseItineraryMapData,
+  mockBasketState,
 } = vi.hoisted(() => ({
   mockAddSavedItinerary: vi.fn(),
   mockClearBasket: vi.fn(),
   mockSaveBasket: vi.fn(),
   mockUseItineraryMapData: vi.fn(),
+  // 로그인 시 비회원 바구니가 비워진 상황을 흉내 내는 스위치.
+  mockBasketState: { empty: false },
 }));
 
 vi.mock("@/services/basketService");
@@ -45,32 +48,35 @@ vi.mock("@/hooks/useAuth", () => ({
 // Zustand 스토어 하이드레이션 커플링을 제거하기 위해 바구니/저장 훅을 직접 mock한다.
 vi.mock("@/hooks/useBasket", () => ({
   useBasket: () => ({
-    items: [
-      {
-        content: {
-          id: "content-1",
-          name: "쌍계사",
-          region: "HADONG",
-          imageUrl: null,
-          address: "경남 하동군",
-        },
-        addedAt: 1,
-        priority: "MUST",
-        desiredStayMinutes: 90,
-      },
-      {
-        content: {
-          id: "content-2",
-          name: "화개장터",
-          region: "HADONG",
-          imageUrl: null,
-          address: "경남 하동군",
-        },
-        addedAt: 2,
-        priority: null,
-        desiredStayMinutes: null,
-      },
-    ],
+    hydrated: true,
+    items: mockBasketState.empty
+      ? []
+      : [
+          {
+            content: {
+              id: "content-1",
+              name: "쌍계사",
+              region: "HADONG",
+              imageUrl: null,
+              address: "경남 하동군",
+            },
+            addedAt: 1,
+            priority: "MUST",
+            desiredStayMinutes: 90,
+          },
+          {
+            content: {
+              id: "content-2",
+              name: "화개장터",
+              region: "HADONG",
+              imageUrl: null,
+              address: "경남 하동군",
+            },
+            addedAt: 2,
+            priority: null,
+            desiredStayMinutes: null,
+          },
+        ],
     clear: mockClearBasket,
     save: mockSaveBasket,
   }),
@@ -161,6 +167,8 @@ describe("ItineraryClient", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
+    mockBasketState.empty = false;
     vi.clearAllMocks();
     mockUseItineraryMapData.mockReturnValue({ status: "ready", days: [] });
     // 대부분의 테스트는 reconcile 자체가 아니라 그 이후 흐름을 검증하므로,
@@ -1488,6 +1496,33 @@ describe("ItineraryClient", () => {
       { travelModes: ["CAR", "TRANSIT"] },
       undefined,
     );
+  });
+
+  it("autoResume인데 바구니가 비어 있으면 generate를 호출하지 않고 임시 옵션을 지운다", async () => {
+    mockBasketState.empty = true;
+    sessionStorage.setItem(
+      "pick-trip:pending-generate-options",
+      JSON.stringify({ travelModes: ["CAR"] }),
+    );
+
+    renderWithClient(
+      <ItineraryClient
+        regions="HADONG"
+        startDate="2026-08-01"
+        nights="1"
+        companions=""
+        autoResume
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        sessionStorage.getItem("pick-trip:pending-generate-options"),
+      ).toBeNull(),
+    );
+    expect(mockUpdateBasketConditions).not.toHaveBeenCalled();
+    expect(mockGenerateItinerary).not.toHaveBeenCalled();
+    expect(screen.queryByText(/오류|실패/)).not.toBeInTheDocument();
   });
 
   it("generate가 AUTH_REQUIRED가 아닌 오류로 실패하면 기존처럼 오류 메시지를 표시한다", async () => {
